@@ -1,0 +1,395 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useAuth } from "./context/AuthContext.jsx";
+import { useOrg } from "./context/OrgContext.jsx";
+import Landing from "./pages/Landing.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
+import Events from "./pages/Events.jsx";
+import VolunteerHours from "./pages/VolunteerHours.jsx";
+import Tutoring from "./pages/Tutoring.jsx";
+import Announcements from "./pages/Announcements.jsx";
+import JoinOrg from "./pages/JoinOrg.jsx";
+import Profile from "./pages/Profile.jsx";
+import Sidebar from "./components/Sidebar.jsx";
+import Topbar from "./components/Topbar.jsx";
+import Toast from "./components/Toast.jsx";
+import AttendanceModal from "./components/AttendanceModal.jsx";
+import ConfirmDialog from "./components/ConfirmDialog.jsx";
+import { errorMessage } from "./api/client.js";
+import {
+  announcementsApi,
+  eventsApi,
+  hoursApi,
+  membersApi,
+  notificationsApi,
+  tutoringApi,
+} from "./api/services.js";
+
+const PAGE_META = {
+  events: {
+    title: "Events",
+    officer: "Create events, track RSVPs and record attendance",
+    member: "Find events and opportunities to join",
+  },
+  hours: {
+    title: "Members & Hours",
+    officer: "Verify volunteer hours and manage the member roster",
+    member: "Log your volunteer hours and track their status",
+  },
+  tutoring: {
+    title: "Peer Tutoring",
+    officer: "Manage tutoring sessions, requests and shared materials",
+    member: "Book a session with a peer tutor",
+  },
+  announcements: {
+    title: "Announcements",
+    officer: "Post updates for the whole organization",
+    member: "Updates from your officers",
+  },
+  profile: {
+    title: "Profile & settings",
+    officer: "Your account details, password and organizations",
+    member: "Your account details, password and organizations",
+  },
+};
+
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+// Lists loaded from the API. Members and applications are officer-only.
+const LOADERS = {
+  events: eventsApi.list,
+  hours: hoursApi.list,
+  leaderboard: hoursApi.leaderboard,
+  sessions: tutoringApi.sessions,
+  requests: tutoringApi.requests,
+  resources: tutoringApi.resources,
+  announcements: announcementsApi.list,
+  notifications: notificationsApi.list,
+  certificates: eventsApi.certificates,
+};
+const OFFICER_LOADERS = {
+  members: membersApi.list,
+  applications: membersApi.applications,
+};
+const EMPTY_DATA = Object.fromEntries(
+  [...Object.keys(LOADERS), ...Object.keys(OFFICER_LOADERS)].map((key) => [key, []])
+);
+
+function MainApp() {
+  const { user } = useAuth();
+  const isOfficer = user.role === "officer";
+  const [page, setPage] = useState("dashboard");
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const [data, setData] = useState(EMPTY_DATA);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [attendanceEvent, setAttendanceEvent] = useState(null);
+  const [confirmState, setConfirmState] = useState(null);
+
+  const [toast, setToast] = useState(null);
+  const toastTimer = useRef(null);
+
+  const flash = useCallback((message, tone = "default") => {
+    setToast({ message, tone });
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  // ---- Loading ----
+  const loaders = isOfficer ? { ...LOADERS, ...OFFICER_LOADERS } : LOADERS;
+
+  const reload = useCallback(
+    async (...keys) => {
+      const list = keys.length ? keys : Object.keys(loaders);
+      const results = await Promise.allSettled(list.map((key) => loaders[key]()));
+      const next = {};
+      let failed = null;
+      results.forEach((r, i) => {
+        if (r.status === "fulfilled") next[list[i]] = r.value || [];
+        else failed = failed || r.reason;
+      });
+      setData((d) => ({ ...d, ...next }));
+      return failed;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isOfficer]
+  );
+
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    setLoadError("");
+    const failed = await reload();
+    if (failed) setLoadError(errorMessage(failed));
+    setLoading(false);
+  }, [reload]);
+
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
+
+  // Check for new notifications every minute
+  useEffect(() => {
+    const timer = setInterval(() => reload("notifications"), 60000);
+    return () => clearInterval(timer);
+  }, [reload]);
+
+  // ---- Helpers for actions ----
+  const set = (key, fn) => setData((d) => ({ ...d, [key]: fn(d[key]) }));
+  const upsert = (key, item) =>
+    set(key, (list) => (list.some((x) => x.id === item.id) ? list.map((x) => (x.id === item.id ? item : x)) : [item, ...list]));
+  const drop = (key, id) => set(key, (list) => list.filter((x) => x.id !== id));
+
+  // Runs an API call, shows a toast, returns true when it worked
+  const run = async (task, success) => {
+    try {
+      await task();
+      if (success) flash(success);
+      return true;
+    } catch (error) {
+      flash(errorMessage(error), "error");
+      return false;
+    }
+  };
+
+  const confirm = (options) =>
+    new Promise((resolve) => setConfirmState({ ...options, resolve }));
+
+  const closeConfirm = (answer) => {
+    confirmState?.resolve(answer);
+    setConfirmState(null);
+  };
+
+  // ---- Events ----
+  const events = {
+    save: (id, form) =>
+      run(async () => upsert("events", id ? await eventsApi.update(id, form) : await eventsApi.create(form)), id ? "Event updated" : "Event published"),
+    remove: async (event) => {
+      const ok = await confirm({
+        title: "Delete event?",
+        message: `"${event.title}" and its RSVPs will be removed. This can't be undone.`,
+        confirmLabel: "Delete event",
+      });
+      if (ok) run(async () => (await eventsApi.remove(event.id), drop("events", event.id)), "Event deleted");
+    },
+    toggleRsvp: (event, going) =>
+      run(
+        async () => upsert("events", going ? await eventsApi.cancelRsvp(event.id) : await eventsApi.rsvp(event.id)),
+        going ? "RSVP cancelled" : `You're going to ${event.title}`
+      ),
+    openAttendance: setAttendanceEvent,
+    saveAttendance: async (event, registrations, completed) => {
+      const present = registrations.filter((r) => r.status === "attended");
+      const ok = await run(
+        async () => upsert("events", await eventsApi.saveAttendance(event.id, present.map((r) => r.id), completed)),
+        completed ? `Attendance saved. Certificates issued to ${present.length}.` : "Attendance saved"
+      );
+      if (ok) setAttendanceEvent(null);
+    },
+    downloadCertificate: (event) =>
+      run(async () => {
+        const res = await eventsApi.certificate(event.id);
+        const url = URL.createObjectURL(res.data);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `certificate-${event.id}.pdf`;
+        link.click();
+        URL.revokeObjectURL(url);
+      }),
+  };
+
+  // ---- Hours & members ----
+  const hours = {
+    log: (form) => run(async () => upsert("hours", await hoursApi.create(form)), "Hours submitted for review"),
+    decide: (log, status) =>
+      run(async () => {
+        upsert("hours", await hoursApi.decide(log.id, status));
+        reload("leaderboard", ...(isOfficer ? ["members"] : []));
+      }, `${log.hours} hrs ${status === "Approved" ? "approved" : "rejected"} for ${log.memberName}`),
+    remove: async (log) => {
+      const ok = await confirm({
+        title: "Delete this log?",
+        message: `${log.hours} hrs for "${log.activity}" will be removed.`,
+        confirmLabel: "Delete",
+      });
+      if (ok) run(async () => (await hoursApi.remove(log.id), drop("hours", log.id)), "Hour log deleted");
+    },
+  };
+
+  const members = {
+    save: (id, form) =>
+      run(async () => upsert("members", id ? await membersApi.update(id, form) : await membersApi.create(form)), id ? "Member updated" : `${form.name} added`),
+    remove: async (member) => {
+      const ok = await confirm({
+        title: "Remove member?",
+        message: `${member.name} will be removed from the roster.`,
+        confirmLabel: "Remove",
+      });
+      if (ok) run(async () => (await membersApi.remove(member.id), drop("members", member.id)), `${member.name} removed`);
+    },
+    decideApplication: (app, status) =>
+      run(async () => {
+        upsert("applications", await membersApi.decideApplication(app.id, status));
+        if (status === "Approved") reload("members");
+      }, status === "Approved" ? `${app.name} is now a member` : `${app.name}'s application was declined`),
+  };
+
+  // ---- Tutoring ----
+  const tutoring = {
+    saveSession: (id, form) =>
+      run(async () => upsert("sessions", id ? await tutoringApi.updateSession(id, form) : await tutoringApi.createSession(form)), id ? "Session updated" : "Session posted"),
+    removeSession: async (session) => {
+      const ok = await confirm({
+        title: "Delete session?",
+        message: `"${session.subject}" and its pending requests will be removed.`,
+        confirmLabel: "Delete session",
+      });
+      if (ok)
+        run(async () => {
+          await tutoringApi.removeSession(session.id);
+          drop("sessions", session.id);
+          set("requests", (list) => list.filter((r) => r.sessionId !== session.id));
+        }, "Session deleted");
+    },
+    request: (session) => run(async () => upsert("requests", await tutoringApi.request(session.id)), "Request sent to the tutor"),
+    decide: (req, status) =>
+      run(
+        async () => {
+          upsert("requests", await tutoringApi.decideRequest(req.id, status));
+          if (status === "Confirmed") reload("sessions"); // approving uses up a slot
+        },
+        { Confirmed: "Tutoring request approved", Rejected: "Tutoring request rejected", Completed: "Session marked as completed" }[status]
+      ),
+    saveResource: (id, form) =>
+      run(async () => upsert("resources", id ? await tutoringApi.updateResource(id, form) : await tutoringApi.createResource(form)), id ? "Resource updated" : "Resource shared"),
+    removeResource: async (resource) => {
+      const ok = await confirm({
+        title: "Delete resource?",
+        message: `"${resource.title}" will be removed for everyone.`,
+        confirmLabel: "Delete",
+      });
+      if (ok) run(async () => (await tutoringApi.removeResource(resource.id), drop("resources", resource.id)), "Resource deleted");
+    },
+  };
+
+  // ---- Announcements ----
+  const announcements = {
+    save: (id, form) =>
+      run(async () => upsert("announcements", id ? await announcementsApi.update(id, form) : await announcementsApi.create(form)), id ? "Announcement updated" : "Announcement posted"),
+    remove: async (post) => {
+      const ok = await confirm({
+        title: "Delete announcement?",
+        message: `"${post.title}" will be removed for everyone.`,
+        confirmLabel: "Delete",
+      });
+      if (ok) run(async () => (await announcementsApi.remove(post.id), drop("announcements", post.id)), "Announcement deleted");
+    },
+    togglePin: (post) =>
+      run(async () => upsert("announcements", await announcementsApi.update(post.id, { ...post, pinned: !post.pinned })), post.pinned ? "Unpinned" : "Pinned to the top"),
+    markRead: (post) => run(async () => upsert("announcements", await announcementsApi.markRead(post.id))),
+    markAllRead: () =>
+      run(async () => {
+        await announcementsApi.markAllRead();
+        set("announcements", (list) => list.map((a) => ({ ...a, isRead: true })));
+      }, "All caught up"),
+  };
+
+  const markNotificationsRead = () =>
+    run(async () => {
+      await notificationsApi.markAllRead();
+      set("notifications", (list) => list.map((n) => ({ ...n, isRead: true })));
+    });
+
+  // ---- Page ----
+  const meta =
+    page === "dashboard"
+      ? {
+          title: `${greeting()}, ${user.name.split(" ")[0]}`,
+          subtitle: new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }),
+        }
+      : { title: PAGE_META[page].title, subtitle: PAGE_META[page][isOfficer ? "officer" : "member"] };
+
+  const pageProps = { data, loading, onNavigate: setPage, flash };
+
+  return (
+    <div className="layout">
+      <Sidebar page={page} onNavigate={setPage} open={menuOpen} onClose={() => setMenuOpen(false)} />
+
+      <main className="main">
+        <Topbar
+          title={meta.title}
+          subtitle={meta.subtitle}
+          notifications={data.notifications}
+          onMarkAllRead={markNotificationsRead}
+          onOpenMenu={() => setMenuOpen(true)}
+        />
+
+        {loadError && (
+          <div className="banner banner-error" role="alert">
+            <span>{loadError}</span>
+            <button type="button" className="btn btn-outline btn-sm" onClick={loadAll}>
+              Try again
+            </button>
+          </div>
+        )}
+
+        {page === "dashboard" && (
+          <Dashboard {...pageProps} events={events} hours={hours} members={members} tutoring={tutoring} />
+        )}
+        {page === "events" && <Events {...pageProps} actions={events} />}
+        {page === "hours" && <VolunteerHours {...pageProps} hours={hours} members={members} />}
+        {page === "tutoring" && <Tutoring {...pageProps} actions={tutoring} />}
+        {page === "announcements" && <Announcements {...pageProps} actions={announcements} />}
+        {page === "profile" && <Profile {...pageProps} />}
+      </main>
+
+      {attendanceEvent && (
+        <AttendanceModal
+          key={attendanceEvent.id}
+          event={attendanceEvent}
+          onClose={() => setAttendanceEvent(null)}
+          onSave={events.saveAttendance}
+        />
+      )}
+
+      {confirmState && (
+        <ConfirmDialog
+          title={confirmState.title}
+          message={confirmState.message}
+          confirmLabel={confirmState.confirmLabel}
+          onCancel={() => closeConfirm(false)}
+          onConfirm={() => closeConfirm(true)}
+        />
+      )}
+
+      <Toast toast={toast} />
+    </div>
+  );
+}
+
+function App() {
+  const { current, loading: orgsLoading, error: orgsError, reload } = useOrg();
+  const { user, checking } = useAuth();
+  const loadingScreen = <div className="app-loading" aria-busy="true" aria-label="Loading" />;
+
+  if (orgsLoading || checking) return loadingScreen;
+  if (!current) {
+    return (
+      <div className="app-error" role="alert">
+        <p>{orgsError || "No organizations found."}</p>
+        <button type="button" className="btn btn-primary" onClick={reload}>Try again</button>
+      </div>
+    );
+  }
+  if (!user) return <Landing />;
+  if (user.orgSlug !== current.slug) return loadingScreen; // switching orgs
+  if (!user.membershipStatus || user.membershipStatus === "Rejected") return <JoinOrg />;
+  // key: switching orgs starts the app fresh and loads that org's data
+  return <MainApp key={current.slug} />;
+}
+
+export default App;

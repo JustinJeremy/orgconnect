@@ -1,0 +1,13 @@
+# Each app also has its own .gitignore (backend/.gitignore, frontend/.gitignore)
+
+# Environment files (keep the .env.example files)
+.env
+.env.*
+!.env.example
+
+# OS / editor junk
+.DS_Store
+__MACOSX/
+Thumbs.db
+.vscode/
+.idea/
