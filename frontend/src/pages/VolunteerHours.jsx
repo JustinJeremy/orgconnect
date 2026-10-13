@@ -113,7 +113,7 @@ function OfficerView({ data, loading, hours: hourActions, members: memberActions
       {tab === "members" && <MemberList members={members} onSave={memberActions.save} onRemove={memberActions.remove} onResetPassword={memberActions.resetPassword} />}
 
       {tab === "applications" && (
-        <Panel title="Membership applications" subtitle="Students who signed up and are waiting to join">
+        <Panel title="Membership applications" tour="applications" subtitle="Students who signed up and are waiting to join">
           <ApprovalCenter applications={applications} onDecideApplication={memberActions.decideApplication} tabs={["memberships"]} />
         </Panel>
       )}
@@ -141,11 +141,11 @@ function MemberView({ data, loading, hours: hourActions }) {
       <StatRow items={stats} loading={loading} />
 
       <div className="dash-grid">
-        <Panel title="Log volunteer hours" className="span-4">
+        <Panel title="Log volunteer hours" className="span-4" tour="log-hours">
           <LogHoursForm onSubmit={hourActions.log} />
         </Panel>
 
-        <Panel title="My hour logs" className="span-8 flush-body" action={<StatusSelect value={status} onChange={setStatus} />}>
+        <Panel title="My hour logs" className="span-8 flush-body" tour="my-logs" action={<StatusSelect value={status} onChange={setStatus} />}>
           {loading || !list.loaded ? (
             <div className="skeleton-list padded" aria-hidden="true"><span /><span /><span /></div>
           ) : list.total === 0 ? (

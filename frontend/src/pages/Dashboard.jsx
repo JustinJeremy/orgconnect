@@ -115,7 +115,7 @@ function OfficerDashboard({ data, loading, onNavigate, events: eventActions, hou
       <StatRow items={stats} loading={loading} />
 
       <div className="dash-grid">
-        <Panel title="Needs review" className="span-8" id="approvals">
+        <Panel title="Needs review" className="span-8" id="approvals" tour="review">
           <ApprovalCenter
             hours={hours}
             requests={requests}
@@ -128,7 +128,7 @@ function OfficerDashboard({ data, loading, onNavigate, events: eventActions, hou
           />
         </Panel>
 
-        <Panel title="Upcoming events" className="span-4" action={<ViewAll onClick={() => onNavigate("events")} />}>
+        <Panel title="Upcoming events" className="span-4" tour="upcoming" action={<ViewAll onClick={() => onNavigate("events")} />}>
           <EventList
             events={upcoming.slice(0, 4)}
             loading={loading}
@@ -146,7 +146,7 @@ function OfficerDashboard({ data, loading, onNavigate, events: eventActions, hou
           />
         </Panel>
 
-        <Panel title="Recent attendance" className="span-8" action={<ViewAll onClick={() => onNavigate("events")} label="All events" />}>
+        <Panel title="Recent attendance" className="span-8" tour="attendance" action={<ViewAll onClick={() => onNavigate("events")} label="All events" />}>
           {completed.length === 0 ? (
             <EmptyState compact title="No completed events" text="Attendance shows here after you record it for an event." />
           ) : (
@@ -189,7 +189,7 @@ function OfficerDashboard({ data, loading, onNavigate, events: eventActions, hou
           )}
         </Panel>
 
-        <Panel title="Top volunteers" subtitle="Approved hours" className="span-4">
+        <Panel title="Top volunteers" subtitle="Approved hours" className="span-4" tour="leaders">
           <Leaderboard leaders={leaderboard} loading={loading} currentUserId={user.id} />
         </Panel>
       </div>
@@ -244,7 +244,7 @@ function MemberDashboard({ data, loading, onNavigate, events: eventActions }) {
       <StatRow items={stats} loading={loading} />
 
       <div className="dash-grid">
-        <Panel title="My upcoming events" className="span-7" action={<ViewAll onClick={() => onNavigate("events")} label="Browse events" />}>
+        <Panel title="My upcoming events" className="span-7" tour="my-events" action={<ViewAll onClick={() => onNavigate("events")} label="Browse events" />}>
           <EventList
             events={myUpcoming.slice(0, 4)}
             loading={loading}
@@ -262,7 +262,7 @@ function MemberDashboard({ data, loading, onNavigate, events: eventActions }) {
           />
         </Panel>
 
-        <Panel title="Announcements" className="span-5" action={<ViewAll onClick={() => onNavigate("announcements")} />}>
+        <Panel title="Announcements" className="span-5" tour="dash-announcements" action={<ViewAll onClick={() => onNavigate("announcements")} />}>
           {latest.length === 0 ? (
             <EmptyState compact title="No announcements" />
           ) : (
@@ -282,7 +282,7 @@ function MemberDashboard({ data, loading, onNavigate, events: eventActions }) {
           )}
         </Panel>
 
-        <Panel title="My certificates" className="span-7">
+        <Panel title="My certificates" className="span-7" tour="certificates">
           {certificates.length === 0 ? (
             <EmptyState compact title="No certificates yet" text="You'll get one for every event you attend." />
           ) : (
@@ -302,7 +302,7 @@ function MemberDashboard({ data, loading, onNavigate, events: eventActions }) {
           )}
         </Panel>
 
-        <Panel title="Top volunteers" subtitle="Approved hours" className="span-5">
+        <Panel title="Top volunteers" subtitle="Approved hours" className="span-5" tour="leaders">
           <Leaderboard leaders={leaderboard} loading={loading} currentUserId={user.id} />
         </Panel>
       </div>

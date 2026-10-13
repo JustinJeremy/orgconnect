@@ -8,6 +8,7 @@ export default function Tabs({ items, value, onChange, label }) {
           type="button"
           role="tab"
           aria-selected={value === item.key}
+          data-tour={`tab-${item.key}`}
           className={value === item.key ? "active" : ""}
           onClick={() => onChange(item.key)}
         >
