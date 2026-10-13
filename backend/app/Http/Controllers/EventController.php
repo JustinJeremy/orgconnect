@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ListsOrPages;
 use App\Http\Controllers\Concerns\OfficerOnly;
 use App\Http\Requests\AttendanceRequest;
 use App\Http\Requests\EventRequest;
@@ -16,15 +17,26 @@ use Illuminate\Validation\ValidationException;
 
 class EventController extends Controller
 {
-    use OfficerOnly;
+    use ListsOrPages, OfficerOnly;
 
     // GET /api/events
-    public function index()
+    // List filters: ?tab=upcoming|past|mine &category= &search= &sort=date|popular (+ ?page, see ListsOrPages)
+    public function index(Request $request)
     {
-        return Event::with('registrations.user')
-            ->orderBy('date')
-            ->get()
-            ->map->toFrontend();
+        $tab = $request->input('tab');
+        $query = Event::with('registrations.user')
+            ->when($tab === 'upcoming' || $tab === 'mine', fn ($q) => $q->where('status', '!=', 'completed'))
+            ->when($tab === 'past', fn ($q) => $q->where('status', 'completed'))
+            ->when($tab === 'mine', fn ($q) => $q->whereHas('registrations', fn ($r) => $r->where('user_id', $request->user()->id)))
+            ->when($request->filled('category'), fn ($q) => $q->where('category', $request->input('category')));
+        $this->search($request, $query, ['title', 'location', 'description']);
+
+        if ($request->input('sort') === 'popular') {
+            $query->withCount('registrations')->orderByDesc('registrations_count');
+        }
+        $query->orderBy('date', $tab === 'past' ? 'desc' : 'asc')->orderBy('id');
+
+        return $this->listOrPage($request, $query, fn (Event $e) => $e->toFrontend());
     }
 
     // POST /api/events  (officers)

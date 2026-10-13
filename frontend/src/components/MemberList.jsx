@@ -5,6 +5,8 @@ import EmptyState from "./EmptyState.jsx";
 import Pagination from "./Pagination.jsx";
 import { StatusBadge } from "./Badges.jsx";
 import { POSITIONS } from "../data/constants.js";
+import { membersApi } from "../api/services.js";
+import usePagedList from "../hooks/usePagedList.js";
 import { formatDate, initials } from "../utils/format.js";
 
 const PER_PAGE = 10;
@@ -82,16 +84,10 @@ function MemberForm({ member, onSave, onCancel }) {
 
 export default function MemberList({ members, onSave, onRemove, onResetPassword }) {
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
   const [form, setForm] = useState(null); // null | { member? }
 
-  const query = search.trim().toLowerCase();
-  const filtered = members
-    .filter((m) => !query || `${m.name} ${m.email} ${m.position}`.toLowerCase().includes(query))
-    .sort((a, b) => a.name.localeCompare(b.name));
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
-  const currentPage = Math.min(page, totalPages);
-  const pageItems = filtered.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE);
+  // One page of the roster from the API; reloads when a member is added, edited or removed
+  const list = usePagedList(membersApi.page, { search }, PER_PAGE, members);
 
   const handleSave = async (values) => {
     const ok = await onSave(form.member?.id, values);
@@ -110,10 +106,7 @@ export default function MemberList({ members, onSave, onRemove, onResetPassword 
             className="input"
             placeholder="Search by name, email or position"
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <button type="button" className="btn btn-accent toolbar-cta" onClick={() => setForm({})}>
@@ -122,7 +115,9 @@ export default function MemberList({ members, onSave, onRemove, onResetPassword 
       </div>
 
       <section className="panel flush">
-        {filtered.length === 0 ? (
+        {!list.loaded ? (
+          <div className="skeleton-list padded" aria-hidden="true"><span /><span /><span /></div>
+        ) : list.total === 0 ? (
           <EmptyState
             icon="users"
             title={members.length ? "No matching members" : "No members yet"}
@@ -142,7 +137,7 @@ export default function MemberList({ members, onSave, onRemove, onResetPassword 
                 </tr>
               </thead>
               <tbody>
-                {pageItems.map((m) => (
+                {list.items.map((m) => (
                   <tr key={m.id}>
                     <td>
                       <div className="person">
@@ -185,7 +180,7 @@ export default function MemberList({ members, onSave, onRemove, onResetPassword 
           </div>
         )}
       </section>
-      <Pagination page={currentPage} totalPages={totalPages} onChange={setPage} />
+      <Pagination page={list.page} totalPages={list.totalPages} onChange={list.setPage} />
 
       {form && <MemberForm member={form.member} onSave={handleSave} onCancel={() => setForm(null)} />}
     </>

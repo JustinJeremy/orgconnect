@@ -5,7 +5,8 @@ import EmptyState from "../components/EmptyState.jsx";
 import AnnouncementForm from "../components/AnnouncementForm.jsx";
 import Pagination from "../components/Pagination.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import usePagination from "../hooks/usePagination.js";
+import usePagedList from "../hooks/usePagedList.js";
+import { announcementsApi } from "../api/services.js";
 import { ANNOUNCEMENT_CATEGORIES } from "../data/constants.js";
 import { formatDate, relativeDate } from "../utils/format.js";
 
@@ -85,14 +86,9 @@ export default function Announcements({ data, loading, actions }) {
   const [form, setForm] = useState(null); // null | { post? }
 
   const unreadCount = announcements.filter((a) => !a.isRead).length;
-  const query = search.trim().toLowerCase();
-  const filtered = announcements
-    .filter((a) => view === "all" || !a.isRead)
-    .filter((a) => category === "All" || a.category === category)
-    .filter((a) => !query || `${a.title} ${a.content}`.toLowerCase().includes(query))
-    .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.createdAt.localeCompare(a.createdAt));
-  const filtersActive = Boolean(query) || category !== "All";
-  const { pageItems, page, totalPages, setPage } = usePagination(filtered, PER_PAGE, `${view}|${category}|${query}`);
+  const filtersActive = Boolean(search.trim()) || category !== "All";
+  // One page of posts from the API (pinned first, then newest); reloads when posts change or are read
+  const list = usePagedList(announcementsApi.page, { view: view === "unread" ? "unread" : "", category, search }, PER_PAGE, announcements);
 
   const handleSave = async (values) => {
     const ok = await actions.save(form.post?.id, values);
@@ -146,9 +142,9 @@ export default function Announcements({ data, loading, actions }) {
         )}
       </div>
 
-      {loading ? (
+      {loading || !list.loaded ? (
         <div className="panel"><div className="skeleton-list" aria-hidden="true"><span /><span /><span /></div></div>
-      ) : filtered.length === 0 ? (
+      ) : list.total === 0 ? (
         <EmptyState
           icon="megaphone"
           title={
@@ -166,7 +162,7 @@ export default function Announcements({ data, loading, actions }) {
         />
       ) : (
         <div className="feed">
-          {pageItems.map((post) => (
+          {list.items.map((post) => (
             <Post
               key={post.id}
               post={post}
@@ -179,7 +175,7 @@ export default function Announcements({ data, loading, actions }) {
         </div>
       )}
 
-      {!loading && <Pagination page={page} totalPages={totalPages} onChange={setPage} />}
+      {!loading && <Pagination page={list.page} totalPages={list.totalPages} onChange={list.setPage} />}
 
       {form && <AnnouncementForm initial={form.post} onSave={handleSave} onCancel={() => setForm(null)} />}
     </div>

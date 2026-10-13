@@ -10,12 +10,12 @@ import MemberList from "../components/MemberList.jsx";
 import ApprovalCenter from "../components/ApprovalCenter.jsx";
 import Pagination from "../components/Pagination.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import usePagination from "../hooks/usePagination.js";
+import usePagedList from "../hooks/usePagedList.js";
+import { hoursApi } from "../api/services.js";
 
 const STATUSES = ["All", "Pending", "Approved", "Rejected"];
 const PER_PAGE = 10;
 const sumHours = (logs) => logs.reduce((s, h) => s + Number(h.hours), 0);
-const byNewest = (a, b) => b.date.localeCompare(a.date) || b.id - a.id;
 
 function StatusSelect({ value, onChange }) {
   return (
@@ -56,12 +56,9 @@ function OfficerView({ data, loading, hours: hourActions, members: memberActions
 
   const pendingLogs = hours.filter((h) => h.status === "Pending").length;
   const pendingApps = applications.filter((a) => a.status === "Pending").length;
-  const query = search.trim().toLowerCase();
-  const rows = hours
-    .filter((h) => status === "All" || h.status === status)
-    .filter((h) => !query || `${h.memberName} ${h.activity}`.toLowerCase().includes(query))
-    .sort(byNewest);
-  const { pageItems, page, totalPages, setPage } = usePagination(rows, PER_PAGE, `${status}|${query}`);
+  const query = search.trim();
+  // One page of hour logs from the API; reloads when a log is approved, rejected or deleted
+  const list = usePagedList(hoursApi.page, { status, search }, PER_PAGE, hours);
 
   return (
     <div className="page">
@@ -97,19 +94,19 @@ function OfficerView({ data, loading, hours: hourActions, members: memberActions
             </button>
           </div>
           <section className="panel flush">
-            {loading ? (
+            {loading || !list.loaded ? (
               <div className="skeleton-list padded" aria-hidden="true"><span /><span /><span /></div>
-            ) : rows.length === 0 ? (
+            ) : list.total === 0 ? (
               <EmptyState
                 icon="clock"
                 title={status === "Pending" && !query ? "No hours waiting for review" : "No hour logs found"}
                 text={status === "Pending" && !query ? "New submissions from members will appear here." : "Try another status or search."}
               />
             ) : (
-              <HoursTable rows={pageItems} isOfficer onDecide={hourActions.decide} />
+              <HoursTable rows={list.items} isOfficer onDecide={hourActions.decide} />
             )}
           </section>
-          <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+          <Pagination page={list.page} totalPages={list.totalPages} onChange={list.setPage} />
         </>
       )}
 
@@ -129,9 +126,9 @@ function OfficerView({ data, loading, hours: hourActions, members: memberActions
 function MemberView({ data, loading, hours: hourActions }) {
   const { user } = useAuth();
   const [status, setStatus] = useState("All");
-  const mine = data.hours.filter((h) => h.userId === user.id).sort(byNewest);
-  const rows = mine.filter((h) => status === "All" || h.status === status);
-  const { pageItems, page, totalPages, setPage } = usePagination(rows, PER_PAGE, status);
+  const mine = data.hours.filter((h) => h.userId === user.id);
+  // The table loads one page of your logs from the API; the totals above use all of them
+  const list = usePagedList(hoursApi.page, { status }, PER_PAGE, data.hours);
 
   const stats = [
     { label: "Approved hours", value: sumHours(mine.filter((h) => h.status === "Approved")), note: "Counted toward your record" },
@@ -149,9 +146,9 @@ function MemberView({ data, loading, hours: hourActions }) {
         </Panel>
 
         <Panel title="My hour logs" className="span-8 flush-body" action={<StatusSelect value={status} onChange={setStatus} />}>
-          {loading ? (
+          {loading || !list.loaded ? (
             <div className="skeleton-list padded" aria-hidden="true"><span /><span /><span /></div>
-          ) : rows.length === 0 ? (
+          ) : list.total === 0 ? (
             <EmptyState
               compact
               title={mine.length ? "No logs with this status" : "No hours logged yet"}
@@ -159,10 +156,10 @@ function MemberView({ data, loading, hours: hourActions }) {
             />
           ) : (
             <>
-              <HoursTable rows={pageItems} userId={user.id} onDelete={hourActions.remove} />
-              {totalPages > 1 && (
+              <HoursTable rows={list.items} userId={user.id} onDelete={hourActions.remove} />
+              {list.totalPages > 1 && (
                 <div className="panel-pagination">
-                  <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+                  <Pagination page={list.page} totalPages={list.totalPages} onChange={list.setPage} />
                 </div>
               )}
             </>

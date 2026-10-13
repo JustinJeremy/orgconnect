@@ -22,6 +22,8 @@ const post = (url, body) => api.post(url, body).then(unwrap);
 const put = (url, body) => api.put(url, body).then(unwrap);
 const patch = (url, body) => api.patch(url, body).then(unwrap);
 const del = (url) => api.delete(url).then(unwrap);
+// One page of a list: { data: [...], meta: { page, lastPage, total, perPage } } (see usePagedList)
+const getPage = (url) => (params) => api.get(url, { params }).then((res) => res.data);
 
 export const authApi = {
   login: (email, password, remember) => post("/login", { email, password, remember }), // -> { token, user }
@@ -40,6 +42,7 @@ export const orgsApi = {
 
 export const eventsApi = {
   list: () => get("/events"),
+  page: getPage("/events"), // { tab, category, search, sort, page, perPage }
   create: (data) => post("/events", data),
   update: (id, data) => put(`/events/${id}`, data),
   remove: (id) => del(`/events/${id}`),
@@ -53,6 +56,7 @@ export const eventsApi = {
 
 export const hoursApi = {
   list: () => get("/hours"), // officers get every log, members get their own
+  page: getPage("/hours"), // { status, search, page, perPage }
   create: (data) => post("/hours", data),
   decide: (id, status) => patch(`/hours/${id}`, { status }),
   remove: (id) => del(`/hours/${id}`),
@@ -61,6 +65,7 @@ export const hoursApi = {
 
 export const membersApi = {
   list: () => get("/members"),
+  page: getPage("/members"), // { search, page, perPage }
   create: (data) => post("/members", data),
   update: (id, data) => put(`/members/${id}`, data),
   remove: (id) => del(`/members/${id}`),
@@ -71,13 +76,16 @@ export const membersApi = {
 
 export const tutoringApi = {
   sessions: () => get("/tutoring-sessions"),
+  sessionsPage: getPage("/tutoring-sessions"), // { area, search, page, perPage }
   createSession: (data) => post("/tutoring-sessions", data),
   updateSession: (id, data) => put(`/tutoring-sessions/${id}`, data),
   removeSession: (id) => del(`/tutoring-sessions/${id}`),
   requests: () => get("/tutoring-requests"),
+  requestsPage: getPage("/tutoring-requests"), // { view: received | sent, status, page, perPage }
   request: (sessionId) => post("/tutoring-requests", { sessionId }),
   decideRequest: (id, status) => patch(`/tutoring-requests/${id}`, { status }),
   resources: () => get("/resources"),
+  resourcesPage: getPage("/resources"), // { subject, type, search, page, perPage }
   createResource: (data) => post("/resources", data),
   updateResource: (id, data) => put(`/resources/${id}`, data),
   removeResource: (id) => del(`/resources/${id}`),
@@ -85,6 +93,7 @@ export const tutoringApi = {
 
 export const announcementsApi = {
   list: () => get("/announcements"),
+  page: getPage("/announcements"), // { view: unread, category, search, page, perPage }
   create: (data) => post("/announcements", data),
   update: (id, data) => put(`/announcements/${id}`, data),
   remove: (id) => del(`/announcements/${id}`),

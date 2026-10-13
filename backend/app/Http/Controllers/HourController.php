@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ListsOrPages;
 use App\Http\Controllers\Concerns\OfficerOnly;
 use App\Http\Requests\DecideHourRequest;
 use App\Http\Requests\StoreHourRequest;
@@ -12,19 +13,22 @@ use Illuminate\Http\Request;
 
 class HourController extends Controller
 {
-    use OfficerOnly;
+    use ListsOrPages, OfficerOnly;
 
     // GET /api/hours  (officers get every log, members get their own)
     public function index(Request $request)
     {
         $user = $request->user();
 
-        return VolunteerHour::with('user')
+        // List filters: ?status= &search= (+ ?page)
+        $query = VolunteerHour::with('user')
             ->when(! $user->isOfficer(), fn ($q) => $q->where('user_id', $user->id))
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
             ->latest('date')
-            ->latest('id')
-            ->get()
-            ->map->toFrontend();
+            ->latest('id');
+        $this->search($request, $query, ['activity'], ['user' => 'name']);
+
+        return $this->listOrPage($request, $query, fn (VolunteerHour $h) => $h->toFrontend());
     }
 
     // POST /api/hours
