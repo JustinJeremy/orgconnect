@@ -10,7 +10,7 @@ const EMPTY = {
   name: "",
   studentId: "",
   email: "",
-  course: "BSIT",
+  course: "",
   yearLevel: "1st year",
   password: "",
   confirmPassword: "",
@@ -33,6 +33,10 @@ export default function SignUpForm({ onSwitch }) {
   const { register } = useAuth();
   const { current: org } = useOrg();
   const [formData, setFormData] = useState(EMPTY);
+
+  // Only the courses this org accepts (picking another org on this page updates the list)
+  const courses = org.courses?.length ? org.courses : COURSES;
+  const course = courses.includes(formData.course) ? formData.course : courses[0];
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -54,7 +58,7 @@ export default function SignUpForm({ onSwitch }) {
     if (Object.keys(found).length > 0) return;
 
     setSubmitting(true);
-    const result = await register(formData);
+    const result = await register({ ...formData, course });
     setSubmitting(false);
     if (!result.ok) setFormError(result.message);
   };
@@ -94,8 +98,8 @@ export default function SignUpForm({ onSwitch }) {
       <div className="form-grid-2">
         <div className="field">
           <label htmlFor="su-course">Course</label>
-          <select id="su-course" className="input" name="course" value={formData.course} onChange={handleChange}>
-            {COURSES.map((c) => (
+          <select id="su-course" className="input" name="course" value={course} onChange={handleChange}>
+            {courses.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
