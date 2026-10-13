@@ -9,8 +9,8 @@ use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    // Computer Society: one officer account, one member account and a few shared resources.
-    // Then a second org (Data Science Society) with lots of sample data.
+    // Computer Society: the main officer and member accounts and a few shared resources,
+    // then sample data for both orgs (ComputerSocietySeeder, DataScienceSocietySeeder).
     // Run with:  php artisan db:seed
     public function run(): void
     {
@@ -40,7 +40,7 @@ class DatabaseSeeder extends Seeder
             LearningResource::updateOrCreate(['url' => $resource['url']], $resource + ['user_id' => $officer->id]);
         }
 
-        $this->call(DataScienceSocietySeeder::class);
+        $this->call([ComputerSocietySeeder::class, DataScienceSocietySeeder::class]);
         Organization::setCurrent(null);
     }
 
