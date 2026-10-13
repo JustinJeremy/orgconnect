@@ -216,13 +216,13 @@ export default function Profile({ data, loading, flash }) {
       <StatRow items={stats} loading={loading} />
 
       <div className="dash-grid">
-        <Panel title="Personal details" subtitle="Shown to officers on the member roster" className="span-7">
+        <Panel title="Personal details" tour="profile-details" subtitle="Shown to officers on the member roster" className="span-7">
           <DetailsForm user={user} flash={flash} />
         </Panel>
-        <Panel title="Change password" className="span-5">
+        <Panel title="Change password" className="span-5" tour="profile-password">
           <PasswordForm flash={flash} />
         </Panel>
-        <Panel title="My organizations" subtitle="One account works for every org you join" className="span-7">
+        <Panel title="My organizations" tour="profile-orgs" subtitle="One account works for every org you join" className="span-7">
           <MyOrganizations />
         </Panel>
       </div>

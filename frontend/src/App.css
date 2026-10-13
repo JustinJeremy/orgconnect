@@ -828,6 +828,29 @@ select.input {
 .menu-btn { display: none; }
 
 .notif-wrap { position: relative; flex: none; }
+.topbar-actions { display: flex; align-items: center; gap: 0.5rem; flex: none; }
+
+/* Help menu: start the guided tour */
+.help-body { display: flex; flex-direction: column; gap: 0.625rem; padding: 0.875rem 1rem 1rem; }
+.help-label { margin-top: 0.25rem; color: var(--muted); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.help-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.help-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+}
+.help-item:hover { background: var(--surface-2); }
+.help-item svg { color: var(--muted); }
 .notif-count {
   position: absolute;
   top: 0.375rem;
@@ -1707,3 +1730,38 @@ select.input {
 .mode-f2f { background: var(--green-soft); color: var(--green-ink); }
 .mode-online { background: var(--purple-soft); color: var(--purple-ink); }
 .mode-hybrid { background: var(--amber-soft); color: var(--amber-ink); }
+
+/* ==========================================================
+   Guided tour
+   ========================================================== */
+.tour { position: fixed; inset: 0; z-index: 200; }
+.tour-backdrop { position: absolute; inset: 0; }
+.tour-backdrop.dim { background: rgba(15, 23, 42, 0.55); }
+.tour-spotlight {
+  position: fixed;
+  border-radius: 0.75rem;
+  box-shadow: 0 0 0 3px var(--highlight), 0 0 0 9999px rgba(15, 23, 42, 0.55);
+  pointer-events: none;
+  transition: left 0.25s ease, top 0.25s ease, width 0.25s ease, height 0.25s ease;
+}
+.tour-card {
+  position: fixed;
+  width: min(22rem, calc(100vw - 2rem));
+  padding: 1.125rem 1.25rem 1rem;
+  border-radius: 0.875rem;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-lg);
+  outline: none;
+}
+.tour-step { color: var(--primary); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.tour-card h2 { margin-top: 0.375rem; font-size: 1.0625rem; font-weight: 800; color: var(--ink); }
+.tour-body { margin-top: 0.375rem; color: var(--ink-2); font-size: 0.9375rem; line-height: 1.5; }
+.tour-progress { height: 4px; margin-top: 0.875rem; border-radius: 4px; background: var(--line); overflow: hidden; }
+.tour-progress span { display: block; height: 100%; background: var(--primary); transition: width 0.25s ease; }
+.tour-actions { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 0.875rem; }
+.tour-nav { display: flex; gap: 0.5rem; margin-left: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-spotlight, .tour-progress span { transition: none; }
+}

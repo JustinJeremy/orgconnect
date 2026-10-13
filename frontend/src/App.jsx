@@ -15,6 +15,8 @@ import Toast from "./components/Toast.jsx";
 import AttendanceModal from "./components/AttendanceModal.jsx";
 import ConfirmDialog from "./components/ConfirmDialog.jsx";
 import TemporaryPasswordDialog from "./components/TemporaryPasswordDialog.jsx";
+import Tour from "./components/Tour.jsx";
+import { buildTour, tourSections } from "./data/tourSteps.js";
 import { errorMessage } from "./api/client.js";
 import {
   announcementsApi,
@@ -94,6 +96,7 @@ function MainApp() {
   const [tempPassword, setTempPassword] = useState(null); // { name, email, password, isNew }
 
   const [toast, setToast] = useState(null);
+  const [tourSteps, setTourSteps] = useState(null); // the guided tour while it runs
   const toastTimer = useRef(null);
 
   const flash = useCallback((message, tone = "default") => {
@@ -133,6 +136,26 @@ function MainApp() {
   useEffect(() => {
     loadAll();
   }, [loadAll]);
+
+  // ---- Guided tour (help button in the top bar) ----
+  const startTour = (sectionKey = null) => {
+    setMenuOpen(false);
+    setTourSteps(buildTour(isOfficer, sectionKey));
+  };
+
+  // Show the full tour automatically the first time someone signs in on this browser
+  useEffect(() => {
+    if (loading) return;
+    const key = `orgconnect_tour_seen_${user.id}`;
+    try {
+      if (localStorage.getItem(key)) return;
+      localStorage.setItem(key, "1");
+    } catch {
+      return; // storage blocked: don't start a tour on every visit
+    }
+    setTourSteps(buildTour(isOfficer));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
   // Check for new notifications every minute
   useEffect(() => {
@@ -346,6 +369,8 @@ function MainApp() {
           notifications={data.notifications}
           onMarkAllRead={markNotificationsRead}
           onOpenMenu={() => setMenuOpen(true)}
+          tourSections={tourSections(isOfficer)}
+          onStartTour={startTour}
         />
 
         {loadError && (
@@ -387,6 +412,8 @@ function MainApp() {
       )}
 
       {tempPassword && <TemporaryPasswordDialog {...tempPassword} onClose={() => setTempPassword(null)} />}
+
+      {tourSteps && <Tour steps={tourSteps} page={page} onNavigate={setPage} onClose={() => setTourSteps(null)} />}
 
       <Toast toast={toast} />
     </div>

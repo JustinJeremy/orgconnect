@@ -32,7 +32,8 @@ src/
 │   ├── OrgContext.jsx       # Organizations list and the selected org
 │   └── AuthContext.jsx      # Signed-in user: login, register, profile, password, join org, logout
 ├── data/
-│   └── constants.js         # Fixed option lists (event categories, positions, courses...)
+│   ├── constants.js         # Fixed option lists (event categories, positions, courses...)
+│   └── tourSteps.js         # Guided tour content for officers and members
 ├── hooks/
 │   └── usePagination.js
 ├── utils/
@@ -48,8 +49,14 @@ src/
 │   ├── Tutoring.jsx         # Sessions, requests, shared resources
 │   ├── Announcements.jsx    # Notice board
 │   └── Profile.jsx          # Profile & settings (click your name in the sidebar)
-└── components/              # Forms, cards, tables, dialogs, sidebar, top bar...
+└── components/              # Forms, cards, tables, dialogs, sidebar, top bar, guided tour (Tour.jsx)...
 ```
+
+## Guided tour
+
+The help button (?) next to the notification bell starts a step-by-step tour of every feature,
+or just one section. It also starts once automatically the first time someone signs in.
+Steps live in `src/data/tourSteps.js`; each one names the page to open and the element to highlight.
 
 ## Homepage shapes
 
