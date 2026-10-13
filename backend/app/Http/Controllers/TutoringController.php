@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ListsOrPages;
 use App\Http\Requests\DecideTutoringRequest;
 use App\Http\Requests\ResourceRequest;
 use App\Http\Requests\StoreTutoringRequest;
@@ -16,10 +17,19 @@ use Illuminate\Validation\ValidationException;
 
 class TutoringController extends Controller
 {
+    use ListsOrPages;
+
     // GET /api/tutoring-sessions
-    public function sessions()
+    // List filters: ?area= &search= subject, area or tutor (+ ?page)
+    public function sessions(Request $request)
     {
-        return TutoringSession::with('tutor')->latest()->get()->map->toFrontend();
+        $query = TutoringSession::with('tutor')
+            ->when($request->filled('area'), fn ($q) => $q->where('area', $request->input('area')))
+            ->latest()
+            ->latest('id');
+        $this->search($request, $query, ['subject', 'area'], ['tutor' => 'name']);
+
+        return $this->listOrPage($request, $query, fn (TutoringSession $s) => $s->toFrontend());
     }
 
     // POST /api/tutoring-sessions  (anyone can offer to tutor)
@@ -53,14 +63,23 @@ class TutoringController extends Controller
     public function requests(Request $request)
     {
         $user = $request->user();
+        $view = $request->input('view');   // received: requests I answer (all of them, for officers) · sent: my own
 
-        return TutoringRequest::with('user')
+        // List filters: ?view=received|sent &status= (+ ?page)
+        $query = TutoringRequest::with('user')
+            ->whereHas('session')   // only this org's sessions
             ->when(! $user->isOfficer(), fn ($q) => $q->where(fn ($q) => $q
                 ->where('user_id', $user->id)
                 ->orWhereHas('session', fn ($q) => $q->where('tutor_id', $user->id))))
+            ->when($view === 'sent', fn ($q) => $q->where('user_id', $user->id))
+            ->when($view === 'received', fn ($q) => $q
+                ->where('user_id', '!=', $user->id)
+                ->when(! $user->isOfficer(), fn ($q) => $q->whereHas('session', fn ($s) => $s->where('tutor_id', $user->id))))
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
             ->latest()
-            ->get()
-            ->map->toFrontend();
+            ->latest('id');
+
+        return $this->listOrPage($request, $query, fn (TutoringRequest $r) => $r->toFrontend());
     }
 
     // POST /api/tutoring-requests  { sessionId }
@@ -118,9 +137,17 @@ class TutoringController extends Controller
     }
 
     // GET /api/resources
-    public function resources()
+    // List filters: ?subject= &type= &search= title, description or who shared it (+ ?page)
+    public function resources(Request $request)
     {
-        return LearningResource::with('uploader')->latest()->get()->map->toFrontend();
+        $query = LearningResource::with('uploader')
+            ->when($request->filled('subject'), fn ($q) => $q->where('subject', $request->input('subject')))
+            ->when($request->filled('type'), fn ($q) => $q->where('type', $request->input('type')))
+            ->latest()
+            ->latest('id');
+        $this->search($request, $query, ['title', 'description'], ['uploader' => 'name']);
+
+        return $this->listOrPage($request, $query, fn (LearningResource $r) => $r->toFrontend());
     }
 
     // POST /api/resources  (any member can share a resource)

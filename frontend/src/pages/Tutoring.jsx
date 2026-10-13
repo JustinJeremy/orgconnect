@@ -9,7 +9,8 @@ import ResourceForm from "../components/ResourceForm.jsx";
 import { StatusBadge } from "../components/Badges.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
-import usePagination from "../hooks/usePagination.js";
+import usePagedList from "../hooks/usePagedList.js";
+import { tutoringApi } from "../api/services.js";
 import { RESOURCE_TYPES } from "../data/constants.js";
 
 const SESSIONS_PER_PAGE = 9;
@@ -49,11 +50,8 @@ function SessionsTab({ sessions, requests, loading, actions, onPost, onEdit }) {
   const [search, setSearch] = useState("");
   const [area, setArea] = useState("All");
 
-  const query = search.trim().toLowerCase();
-  const visible = sessions
-    .filter((s) => area === "All" || s.area === area)
-    .filter((s) => !query || `${s.subject} ${s.tutorName} ${s.area}`.toLowerCase().includes(query));
-  const { pageItems, page, totalPages, setPage } = usePagination(visible, SESSIONS_PER_PAGE, `${query}|${area}`);
+  // One page of sessions from the API; reloads when a session changes or a slot is taken
+  const list = usePagedList(tutoringApi.sessionsPage, { area, search }, SESSIONS_PER_PAGE, sessions);
 
   return (
     <>
@@ -65,11 +63,11 @@ function SessionsTab({ sessions, requests, loading, actions, onPost, onEdit }) {
         </button>
       </div>
 
-      {loading ? (
+      {loading || !list.loaded ? (
         <div className="card-grid" aria-hidden="true">
           {[0, 1, 2].map((i) => <div key={i} className="session-card skeleton-card" />)}
         </div>
-      ) : visible.length === 0 ? (
+      ) : list.total === 0 ? (
         <EmptyState
           icon="book"
           title={sessions.length ? "No matching sessions" : "No tutoring sessions yet"}
@@ -78,7 +76,7 @@ function SessionsTab({ sessions, requests, loading, actions, onPost, onEdit }) {
       ) : (
         <>
           <div className="card-grid">
-            {pageItems.map((s) => {
+            {list.items.map((s) => {
               const isTutor = s.tutorId === user.id;
               return (
                 <SessionCard
@@ -94,7 +92,7 @@ function SessionsTab({ sessions, requests, loading, actions, onPost, onEdit }) {
               );
             })}
           </div>
-          <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+          <Pagination page={list.page} totalPages={list.totalPages} onChange={list.setPage} />
         </>
       )}
     </>
@@ -110,16 +108,14 @@ function RequestsTab({ sessions, requests, actions }) {
   const sessionById = (id) => sessions.find((s) => s.id === id);
   const canAnswer = (r) => r.userId !== user.id && (isOfficer || sessionById(r.sessionId)?.tutorId === user.id);
 
-  const known = requests.filter((r) => sessionById(r.sessionId));
-  const received = known.filter(canAnswer);
-  const sent = known.filter((r) => r.userId === user.id);
-  const isTutor = !isOfficer && received.length > 0;
+  // A member who has received requests for their own sessions can switch between both lists
+  const isTutor = !isOfficer && requests.some((r) => sessionById(r.sessionId) && canAnswer(r));
 
   const [view, setView] = useState(isTutor ? "received" : "sent");
   const [status, setStatus] = useState("All");
-  const shown = isOfficer ? known : isTutor && view === "received" ? received : sent;
-  const rows = shown.filter((r) => status === "All" || r.status === status);
-  const { pageItems, page, totalPages, setPage } = usePagination(rows, ROWS_PER_PAGE, `${view}|${status}`);
+  // Officers see every request; tutors pick theirs or the ones they sent; others see what they sent
+  const scope = isOfficer ? undefined : isTutor && view === "received" ? "received" : "sent";
+  const list = usePagedList(tutoringApi.requestsPage, { view: scope, status }, ROWS_PER_PAGE, requests);
   const showStudent = isOfficer || (isTutor && view === "received");
 
   return (
@@ -143,7 +139,9 @@ function RequestsTab({ sessions, requests, actions }) {
       </div>
 
       <section className="panel flush">
-        {rows.length === 0 ? (
+        {!list.loaded ? (
+          <div className="skeleton-list padded" aria-hidden="true"><span /><span /><span /></div>
+        ) : list.total === 0 ? (
           <EmptyState
             icon="book"
             title="No tutoring requests"
@@ -168,8 +166,8 @@ function RequestsTab({ sessions, requests, actions }) {
                 </tr>
               </thead>
               <tbody>
-                {pageItems.map((r) => {
-                  const s = sessionById(r.sessionId);
+                {list.items.map((r) => {
+                  const s = sessionById(r.sessionId) || {};
                   return (
                     <tr key={r.id}>
                       {showStudent && (
@@ -215,7 +213,7 @@ function RequestsTab({ sessions, requests, actions }) {
           </div>
         )}
       </section>
-      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+      <Pagination page={list.page} totalPages={list.totalPages} onChange={list.setPage} />
     </>
   );
 }
@@ -229,12 +227,8 @@ function ResourcesTab({ resources, loading, actions, onShare, onEdit }) {
   const [subject, setSubject] = useState("All");
   const [type, setType] = useState("All");
 
-  const query = search.trim().toLowerCase();
-  const visible = resources
-    .filter((r) => subject === "All" || r.subject === subject)
-    .filter((r) => type === "All" || r.type === type)
-    .filter((r) => !query || `${r.title} ${r.description || ""} ${r.uploadedBy}`.toLowerCase().includes(query));
-  const { pageItems, page, totalPages, setPage } = usePagination(visible, ROWS_PER_PAGE, `${query}|${subject}|${type}`);
+  // One page of resources from the API; reloads when one is shared, edited or deleted
+  const list = usePagedList(tutoringApi.resourcesPage, { subject, type, search }, ROWS_PER_PAGE, resources);
 
   return (
     <>
@@ -254,9 +248,9 @@ function ResourcesTab({ resources, loading, actions, onShare, onEdit }) {
       </div>
 
       <section className="panel flush">
-        {loading ? (
+        {loading || !list.loaded ? (
           <div className="skeleton-list padded" aria-hidden="true"><span /><span /><span /></div>
-        ) : visible.length === 0 ? (
+        ) : list.total === 0 ? (
           <EmptyState
             icon="file"
             title={resources.length ? "No matching resources" : "No shared resources"}
@@ -264,7 +258,7 @@ function ResourcesTab({ resources, loading, actions, onShare, onEdit }) {
           />
         ) : (
           <ul className="row-list padded">
-            {pageItems.map((res) => {
+            {list.items.map((res) => {
               const canManage = isOfficer || res.uploadedById === user.id;
               return (
                 <li key={res.id}>
@@ -301,7 +295,7 @@ function ResourcesTab({ resources, loading, actions, onShare, onEdit }) {
           </ul>
         )}
       </section>
-      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+      <Pagination page={list.page} totalPages={list.totalPages} onChange={list.setPage} />
     </>
   );
 }

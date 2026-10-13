@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ListsOrPages;
 use App\Http\Controllers\Concerns\OfficerOnly;
 use App\Http\Requests\AnnouncementRequest;
 use App\Models\Announcement;
@@ -11,18 +12,25 @@ use Illuminate\Http\Request;
 
 class AnnouncementController extends Controller
 {
-    use OfficerOnly;
+    use ListsOrPages, OfficerOnly;
 
     // GET /api/announcements  (pinned first, newest first)
     public function index(Request $request)
     {
         $user = $request->user();
 
-        return Announcement::with(['author.membership', 'readers'])
+        // List filters: ?view=unread &category= &search= (+ ?page)
+        $query = Announcement::with(['author.membership', 'readers'])
+            ->when($request->input('view') === 'unread', fn ($q) => $q
+                ->where('user_id', '!=', $user->id)
+                ->whereDoesntHave('readers', fn ($r) => $r->where('users.id', $user->id)))
+            ->when($request->filled('category'), fn ($q) => $q->where('category', $request->input('category')))
             ->orderByDesc('pinned')
             ->latest()
-            ->get()
-            ->map(fn ($a) => $a->toFrontend($user));
+            ->latest('id');
+        $this->search($request, $query, ['title', 'content']);
+
+        return $this->listOrPage($request, $query, fn (Announcement $a) => $a->toFrontend($user));
     }
 
     // POST /api/announcements  (officers)

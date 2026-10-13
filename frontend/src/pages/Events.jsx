@@ -6,6 +6,8 @@ import EventForm from "../components/EventForm.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import Pagination from "../components/Pagination.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { eventsApi } from "../api/services.js";
+import usePagedList from "../hooks/usePagedList.js";
 import { EVENT_CATEGORIES } from "../data/constants.js";
 import { isCompleted, myRegistration } from "../utils/format.js";
 
@@ -20,13 +22,11 @@ export default function Events({ data, loading, actions }) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [sortBy, setSortBy] = useState("date");
-  const [page, setPage] = useState(1);
   const [form, setForm] = useState(null); // null | { event? }
 
   const upcoming = events.filter((e) => !isCompleted(e));
   const past = events.filter(isCompleted);
   const mine = upcoming.filter((e) => myRegistration(e, user.id));
-  const lists = { upcoming, past, mine };
 
   const tabs = [
     { key: "upcoming", label: "Upcoming", count: upcoming.length },
@@ -34,29 +34,13 @@ export default function Events({ data, loading, actions }) {
     ...(isOfficer ? [] : [{ key: "mine", label: "My RSVPs", count: mine.length }]),
   ];
 
-  const query = search.trim().toLowerCase();
-  const filtered = lists[tab]
-    .filter((e) => category === "All" || e.category === category)
-    .filter((e) => !query || `${e.title} ${e.location} ${e.description || ""}`.toLowerCase().includes(query))
-    .sort((a, b) => {
-      if (sortBy === "popular") return b.registrations.length - a.registrations.length;
-      return tab === "past" ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date);
-    });
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
-  const currentPage = Math.min(page, totalPages);
-  const pageItems = filtered.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE);
-  const filtersActive = Boolean(query) || category !== "All";
-
-  const change = (setter) => (value) => {
-    setter(value);
-    setPage(1);
-  };
+  // One page at a time from the API, filtered and sorted there; reloads when events change
+  const list = usePagedList(eventsApi.page, { tab, category, search, sort: sortBy }, PER_PAGE, events);
+  const filtersActive = Boolean(search.trim()) || category !== "All";
 
   const resetFilters = () => {
     setSearch("");
     setCategory("All");
-    setPage(1);
   };
 
   const handleSave = async (values) => {
@@ -77,7 +61,7 @@ export default function Events({ data, loading, actions }) {
 
   return (
     <div className="page">
-      <Tabs label="Event status" items={tabs} value={tab} onChange={change(setTab)} />
+      <Tabs label="Event status" items={tabs} value={tab} onChange={setTab} />
 
       <div className="toolbar">
         <div className="search">
@@ -89,11 +73,11 @@ export default function Events({ data, loading, actions }) {
             className="input"
             placeholder="Search events"
             value={search}
-            onChange={(e) => change(setSearch)(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <label htmlFor="event-category" className="sr-only">Category</label>
-        <select id="event-category" className="input select" value={category} onChange={(e) => change(setCategory)(e.target.value)}>
+        <select id="event-category" className="input select" value={category} onChange={(e) => setCategory(e.target.value)}>
           <option value="All">All categories</option>
           {EVENT_CATEGORIES.map((c) => (
             <option key={c} value={c}>{c}</option>
@@ -111,11 +95,11 @@ export default function Events({ data, loading, actions }) {
         )}
       </div>
 
-      {loading ? (
+      {loading || !list.loaded ? (
         <div className="card-grid" aria-hidden="true">
           {[0, 1, 2].map((i) => <div key={i} className="event-card skeleton-card" />)}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : list.total === 0 ? (
         filtersActive ? (
           <EmptyState
             icon="search"
@@ -144,7 +128,7 @@ export default function Events({ data, loading, actions }) {
       ) : (
         <>
           <p className="result-count">
-            {filtered.length} {filtered.length === 1 ? "event" : "events"}
+            {list.total} {list.total === 1 ? "event" : "events"}
             {filtersActive && (
               <button type="button" className="link-btn" onClick={resetFilters}>
                 Clear filters
@@ -152,11 +136,11 @@ export default function Events({ data, loading, actions }) {
             )}
           </p>
           <div className="card-grid">
-            {pageItems.map((event) => (
+            {list.items.map((event) => (
               <EventCard key={event.id} event={event} userId={user.id} isOfficer={isOfficer} actions={cardActions} />
             ))}
           </div>
-          <Pagination page={currentPage} totalPages={totalPages} onChange={setPage} />
+          <Pagination page={list.page} totalPages={list.totalPages} onChange={list.setPage} />
         </>
       )}
 

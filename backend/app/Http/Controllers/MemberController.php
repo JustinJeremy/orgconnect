@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ListsOrPages;
 use App\Http\Controllers\Concerns\OfficerOnly;
 use App\Http\Requests\DecideApplicationRequest;
 use App\Http\Requests\MemberRequest;
@@ -14,19 +15,21 @@ use Illuminate\Support\Str;
 
 class MemberController extends Controller
 {
-    use OfficerOnly;
+    use ListsOrPages, OfficerOnly;
 
     // GET /api/members  (officers) -> approved members, active and inactive
     public function index(Request $request)
     {
         $this->officerOnly($request);
 
-        return User::withMembershipStatus(['Active', 'Inactive'])
+        // List filter: ?search= name, email or position (+ ?page)
+        $query = User::withMembershipStatus(['Active', 'Inactive'])
             ->with('membership')
             ->withSum(['hourLogs as approved_sum' => fn ($q) => $q->where('status', 'Approved')], 'hours')
-            ->orderBy('name')
-            ->get()
-            ->map->toMember();
+            ->orderBy('name');
+        $this->search($request, $query, ['name', 'email'], ['membership' => 'position']);
+
+        return $this->listOrPage($request, $query, fn (User $u) => $u->toMember());
     }
 
     // POST /api/members  (officers add someone to the roster directly)
