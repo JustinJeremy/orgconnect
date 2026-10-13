@@ -50,6 +50,17 @@ Password for all: `password123`
 | `officer@orgconnect.test` (Maria) | Officer in Computer Society only; Data Science Society shows the join page |
 | `andrea.lim@orgconnect.test` | Data Science Society President (officer view) |
 
+## Running the tests
+
+```bash
+cd backend
+php artisan test
+```
+
+The tests use a separate in-memory SQLite database, so they never touch your MySQL data.
+They cover sign-in and sign-up, officer vs member access, events and RSVPs, volunteer hours,
+peer tutoring, members and passwords, profiles, and the paged lists (`backend/tests/Feature`).
+
 ## After pulling changes
 
 When you `git pull` new work from the group, update your copy before running it:
