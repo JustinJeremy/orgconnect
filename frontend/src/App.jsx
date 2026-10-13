@@ -14,6 +14,7 @@ import Topbar from "./components/Topbar.jsx";
 import Toast from "./components/Toast.jsx";
 import AttendanceModal from "./components/AttendanceModal.jsx";
 import ConfirmDialog from "./components/ConfirmDialog.jsx";
+import TemporaryPasswordDialog from "./components/TemporaryPasswordDialog.jsx";
 import { errorMessage } from "./api/client.js";
 import {
   announcementsApi,
@@ -90,6 +91,7 @@ function MainApp() {
   const [loadError, setLoadError] = useState("");
   const [attendanceEvent, setAttendanceEvent] = useState(null);
   const [confirmState, setConfirmState] = useState(null);
+  const [tempPassword, setTempPassword] = useState(null); // { name, email, password, isNew }
 
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
@@ -222,7 +224,25 @@ function MainApp() {
 
   const members = {
     save: (id, form) =>
-      run(async () => upsert("members", id ? await membersApi.update(id, form) : await membersApi.create(form)), id ? "Member updated" : `${form.name} added`),
+      run(async () => {
+        if (id) return upsert("members", await membersApi.update(id, form));
+        const { temporaryPassword, ...member } = await membersApi.create(form);
+        upsert("members", member);
+        // A brand-new account: show its temporary password once
+        if (temporaryPassword) setTempPassword({ name: member.name, email: member.email, password: temporaryPassword, isNew: true });
+      }, id ? "Member updated" : `${form.name} added`),
+    resetPassword: async (member) => {
+      const ok = await confirm({
+        title: "Reset password?",
+        message: `${member.name} will get a new temporary password and be signed out on all devices.`,
+        confirmLabel: "Reset password",
+      });
+      if (ok)
+        run(async () => {
+          const { temporaryPassword } = await membersApi.resetPassword(member.id);
+          setTempPassword({ name: member.name, email: member.email, password: temporaryPassword, isNew: false });
+        });
+    },
     remove: async (member) => {
       const ok = await confirm({
         title: "Remove member?",
@@ -365,6 +385,8 @@ function MainApp() {
           onConfirm={() => closeConfirm(true)}
         />
       )}
+
+      {tempPassword && <TemporaryPasswordDialog {...tempPassword} onClose={() => setTempPassword(null)} />}
 
       <Toast toast={toast} />
     </div>

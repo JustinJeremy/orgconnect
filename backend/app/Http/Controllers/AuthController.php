@@ -14,6 +14,7 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     // POST /api/login  -> { token, user }
+    // "Remember me" off: the token stops working after 12 hours (the app also forgets it when the browser closes).
     public function login(LoginRequest $request)
     {
         $data = $request->validated();
@@ -24,8 +25,10 @@ class AuthController extends Controller
             throw ValidationException::withMessages(['email' => 'Incorrect email or password.']);
         }
 
+        $expiresAt = ($data['remember'] ?? true) ? null : now()->addHours(12);
+
         return [
-            'token' => $user->createToken('web')->plainTextToken,
+            'token' => $user->createToken('web', ['*'], $expiresAt)->plainTextToken,
             'user' => $user->toFrontend(),
         ];
     }

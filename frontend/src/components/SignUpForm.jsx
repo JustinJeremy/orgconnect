@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import Icon from "./Icon.jsx";
+import PrivacyNotice from "./PrivacyNotice.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
 import { COURSES, YEAR_LEVELS } from "../data/constants.js";
@@ -34,6 +36,7 @@ export default function SignUpForm({ onSwitch }) {
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showNotice, setShowNotice] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -128,7 +131,19 @@ export default function SignUpForm({ onSwitch }) {
       <div className="field">
         <label className="checkbox">
           <input type="checkbox" name="agree" checked={formData.agree} onChange={handleChange} />
-          I agree to the org's data privacy notice.
+          <span>
+            I agree to the org's{" "}
+            <button
+              type="button"
+              className="link-btn"
+              onClick={(e) => {
+                e.preventDefault(); // don't tick the box
+                setShowNotice(true);
+              }}
+            >
+              data privacy notice
+            </button>.
+          </span>
         </label>
         {errors.agree && <span className="field-error">{errors.agree}</span>}
       </div>
@@ -137,7 +152,7 @@ export default function SignUpForm({ onSwitch }) {
         {submitting ? "Creating account…" : "Create account"}
       </button>
 
-      <p className="form-note">New accounts join as Members. Officer roles are assigned by an Org Admin.</p>
+      <p className="form-note">New accounts join as Members. Officers of the org assign officer roles.</p>
 
       <p className="auth-switch">
         Already have an account?{" "}
@@ -145,6 +160,8 @@ export default function SignUpForm({ onSwitch }) {
           Sign in
         </button>
       </p>
+      {/* In <body>, so the auth card's zoom doesn't apply to it */}
+      {showNotice && createPortal(<PrivacyNotice org={org} onClose={() => setShowNotice(false)} />, document.body)}
     </form>
   );
 }

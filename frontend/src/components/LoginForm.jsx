@@ -26,7 +26,7 @@ export default function LoginForm({ onSwitch }) {
       return;
     }
     setSubmitting(true);
-    const result = await login(formData.email, formData.password);
+    const result = await login(formData.email, formData.password, formData.remember);
     setSubmitting(false);
     if (!result.ok) setError(result.message);
   };
@@ -80,6 +80,7 @@ export default function LoginForm({ onSwitch }) {
       </div>
 
       <div className="form-row-between">
+        {/* Remember me off: signed out when the browser closes (and after 12 hours at most) */}
         <label className="checkbox">
           <input type="checkbox" name="remember" checked={formData.remember} onChange={handleChange} />
           Remember me
@@ -87,7 +88,9 @@ export default function LoginForm({ onSwitch }) {
         <button
           type="button"
           className="link-btn"
-          onClick={() => setInfo("Ask an officer to reset your password.")}
+          onClick={() =>
+            setInfo(`Ask an officer of ${org.name} to reset it. They'll give you a temporary password to sign in with, which you can then change on your Profile page.`)
+          }
         >
           Forgot password?
         </button>

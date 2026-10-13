@@ -1267,6 +1267,32 @@ select.input {
    Forms & modals
    ========================================================== */
 .stack { display: flex; flex-direction: column; gap: 0.875rem; }
+
+/* Data privacy notice (sign-up) */
+.privacy-notice { display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.875rem; color: var(--ink-2); }
+.privacy-notice h3 { margin-top: 0.5rem; font-size: 0.875rem; font-weight: 700; color: var(--ink); }
+.privacy-notice h3:first-child { margin-top: 0; }
+.privacy-notice a { color: var(--brand); }
+
+/* Temporary password shown once to an officer */
+.temp-password {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px dashed var(--primary-line);
+  border-radius: var(--radius-sm);
+  background: var(--primary-soft);
+}
+.temp-password code {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  user-select: all;
+}
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.875rem; }
 .span-2 { grid-column: span 2; }
 .form-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end; }

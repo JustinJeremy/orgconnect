@@ -26,6 +26,4 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
-# Stray local SQLite file (app uses MySQL)
-/laravel
 /storage/app/private/certificates

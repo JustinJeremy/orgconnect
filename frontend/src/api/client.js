@@ -10,9 +10,14 @@ const api = axios.create({
 const TOKEN_KEY = "orgconnect_token";
 const ORG_KEY = "orgconnect_org";
 
-export const getToken = () => localStorage.getItem(TOKEN_KEY);
-export const setToken = (token) =>
-  token ? localStorage.setItem(TOKEN_KEY, token) : localStorage.removeItem(TOKEN_KEY);
+// "Remember me" keeps the token in localStorage (survives closing the browser);
+// otherwise sessionStorage (forgotten when the browser closes)
+export const getToken = () => localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
+export const setToken = (token, remember = true) => {
+  localStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
+  if (token) (remember ? localStorage : sessionStorage).setItem(TOKEN_KEY, token);
+};
 
 // The organization being viewed (its slug), remembered between visits
 export const getOrgSlug = () => localStorage.getItem(ORG_KEY);

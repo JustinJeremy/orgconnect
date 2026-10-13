@@ -80,7 +80,7 @@ function MemberForm({ member, onSave, onCancel }) {
   );
 }
 
-export default function MemberList({ members, onSave, onRemove }) {
+export default function MemberList({ members, onSave, onRemove, onResetPassword }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [form, setForm] = useState(null); // null | { member? }
@@ -163,6 +163,15 @@ export default function MemberList({ members, onSave, onRemove }) {
                       <div className="row-actions">
                         <button type="button" className="icon-btn sm" aria-label={`Edit ${m.name}`} onClick={() => setForm({ member: m })}>
                           <Icon name="edit" size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          className="icon-btn sm"
+                          aria-label={`Reset password for ${m.name}`}
+                          title="Reset password"
+                          onClick={() => onResetPassword(m)}
+                        >
+                          <Icon name="key" size={16} />
                         </button>
                         <button type="button" className="icon-btn sm danger" aria-label={`Remove ${m.name}`} onClick={() => onRemove(m)}>
                           <Icon name="trash" size={16} />

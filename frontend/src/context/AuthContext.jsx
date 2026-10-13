@@ -34,14 +34,14 @@ export function AuthProvider({ children }) {
       .finally(() => setChecking(false));
   }, [orgSlug, loadAccount]);
 
-  const startSession = async ({ token }) => {
-    setToken(token);
+  const startSession = async ({ token }, remember = true) => {
+    setToken(token, remember);
     await loadAccount();
   };
 
-  const login = async (email, password) => {
+  const login = async (email, password, remember = true) => {
     try {
-      await startSession(await authApi.login(email.trim(), password));
+      await startSession(await authApi.login(email.trim(), password, remember), remember);
       return { ok: true };
     } catch (error) {
       return { ok: false, message: errorMessage(error, "Incorrect email or password.") };

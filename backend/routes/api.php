@@ -15,15 +15,16 @@ use Illuminate\Support\Facades\Route;
 
 // Public: org picker, sign in and sign up
 Route::get('/organizations', [OrganizationController::class, 'index']);
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/register', [AuthController::class, 'register']);
+// Limited attempts per minute (see AppServiceProvider)
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:register');
 
 // Signed in, any org (or none)
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::put('/user', [ProfileController::class, 'update']);
-    Route::put('/user/password', [ProfileController::class, 'password']);
+    Route::put('/user/password', [ProfileController::class, 'password'])->middleware('throttle:password');
     Route::get('/my-organizations', [OrganizationController::class, 'mine']);
     Route::post('/organizations/{organization:slug}/join', [OrganizationController::class, 'join']);
 });
@@ -54,6 +55,7 @@ Route::middleware(['auth:sanctum', 'org.member'])->group(function () {
     Route::post('/members', [MemberController::class, 'store']);
     Route::put('/members/{member}', [MemberController::class, 'update']);
     Route::delete('/members/{member}', [MemberController::class, 'destroy']);
+    Route::post('/members/{member}/reset-password', [MemberController::class, 'resetPassword']);
     Route::get('/applications', [MemberController::class, 'applications']);
     Route::patch('/applications/{applicant}', [MemberController::class, 'decideApplication']);
 

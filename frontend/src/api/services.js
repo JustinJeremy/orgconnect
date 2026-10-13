@@ -7,7 +7,8 @@ import api, { unwrap } from "./client.js";
 // Event         { id, title, category, date: "YYYY-MM-DD", time: "HH:mm", location, capacity, description,
 //                 status: "upcoming"|"completed", registrations: [{ id, userId, name, status: "registered"|"attended" }] }
 // HourLog       { id, userId, memberName, activity, date, hours, status: "Pending"|"Approved"|"Rejected" }
-// Member        { id, name, email, position, joinDate, status: "Active"|"Inactive", approvedHours }
+// Member        { id, name, email, position, joinDate, status: "Active"|"Inactive", approvedHours,
+//                 temporaryPassword (only right after adding a brand-new account) }
 // Application   { id, name, email, studentId, course, yearLevel, appliedAt, status }
 // Session       { id, subject, area, tutorId, tutorName, schedule, location, slots, description }
 // Request       { id, sessionId, userId, requesterName, yearLevel, status: "Pending"|"Confirmed"|"Rejected"|"Completed" }
@@ -23,7 +24,7 @@ const patch = (url, body) => api.patch(url, body).then(unwrap);
 const del = (url) => api.delete(url).then(unwrap);
 
 export const authApi = {
-  login: (email, password) => post("/login", { email, password }), // -> { token, user }
+  login: (email, password, remember) => post("/login", { email, password, remember }), // -> { token, user }
   register: (data) => post("/register", data), // -> { token, user }
   me: () => get("/user"),
   updateProfile: (data) => put("/user", data), // -> updated user
@@ -65,6 +66,7 @@ export const membersApi = {
   remove: (id) => del(`/members/${id}`),
   applications: () => get("/applications"),
   decideApplication: (id, status) => patch(`/applications/${id}`, { status }),
+  resetPassword: (id) => post(`/members/${id}/reset-password`), // -> { temporaryPassword }
 };
 
 export const tutoringApi = {

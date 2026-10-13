@@ -30,23 +30,49 @@ class MemberController extends Controller
     }
 
     // POST /api/members  (officers add someone to the roster directly)
-    // Someone who already has an account (e.g. from another org) is added to this org.
+    // Someone who already has an account (e.g. from another org) is added to this org and keeps their password.
+    // A brand-new account gets a temporary password, returned once so the officer can pass it on.
     public function store(MemberRequest $request)
     {
         $this->officerOnly($request);
         $data = $request->validated();
+        $temporary = self::temporaryPassword();
 
-        $member = DB::transaction(function () use ($data) {
+        $member = DB::transaction(function () use ($data, $temporary) {
             $member = User::firstOrCreate(['email' => $data['email']], [
                 'name' => $data['name'],
-                'password' => Str::random(32),   // they set their own password later
+                'password' => $temporary,   // hashed by the User model
             ]);
             $this->saveMembership($member, $data, ['join_date' => now()]);
 
             return $member;
         });
 
-        return response()->json($member->fresh()->toMember(), 201);
+        return response()->json($member->fresh()->toMember() + [
+            'temporaryPassword' => $member->wasRecentlyCreated ? $temporary : null,
+        ], 201);
+    }
+
+    // POST /api/members/{member}/reset-password  (officers) -> { temporaryPassword }
+    // For members who forgot their password. Signs them out everywhere.
+    // Not allowed for someone who is an officer in another org, so one org can't take over another org's officer.
+    public function resetPassword(Request $request, User $member)
+    {
+        $this->officerOnly($request);
+        $this->ensureInThisOrg($member);
+        abort_if($member->id === $request->user()->id, 422, 'Change your own password on your Profile page.');
+
+        $officerElsewhere = $member->memberships()
+            ->where('organization_id', '!=', Organization::current()->id)
+            ->where('role', 'officer')
+            ->exists();
+        abort_if($officerElsewhere, 422, "{$member->name} is an officer in another organization, so only they can change their password.");
+
+        $temporary = self::temporaryPassword();
+        $member->update(['password' => $temporary]);
+        $member->tokens()->delete();
+
+        return ['temporaryPassword' => $temporary];
     }
 
     // PUT /api/members/{member}  (officers)
@@ -105,6 +131,14 @@ class MemberController extends Controller
         );
 
         return $applicant->fresh()->toApplication();
+    }
+
+    // Easy to read out or type: no look-alike characters (0/O/o, 1/l/I)
+    private static function temporaryPassword(): string
+    {
+        $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+
+        return collect(range(1, 10))->map(fn () => $alphabet[random_int(0, strlen($alphabet) - 1)])->implode('');
     }
 
     private function ensureInThisOrg(User $member): void

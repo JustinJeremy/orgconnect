@@ -113,7 +113,7 @@ function OfficerView({ data, loading, hours: hourActions, members: memberActions
         </>
       )}
 
-      {tab === "members" && <MemberList members={members} onSave={memberActions.save} onRemove={memberActions.remove} />}
+      {tab === "members" && <MemberList members={members} onSave={memberActions.save} onRemove={memberActions.remove} onResetPassword={memberActions.resetPassword} />}
 
       {tab === "applications" && (
         <Panel title="Membership applications" subtitle="Students who signed up and are waiting to join">
