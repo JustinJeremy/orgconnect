@@ -3,7 +3,8 @@ import Icon from "./Icon.jsx";
 import { relativeDate } from "../utils/format.js";
 
 // tourSections: [{ key, label }] for the help menu; onStartTour(sectionKey | null) starts the guided tour
-export default function Topbar({ title, subtitle, notifications, onMarkAllRead, onOpenMenu, tourSections, onStartTour }) {
+// onOpenNotification(notification): marks it read and goes to its page
+export default function Topbar({ title, subtitle, notifications, onMarkAllRead, onOpenNotification, onOpenMenu, tourSections, onStartTour }) {
   const [open, setOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const panelRef = useRef(null);
@@ -106,13 +107,22 @@ export default function Topbar({ title, subtitle, notifications, onMarkAllRead, 
               ) : (
                 <div className="notif-list">
                   {notifications.slice(0, 8).map((n) => (
-                    <div key={n.id} className={`notif-item ${n.isRead ? "" : "unread"}`}>
+                    <button
+                      type="button"
+                      key={n.id}
+                      className={`notif-item ${n.isRead ? "" : "unread"}`}
+                      onClick={() => {
+                        setOpen(false);
+                        onOpenNotification(n);
+                      }}
+                    >
                       <span className="notif-dot" />
                       <div>
                         <div className="notif-msg">{n.message}</div>
                         <div className="notif-when">{relativeDate(n.createdAt)}</div>
                       </div>
-                    </div>
+                      <Icon name="arrowRight" size={14} className="notif-go" />
+                    </button>
                   ))}
                 </div>
               )}

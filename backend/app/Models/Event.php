@@ -10,7 +10,7 @@ class Event extends Model
 {
     use BelongsToOrganization;
 
-    protected $fillable = ['title', 'category', 'date', 'time', 'location', 'mode', 'capacity', 'description', 'status', 'created_by'];
+    protected $fillable = ['title', 'category', 'date', 'time', 'location', 'mode', 'capacity', 'description', 'poster_path', 'status', 'created_by'];
 
     protected function casts(): array
     {
@@ -41,6 +41,8 @@ class Event extends Model
             'mode' => $this->mode,
             'capacity' => $this->capacity,
             'description' => $this->description,
+            // ?v= changes when the poster is replaced so browsers don't show the old one
+            'posterUrl' => $this->poster_path ? url("/api/events/{$this->id}/poster").'?v='.$this->updated_at?->timestamp : null,
             'status' => $this->status,
             'registrations' => $this->registrations->map(fn ($r) => [
                 'id' => $r->id,

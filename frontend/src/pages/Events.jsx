@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Icon from "../components/Icon.jsx";
-import Tabs from "../components/Tabs.jsx";
 import EventCard from "../components/EventCard.jsx";
 import EventForm from "../components/EventForm.jsx";
 import EmptyState from "../components/EmptyState.jsx";
@@ -9,61 +8,117 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { eventsApi } from "../api/services.js";
 import usePagedList from "../hooks/usePagedList.js";
 import { EVENT_CATEGORIES } from "../data/constants.js";
-import { isCompleted, myRegistration } from "../utils/format.js";
 
 const PER_PAGE = 9;
 
-export default function Events({ data, loading, actions }) {
+// Pill filter under the search bar (All / Upcoming / Past / My Events)
+function EventPills({ items, value, onChange }) {
+  return (
+    <div className="pills" role="tablist" aria-label="Which events" data-tour="event-filters">
+      {items.map((item) => (
+        <button
+          key={item.key}
+          type="button"
+          role="tab"
+          aria-selected={value === item.key}
+          data-tour={`tab-${item.key}`}
+          className={`pill ${value === item.key ? "active" : ""}`}
+          onClick={() => onChange(item.key)}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// focus: { eventId?, eventTitle?, key } from a clicked notification: find that event, scroll to it and highlight it
+export default function Events({ data, loading, actions, focus, onFocusDone }) {
   const { user } = useAuth();
   const isOfficer = user.role === "officer";
   const { events } = data;
 
-  const [tab, setTab] = useState("upcoming"); // upcoming | past | mine
+  const [tab, setTab] = useState("upcoming"); // all | upcoming | past | mine
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [sortBy, setSortBy] = useState("date");
   const [form, setForm] = useState(null); // null | { event? }
 
-  const upcoming = events.filter((e) => !isCompleted(e));
-  const past = events.filter(isCompleted);
-  const mine = upcoming.filter((e) => myRegistration(e, user.id));
 
   const tabs = [
-    { key: "upcoming", label: "Upcoming", count: upcoming.length },
-    { key: "past", label: "Past", count: past.length },
-    ...(isOfficer ? [] : [{ key: "mine", label: "My RSVPs", count: mine.length }]),
+    { key: "all", label: "All" },
+    { key: "upcoming", label: "Upcoming" },
+    { key: "past", label: "Past" },
+    { key: "mine", label: "My Events" },
   ];
 
   // One page at a time from the API, filtered and sorted there; reloads when events change
   const list = usePagedList(eventsApi.page, { tab, category, search, sort: sortBy }, PER_PAGE, events);
   const filtersActive = Boolean(search.trim()) || category !== "All";
 
+  // From a notification: search all events for its title, then scroll to the card once it is loaded
+  const [highlightId, setHighlightId] = useState(null);
+  const listRef = useRef(null);
+  useEffect(() => {
+    if (!focus) return;
+    setTab("all");
+    setCategory("All");
+    setSearch(focus.eventTitle || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus?.key]);
+
+  useEffect(() => {
+    if (!focus || !list.loaded || search !== (focus.eventTitle || "") || tab !== "all") return;
+    const match = list.items.find((e) => (focus.eventId ? e.id === focus.eventId : e.title === focus.eventTitle));
+    if (!match) return; // the list may still show the previous results; wait for the next load
+    setHighlightId(match.id);
+    listRef.current?.querySelector(`[data-event-id="${match.id}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    onFocusDone?.();
+  }, [focus, list.loaded, list.items, search, tab, onFocusDone]);
+
+  // Stop looking if the event never shows up (e.g. it was deleted)
+  useEffect(() => {
+    if (!focus) return;
+    const timer = setTimeout(() => onFocusDone?.(), 4000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus?.key]);
+
+  // The highlight fades after a few seconds
+  useEffect(() => {
+    if (!highlightId) return;
+    const timer = setTimeout(() => setHighlightId(null), 3000);
+    return () => clearTimeout(timer);
+  }, [highlightId]);
+
   const resetFilters = () => {
     setSearch("");
     setCategory("All");
   };
 
-  const handleSave = async (values) => {
-    const ok = await actions.save(form.event?.id, values);
+  const handleSave = async (values, poster) => {
+    const ok = await actions.save(form.event?.id, values, poster);
     if (ok) {
       setForm(null);
       if (!form.event) setTab("upcoming");
     }
   };
 
+  // Officers see box cards in a grid; members see one wide row per event
+  const listClass = isOfficer ? "card-grid" : "event-rows";
+
   const cardActions = { ...actions, edit: (event) => setForm({ event }) };
 
   const emptyText = {
     upcoming: isOfficer ? "Create an event so members can start signing up." : "Check back soon for new events.",
+    all: isOfficer ? "Create an event so members can start signing up." : "Check back soon for new events.",
     past: "Completed events will be listed here.",
     mine: "Events you RSVP to will be listed here.",
   };
 
   return (
     <div className="page">
-      <Tabs label="Event status" items={tabs} value={tab} onChange={setTab} />
-
-      <div className="toolbar">
+      <div className="event-tools" data-tour="event-tools">
         <div className="search">
           <Icon name="search" size={17} className="search-icon" />
           <label htmlFor="event-search" className="sr-only">Search events</label>
@@ -89,14 +144,16 @@ export default function Events({ data, loading, actions }) {
           <option value="popular">Most RSVPs</option>
         </select>
         {isOfficer && (
-          <button type="button" className="btn btn-accent toolbar-cta" onClick={() => setForm({})}>
-            <Icon name="plus" size={17} /> New event
+          <button type="button" className="btn btn-accent toolbar-cta" data-tour="event-create" onClick={() => setForm({})}>
+            <Icon name="plus" size={16} /> Create event
           </button>
         )}
       </div>
 
+      <EventPills items={tabs} value={tab} onChange={setTab} />
+
       {loading || !list.loaded ? (
-        <div className="card-grid" aria-hidden="true">
+        <div className={listClass} aria-hidden="true">
           {[0, 1, 2].map((i) => <div key={i} className="event-card skeleton-card" />)}
         </div>
       ) : list.total === 0 ? (
@@ -114,10 +171,10 @@ export default function Events({ data, loading, actions }) {
         ) : (
           <EmptyState
             icon="calendar"
-            title={tab === "past" ? "No past events" : tab === "mine" ? "No RSVPs yet" : "No upcoming events"}
+            title={tab === "past" ? "No past events" : tab === "mine" ? "No RSVPs yet" : tab === "all" ? "No events yet" : "No upcoming events"}
             text={emptyText[tab]}
             action={
-              isOfficer && tab === "upcoming" ? (
+              isOfficer && (tab === "upcoming" || tab === "all") ? (
                 <button type="button" className="btn btn-outline btn-sm" onClick={() => setForm({})}>
                   Create an event
                 </button>
@@ -135,9 +192,9 @@ export default function Events({ data, loading, actions }) {
               </button>
             )}
           </p>
-          <div className="card-grid">
+          <div className={listClass} ref={listRef}>
             {list.items.map((event) => (
-              <EventCard key={event.id} event={event} userId={user.id} isOfficer={isOfficer} actions={cardActions} />
+              <EventCard key={event.id} event={event} userId={user.id} isOfficer={isOfficer} actions={cardActions} layout={isOfficer ? "box" : "row"} highlighted={event.id === highlightId} />
             ))}
           </div>
           <Pagination page={list.page} totalPages={list.totalPages} onChange={list.setPage} />

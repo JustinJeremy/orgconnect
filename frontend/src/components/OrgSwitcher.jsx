@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Icon from "./Icon.jsx";
+import OrgSwatch from "./OrgSwatch.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
@@ -82,9 +83,7 @@ export default function OrgSwitcher({ variant = "light" }) {
         onClick={() => choose(org)}
         aria-current={org.slug === current.slug ? "true" : undefined}
       >
-        <span className="org-swatch" style={{ background: org.theme?.navy }} aria-hidden="true">
-          <span style={{ background: org.theme?.highlight }} />
-        </span>
+        <OrgSwatch org={org} />
         <span className="org-option-text">
           <span className="org-option-name">{org.name}</span>
           <span className="org-option-note">{note(org)}</span>

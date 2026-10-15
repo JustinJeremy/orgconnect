@@ -33,7 +33,8 @@ export default function ApprovalCenter({
         id: `h${h.id}`,
         name: h.memberName,
         detail: h.activity,
-        meta: `${h.hours} hrs · ${shortDate(h.date)}`,
+        amount: `${h.hours} ${Number(h.hours) === 1 ? "hour" : "hours"}`,
+        when: shortDate(h.date),
         decide: (status) => onDecideHours(h, status),
       })),
     tutoring: requests
@@ -44,7 +45,7 @@ export default function ApprovalCenter({
           id: `t${r.id}`,
           name: r.requesterName,
           detail: s ? `${s.subject} · with ${s.tutorName}` : "Tutoring session",
-          meta: r.yearLevel || "",
+          when: r.yearLevel || "",
           decide: (status) => onDecideRequest(r, status === "Approved" ? "Confirmed" : status),
         };
       }),
@@ -54,7 +55,8 @@ export default function ApprovalCenter({
         id: `m${a.id}`,
         name: a.name,
         detail: `${a.course} · ${a.yearLevel} · ${a.studentId}`,
-        meta: `Applied ${shortDate(a.appliedAt)}`,
+        amount: "Applied",
+        when: shortDate(a.appliedAt),
         decide: (status) => onDecideApplication(a, status),
       })),
   };
@@ -89,12 +91,15 @@ export default function ApprovalCenter({
             <li key={row.id}>
               <span className="avatar sm">{initials(row.name)}</span>
               <div className="review-text">
-                <div className="review-name">
-                  {row.name}
-                  {row.meta && <span className="review-meta">{row.meta}</span>}
-                </div>
+                <div className="review-name">{row.name}</div>
                 <div className="review-detail">{row.detail}</div>
               </div>
+              {(row.amount || row.when) && (
+                <div className="review-when">
+                  {row.amount && <strong>{row.amount}</strong>}
+                  {row.when && <span>{row.when}</span>}
+                </div>
+              )}
               <div className="review-actions">
                 <button
                   type="button"
@@ -107,7 +112,7 @@ export default function ApprovalCenter({
                 </button>
                 <button
                   type="button"
-                  className="btn btn-primary btn-sm"
+                  className="btn btn-outline btn-sm btn-approve"
                   disabled={busy === row.id}
                   onClick={() => decide(row, "Approved")}
                 >

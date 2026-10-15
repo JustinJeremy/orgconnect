@@ -42,7 +42,8 @@ class AnnouncementController extends Controller
 
         UserNotification::send(
             User::where('id', '!=', $request->user()->id)->withMembershipStatus(['Active', 'Pending'])->pluck('id'),
-            "New announcement: {$post->title}"
+            "New announcement: {$post->title}",
+            'announcements'
         );
 
         return response()->json($post->toFrontend($request->user()), 201);

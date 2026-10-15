@@ -62,20 +62,9 @@ function OfficerView({ data, loading, hours: hourActions, members: memberActions
 
   return (
     <div className="page">
-      <Tabs
-        label="Section"
-        value={tab}
-        onChange={setTab}
-        items={[
-          { key: "hours", label: "Hour logs", count: pendingLogs },
-          { key: "members", label: "Members" },
-          { key: "applications", label: "Applications", count: pendingApps },
-        ]}
-      />
-
-      {tab === "hours" && (
-        <>
-          <div className="toolbar">
+      <div className="toolbar" data-tour="hours-tools">
+        {tab === "hours" && (
+          <>
             <div className="search">
               <Icon name="search" size={17} className="search-icon" />
               <label htmlFor="hours-search" className="sr-only">Search hour logs</label>
@@ -89,10 +78,28 @@ function OfficerView({ data, loading, hours: hourActions, members: memberActions
               />
             </div>
             <StatusSelect value={status} onChange={setStatus} />
-            <button type="button" className="btn btn-outline toolbar-cta" onClick={() => exportCsv(members, hours, flash)} disabled={!members.length}>
-              <Icon name="download" size={16} /> Export summary
-            </button>
-          </div>
+          </>
+        )}
+        <button type="button" className="btn btn-outline toolbar-cta export-btn" data-tour="hours-export" onClick={() => exportCsv(members, hours, flash)} disabled={!members.length}>
+          <Icon name="download" size={16} /> Export summary
+        </button>
+      </div>
+
+      <div className="tab-card" data-tour="hours-tabs">
+        <Tabs
+          label="Section"
+          value={tab}
+          onChange={setTab}
+          items={[
+            { key: "hours", label: "Hour Logs", count: pendingLogs },
+            { key: "members", label: "Members" },
+            { key: "applications", label: "Applications", count: pendingApps },
+          ]}
+        />
+      </div>
+
+      {tab === "hours" && (
+        <>
           <section className="panel flush">
             {loading || !list.loaded ? (
               <div className="skeleton-list padded" aria-hidden="true"><span /><span /><span /></div>

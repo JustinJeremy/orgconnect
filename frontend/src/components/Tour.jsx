@@ -10,6 +10,16 @@ const isVisible = (el) => {
   return r.width > 0 && r.height > 0 && r.right > 0 && r.left < window.innerWidth;
 };
 
+// target can be one selector or a list tried in order (e.g. the first card, else the empty message)
+const findTarget = (target) => {
+  if (!target) return null;
+  for (const selector of Array.isArray(target) ? target : [target]) {
+    const el = [...document.querySelectorAll(selector)].find(isVisible);
+    if (el) return el;
+  }
+  return null;
+};
+
 // Guided tour: dims the page, highlights one element per step and explains it in a card.
 // steps: [{ title, body, section?, page?, click?, target? }] (see data/tourSteps.js)
 // It opens each step's page, clicks its tab if needed, then waits for the element to appear.
@@ -44,8 +54,8 @@ export default function Tour({ steps, page, onNavigate, onClose }) {
     const clickAndFind = () => {
       if (cancelled) return;
       if (step.click && tries === 0) document.querySelector(step.click)?.click();
-      const el = step.target ? document.querySelector(step.target) : null;
-      if (el && isVisible(el)) {
+      const el = findTarget(step.target);
+      if (el) {
         targetRef.current = el;
         // Scroll so the element and the card under it are both in view (or just center a very tall element)
         const r = el.getBoundingClientRect();
@@ -54,6 +64,12 @@ export default function Tour({ steps, page, onNavigate, onClose }) {
         window.scrollTo({ top: window.scrollY + r.top - Math.max(EDGE, top), behavior: "smooth" });
         timer = setTimeout(() => {
           if (cancelled) return;
+          // The list may have re-rendered while scrolling (e.g. a loading placeholder was replaced): look again
+          if (!el.isConnected || !isVisible(el)) {
+            if (tries++ < 20) return clickAndFind();
+            setRect(null);
+            return setReady(true);
+          }
           setRect(el.getBoundingClientRect());
           setReady(true);
         }, 350);

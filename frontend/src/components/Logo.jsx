@@ -15,8 +15,8 @@ const C_BOTTOM = "M37.95 43.95 A12 12 0 0 1 28.12 37.07";
 // Colors come from the selected org's palette (CSS variables), so the mark matches each org
 export function LogoMark({ size = 38, variant = "color" }) {
   const white = variant === "white";
-  const bg = white ? "#FFFFFF" : "var(--brand)";
-  const ring = white ? "var(--brand)" : "#FFFFFF";
+  const bg = white ? "#FFFFFF" : "var(--logo-bg)";
+  const ring = white ? "var(--logo-bg)" : "#FFFFFF";
 
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" className="logo-mark">

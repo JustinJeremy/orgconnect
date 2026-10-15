@@ -52,7 +52,8 @@ class EventController extends Controller
 
         UserNotification::send(
             User::where('id', '!=', $request->user()->id)->withMembershipStatus(['Active', 'Pending'])->pluck('id'),
-            "New event: {$event->title}"
+            "New event: {$event->title}",
+            "events/{$event->id}"
         );
 
         return response()->json($event->toFrontend(), 201);
@@ -79,6 +80,9 @@ class EventController extends Controller
     {
         $this->officerOnly($request);
         $this->removeCertificates($event->certificates);
+        if ($event->poster_path) {
+            Storage::disk('public')->delete($event->poster_path);
+        }
         $event->delete();
 
         return ['ok' => true];
@@ -140,7 +144,7 @@ class EventController extends Controller
         }
 
         if ($newlyIssued->isNotEmpty()) {
-            UserNotification::send($newlyIssued, "Your certificate for {$event->title} is ready");
+            UserNotification::send($newlyIssued, "Your certificate for {$event->title} is ready", "events/{$event->id}");
         }
 
         return $event->fresh()->toFrontend();
@@ -177,6 +181,44 @@ class EventController extends Controller
         }
 
         return $disk->download($certificate->file_path, "certificate-{$event->id}.pdf");
+    }
+
+    // GET /api/events/{event}/poster  (public, so <img> can load it) -> the event's poster image
+    public function poster(int $event)
+    {
+        $path = Event::withoutGlobalScopes()->whereKey($event)->value('poster_path');
+        $disk = Storage::disk('public');
+        abort_unless($path && $disk->exists($path), 404);
+
+        return response()->file($disk->path($path), ['Cache-Control' => 'public, max-age=31536000']);
+    }
+
+    // POST /api/events/{event}/poster  (officers) -> add or replace the poster
+    public function uploadPoster(Request $request, Event $event)
+    {
+        $this->officerOnly($request);
+        // No SVG: it can carry scripts
+        $request->validate(['poster' => ['required', 'image', 'mimes:png,jpg,jpeg,webp', 'max:5120']]);
+
+        $old = $event->poster_path;
+        $event->update(['poster_path' => $request->file('poster')->store('event-posters', 'public')]);
+        if ($old) {
+            Storage::disk('public')->delete($old);
+        }
+
+        return $event->fresh()->toFrontend();
+    }
+
+    // DELETE /api/events/{event}/poster  (officers)
+    public function removePoster(Request $request, Event $event)
+    {
+        $this->officerOnly($request);
+        if ($event->poster_path) {
+            Storage::disk('public')->delete($event->poster_path);
+            $event->update(['poster_path' => null]);
+        }
+
+        return $event->fresh()->toFrontend();
     }
 
     private function removeCertificates($certificates): void

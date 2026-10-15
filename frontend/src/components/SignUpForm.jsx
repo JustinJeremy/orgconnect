@@ -69,9 +69,7 @@ export default function SignUpForm({ onSwitch }) {
     <form className="auth-form" onSubmit={handleSubmit} noValidate>
       <div className="auth-heading">
         <h2>Create your account</h2>
-        <p>
-          You're applying to <strong>{org.name}</strong>. An officer will review your application.
-        </p>
+        <p>Join your org on OrgConnect. It takes less than a minute.</p>
       </div>
 
       {formError && <div className="alert alert-error" role="alert">{formError}</div>}
@@ -156,14 +154,7 @@ export default function SignUpForm({ onSwitch }) {
         {submitting ? "Creating account…" : "Create account"}
       </button>
 
-      <p className="form-note">New accounts join as Members. Officers of the org assign officer roles.</p>
-
-      <p className="auth-switch">
-        Already have an account?{" "}
-        <button type="button" className="link-btn" onClick={onSwitch}>
-          Sign in
-        </button>
-      </p>
+      <p className="form-note">New accounts join as Members. Officer roles are assigned by an Org Admin.</p>
       {/* In <body>, so the auth card's zoom doesn't apply to it */}
       {showNotice && createPortal(<PrivacyNotice org={org} onClose={() => setShowNotice(false)} />, document.body)}
     </form>

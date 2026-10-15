@@ -130,7 +130,7 @@ export default function Announcements({ data, loading, actions }) {
           ))}
         </select>
         {isOfficer ? (
-          <button type="button" className="btn btn-accent toolbar-cta" onClick={() => setForm({})}>
+          <button type="button" className="btn btn-accent toolbar-cta" data-tour="announcement-create" onClick={() => setForm({})}>
             <Icon name="plus" size={17} /> New announcement
           </button>
         ) : (

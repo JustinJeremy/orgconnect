@@ -13,7 +13,7 @@ const NAV_ITEMS = [
   { key: "announcements", label: "Announcements", icon: "megaphone" },
 ];
 
-export default function Sidebar({ page, onNavigate, open, onClose }) {
+export default function Sidebar({ page, onNavigate, open, onClose, collapsed, onToggleCollapse }) {
   const { user, logout } = useAuth();
 
   const handleNavigate = (key) => {
@@ -35,7 +35,17 @@ export default function Sidebar({ page, onNavigate, open, onClose }) {
       <aside className={`sidebar ${open ? "open" : ""}`}>
         <Rings preset="sidebar" />
         <div className="sidebar-brand">
-          <Logo size={38} variant="white" subtitle={<OrgSwitcher variant="sidebar" />} />
+          <Logo size={35} subtitle={<OrgSwitcher variant="sidebar" />} />
+          <button
+            type="button"
+            className="icon-btn sidebar-collapse"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-pressed={collapsed}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            onClick={onToggleCollapse}
+          >
+            <Icon name="sidebar" size={18} />
+          </button>
         </div>
 
         <nav className="nav" aria-label="Main">
@@ -46,9 +56,10 @@ export default function Sidebar({ page, onNavigate, open, onClose }) {
               className={`nav-item ${page === item.key ? "active" : ""}`}
               onClick={() => handleNavigate(item.key)}
               aria-current={page === item.key ? "page" : undefined}
+              title={collapsed ? item.label : undefined}
             >
               <Icon name={item.icon} />
-              {item.label}
+              <span className="nav-label">{item.label}</span>
             </button>
           ))}
         </nav>

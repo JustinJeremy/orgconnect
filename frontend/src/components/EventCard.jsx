@@ -3,7 +3,8 @@ import Icon from "./Icon.jsx";
 import ModeTag from "./ModeTag.jsx";
 import { attendedCount, dateParts, formatTime, isCompleted, myRegistration, percent } from "../utils/format.js";
 
-export default function EventCard({ event, userId, isOfficer, actions }) {
+// layout "row": thumbnail on the left (members); "box": date badge beside the title (officers)
+export default function EventCard({ event, userId, isOfficer, actions, layout = "row", highlighted = false }) {
   const [busy, setBusy] = useState(false);
   const done = isCompleted(event);
   const registered = event.registrations.length;
@@ -14,6 +15,13 @@ export default function EventCard({ event, userId, isOfficer, actions }) {
 
   const fill = done ? percent(attended, registered) : Math.min(100, percent(registered, event.capacity));
 
+  const dateBlock = (
+    <div className="date-block">
+      <span>{mon}</span>
+      <strong>{day}</strong>
+    </div>
+  );
+
   const toggleRsvp = async () => {
     setBusy(true);
     await actions.toggleRsvp(event, Boolean(mine));
@@ -21,84 +29,94 @@ export default function EventCard({ event, userId, isOfficer, actions }) {
   };
 
   return (
-    <article className={`event-card ${done ? "is-done" : ""}`}>
-      <div className="event-card-top">
-        <div className="date-block">
-          <span>{mon}</span>
-          <strong>{day}</strong>
+    <article className={`event-card ${done ? "is-done" : ""} ${highlighted ? "is-highlighted" : ""}`} data-event-id={event.id}>
+      {/* Poster, or a grey placeholder when the event has none */}
+      {layout === "row" && (
+        <div className="event-thumb">
+          {event.posterUrl && <img src={event.posterUrl} alt={`Poster for ${event.title}`} className="event-thumb-img" loading="lazy" />}
+          {dateBlock}
         </div>
-        <div className="event-card-head">
-          <span className="event-cat">{event.category}</span>
-          <h3>{event.title}</h3>
-        </div>
-        {isOfficer && (
-          <div className="card-tools">
-            <button type="button" className="icon-btn sm" aria-label={`Edit ${event.title}`} onClick={() => actions.edit(event)}>
-              <Icon name="edit" size={16} />
-            </button>
-            <button type="button" className="icon-btn sm danger" aria-label={`Delete ${event.title}`} onClick={() => actions.remove(event)}>
-              <Icon name="trash" size={16} />
-            </button>
+      )}
+      {layout === "box" && event.posterUrl && (
+        <img src={event.posterUrl} alt={`Poster for ${event.title}`} className="event-box-poster" loading="lazy" />
+      )}
+
+      <div className="event-card-body">
+        <div className="event-card-top">
+          {layout === "box" && dateBlock}
+          <div className="event-card-head">
+            <span className="event-cat">{event.category}</span>
+            <h3>{event.title}</h3>
           </div>
-        )}
-      </div>
+          {isOfficer && (
+            <div className="card-tools">
+              <button type="button" className="icon-btn sm" aria-label={`Edit ${event.title}`} onClick={() => actions.edit(event)}>
+                <Icon name="edit" size={16} />
+              </button>
+              <button type="button" className="icon-btn sm danger" aria-label={`Delete ${event.title}`} onClick={() => actions.remove(event)}>
+                <Icon name="trash" size={16} />
+              </button>
+            </div>
+          )}
+        </div>
 
-      <div className="event-meta">
-        <span>
-          <Icon name="clock" size={14} /> {weekday}, {formatTime(event.time)}
-        </span>
-        <span>
-          <Icon name="pin" size={14} /> {event.location}
-          <ModeTag mode={event.mode} />
-        </span>
-      </div>
-
-      {event.description && <p className="event-desc">{event.description}</p>}
-
-      <div className="event-card-foot">
-        <div className="capacity">
+        <div className="event-meta">
           <span>
-            {done ? (
-              <>
-                <strong>{attended}</strong> of {registered} attended
-              </>
-            ) : (
-              <>
-                <strong>{registered}</strong> of {event.capacity} going
-              </>
-            )}
+            <Icon name="clock" size={14} /> {weekday}, {formatTime(event.time)}
           </span>
-          <div className="meter" aria-hidden="true">
-            <span style={{ width: `${fill}%` }} />
-          </div>
+          <span>
+            <Icon name="pin" size={14} /> {event.location}
+            <ModeTag mode={event.mode} />
+          </span>
         </div>
 
-        {isOfficer ? (
-          <button type="button" className="btn btn-outline btn-sm" onClick={() => actions.openAttendance(event)}>
-            Attendance
-          </button>
-        ) : done ? (
-          mine?.status === "attended" ? (
-            <button type="button" className="btn btn-outline btn-sm" onClick={() => actions.downloadCertificate(event)}>
-              <Icon name="download" size={15} /> Certificate
-            </button>
-          ) : (
-            <span className="muted small">{mine ? "Marked absent" : "Ended"}</span>
-          )
-        ) : mine ? (
-          <div className="rsvp-on">
-            <span className="going">
-              <Icon name="check" size={15} /> Going
+        {event.description && <p className="event-desc">{event.description}</p>}
+
+        <div className="event-card-foot">
+          <div className="capacity">
+            <span>
+              {done ? (
+                <>
+                  <strong>{attended}</strong> of {registered} attended
+                </>
+              ) : (
+                <>
+                  <strong>{registered}</strong> of {event.capacity} going
+                </>
+              )}
             </span>
-            <button type="button" className="link-btn" onClick={toggleRsvp} disabled={busy} aria-label={`Cancel RSVP for ${event.title}`}>
-              Cancel
-            </button>
+            <div className="meter" aria-hidden="true">
+              <span style={{ width: `${fill}%` }} />
+            </div>
           </div>
-        ) : (
-          <button type="button" className="btn btn-primary btn-sm" onClick={toggleRsvp} disabled={busy || isFull}>
-            {isFull ? "Full" : "RSVP"}
-          </button>
-        )}
+
+          {isOfficer ? (
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => actions.openAttendance(event)}>
+              Attendance
+            </button>
+          ) : done ? (
+            mine?.status === "attended" ? (
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => actions.downloadCertificate(event)}>
+                <Icon name="download" size={15} /> Certificate
+              </button>
+            ) : (
+              <span className="muted small">{mine ? "Marked absent" : "Ended"}</span>
+            )
+          ) : mine ? (
+            <div className="rsvp-on">
+              <span className="going">
+                <Icon name="check" size={15} /> Going
+              </span>
+              <button type="button" className="link-btn" onClick={toggleRsvp} disabled={busy} aria-label={`Cancel RSVP for ${event.title}`}>
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button type="button" className="btn btn-primary btn-sm" onClick={toggleRsvp} disabled={busy || isFull}>
+              {isFull ? "Full" : "RSVP"}
+            </button>
+          )}
+        </div>
       </div>
     </article>
   );

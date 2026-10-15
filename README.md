@@ -87,3 +87,6 @@ database from scratch (this **deletes** everything in your local database).
   temporary password. Members then change it on **Profile & settings** (click your name in the sidebar).
 - **Remember me** off: you're signed out when the browser closes (and after 12 hours at most).
 - Sign in, sign up and password changes allow 5 attempts per minute.
+
+- **ACCOUNTS** 
+

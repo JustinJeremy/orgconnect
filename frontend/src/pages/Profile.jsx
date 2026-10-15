@@ -1,88 +1,42 @@
 import { useState } from "react";
 import Icon from "../components/Icon.jsx";
 import Panel from "../components/Panel.jsx";
+import OrgSwatch from "../components/OrgSwatch.jsx";
 import StatRow from "../components/StatRow.jsx";
 import { StatusBadge } from "../components/Badges.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
-import { COURSES, YEAR_LEVELS } from "../data/constants.js";
+import { orgsApi } from "../api/services.js";
+import { errorMessage } from "../api/client.js";
 import { initials, myRegistration } from "../utils/format.js";
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// Name, student ID, email, course and year level
-function DetailsForm({ user, flash }) {
-  const { updateProfile } = useAuth();
-  const [formData, setFormData] = useState({
-    name: user.name,
-    studentId: user.studentId || "",
-    email: user.email,
-    course: user.course || COURSES[0],
-    yearLevel: user.yearLevel || YEAR_LEVELS[0],
-  });
-  const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  // Keep a course that isn't in the list (e.g. typed in by an officer) selectable
-  const courses = COURSES.includes(formData.course) ? COURSES : [...COURSES, formData.course];
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    setError("");
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const data = { ...formData, name: formData.name.trim(), studentId: formData.studentId.trim(), email: formData.email.trim() };
-    if (!data.name || !data.studentId || !data.email) return setError("Name, student ID and email are required.");
-    if (!EMAIL.test(data.email)) return setError("Enter a valid email address.");
-
-    setSaving(true);
-    const result = await updateProfile(data);
-    setSaving(false);
-    if (result.ok) flash("Profile updated");
-    else setError(result.message);
-  };
-
+// Name, student ID, email, course and year level: shown locked, members can't edit them here
+function LockedField({ id, label, value, wide }) {
   return (
-    <form className="profile-form" onSubmit={handleSubmit} noValidate>
-      {error && <div className="alert alert-error" role="alert">{error}</div>}
+    <div className={`field ${wide ? "span-2" : ""}`}>
+      <label htmlFor={id}>{label}</label>
+      <div className="locked-input">
+        <input id={id} className="input" value={value || "—"} readOnly aria-readonly="true" tabIndex={-1} />
+        <Icon name="lock" size={16} className="locked-icon" />
+      </div>
+    </div>
+  );
+}
+
+function DetailsForm({ user }) {
+  return (
+    <div className="profile-form is-locked">
       <div className="form-grid">
-        <div className="field span-2">
-          <label htmlFor="pf-name">Full name</label>
-          <input id="pf-name" className="input" name="name" value={formData.name} onChange={handleChange} autoComplete="name" />
-        </div>
-        <div className="field">
-          <label htmlFor="pf-id">Student ID</label>
-          <input id="pf-id" className="input" name="studentId" value={formData.studentId} onChange={handleChange} />
-        </div>
-        <div className="field">
-          <label htmlFor="pf-email">School email</label>
-          <input id="pf-email" type="email" className="input" name="email" value={formData.email} onChange={handleChange} autoComplete="email" />
-        </div>
-        <div className="field">
-          <label htmlFor="pf-course">Course</label>
-          <select id="pf-course" className="input" name="course" value={formData.course} onChange={handleChange}>
-            {courses.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-        </div>
-        <div className="field">
-          <label htmlFor="pf-year">Year level</label>
-          <select id="pf-year" className="input" name="yearLevel" value={formData.yearLevel} onChange={handleChange}>
-            {YEAR_LEVELS.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-        </div>
+        <LockedField id="pf-name" label="Full name" value={user.name} wide />
+        <LockedField id="pf-id" label="Student ID" value={user.studentId} />
+        <LockedField id="pf-email" label="School email" value={user.email} />
+        <LockedField id="pf-course" label="Course" value={user.course} />
+        <LockedField id="pf-year" label="Year level" value={user.yearLevel} />
       </div>
-      <div className="form-actions">
-        <button type="submit" className="btn btn-primary" disabled={saving}>
-          {saving ? "Saving…" : "Save changes"}
-        </button>
-      </div>
-    </form>
+      <p className="locked-note">
+        <Icon name="lock" size={14} /> These details are locked. Ask your org admin if something needs to change.
+      </p>
+    </div>
   );
 }
 
@@ -146,6 +100,58 @@ function PasswordForm({ flash }) {
   );
 }
 
+// Officers: upload or remove the selected org's logo (shown in the org dropdown and lists)
+function OrgLogoForm({ flash }) {
+  const { current: org, reload } = useOrg();
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const run = async (request, message) => {
+    setError("");
+    setBusy(true);
+    try {
+      await request();
+      await reload(); // refresh every org dropdown with the new logo
+      flash(message);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleFile = (e) => {
+    const file = e.target.files[0];
+    e.target.value = ""; // lets the same file be picked again
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) return setError("The logo must be 2 MB or smaller.");
+    run(() => orgsApi.uploadLogo(file), "Logo updated");
+  };
+
+  return (
+    <div className="org-logo-form">
+      {error && <div className="alert alert-error" role="alert">{error}</div>}
+      <div className="org-logo-row">
+        <span className="org-logo-preview">
+          {org.logoUrl ? <img src={org.logoUrl} alt={`${org.name} logo`} /> : <Icon name="image" size={28} />}
+        </span>
+        <div className="org-logo-actions">
+          <label className={`btn btn-primary btn-sm ${busy ? "is-disabled" : ""}`}>
+            <Icon name="upload" size={15} /> {org.logoUrl ? "Change logo" : "Upload logo"}
+            <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleFile} disabled={busy} />
+          </label>
+          {org.logoUrl && (
+            <button type="button" className="btn btn-outline btn-sm" disabled={busy} onClick={() => run(orgsApi.removeLogo, "Logo removed")}>
+              Remove
+            </button>
+          )}
+          <p className="muted small">PNG, JPG or WebP, up to 2 MB. A square image works best.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Every org you joined or applied to, with your role there; switch to it from here
 function MyOrganizations() {
   const { memberships } = useAuth();
@@ -159,9 +165,7 @@ function MyOrganizations() {
     <ul className="org-list">
       {mine.map(({ org, m }) => (
         <li key={org.id} className={org.slug === current.slug ? "is-current" : ""}>
-          <span className="org-swatch" style={{ background: org.theme?.navy }} aria-hidden="true">
-            <span style={{ background: org.theme?.highlight }} />
-          </span>
+          <OrgSwatch org={org} />
           <span className="org-option-text">
             <span className="org-option-name">{org.name}</span>
             <span className="org-option-note">{m.role === "officer" ? `${m.position} · Officer` : "Member"}</span>
@@ -213,15 +217,20 @@ export default function Profile({ data, loading, flash }) {
         </div>
       </Panel>
 
-      <StatRow items={stats} loading={loading} />
+      <StatRow items={stats} loading={loading} className="stat-accent" />
 
       <div className="dash-grid">
         <Panel title="Personal details" tour="profile-details" subtitle="Shown to officers on the member roster" className="span-7">
-          <DetailsForm user={user} flash={flash} />
+          <DetailsForm user={user} />
         </Panel>
         <Panel title="Change password" className="span-5" tour="profile-password">
           <PasswordForm flash={flash} />
         </Panel>
+        {user.role === "officer" && (
+          <Panel title="Organization logo" subtitle={`Shown for ${org.name} in the organization menu`} className="span-5">
+            <OrgLogoForm flash={flash} />
+          </Panel>
+        )}
         <Panel title="My organizations" tour="profile-orgs" subtitle="One account works for every org you join" className="span-7">
           <MyOrganizations />
         </Panel>
