@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureOrganizationMember;
 use App\Http\Middleware\ResolveOrganization;
 use Illuminate\Foundation\Application;
@@ -17,7 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->api(prepend: [ResolveOrganization::class]);
-        $middleware->alias(['org.member' => EnsureOrganizationMember::class]);
+        $middleware->alias(['org.member' => EnsureOrganizationMember::class, 'admin' => EnsureAdmin::class]);
 
         // Pick the org before route model binding, so /api/events/{id} only finds this org's events
         $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: ResolveOrganization::class);

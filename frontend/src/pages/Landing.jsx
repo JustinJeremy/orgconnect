@@ -3,12 +3,13 @@ import Icon from "../components/Icon.jsx";
 import Logo from "../components/Logo.jsx";
 import HeroShapes from "../components/HeroShapes.jsx";
 import OrgSwitcher from "../components/OrgSwitcher.jsx";
+import { DEFAULT_NAVY } from "../components/OrgSwatch.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
 import AuthPage from "./AuthPage.jsx";
 
 export default function Landing() {
-  const { authView, clearAuthView } = useAuth();
+  const { authView, clearAuthView, startOrgRegistration, endOrgRegistration } = useAuth();
   const { organizations, current, selectOrg } = useOrg();
   // "home" | "signin" | "signup" (after "Sign in with another account", open that form directly)
   const [view, setView] = useState(() => authView || "home");
@@ -18,10 +19,27 @@ export default function Landing() {
   }, [authView, clearAuthView]);
 
   if (view !== "home") {
-    return <AuthPage mode={view} onModeChange={setView} onBack={() => setView("home")} />;
+    return (
+      <AuthPage
+        mode={view}
+        onModeChange={setView}
+        onBack={() => {
+          endOrgRegistration();
+          setView("home");
+        }}
+      />
+    );
   }
 
-  const openSignIn = () => setView("signin");
+  const openSignIn = () => {
+    endOrgRegistration();
+    setView("signin");
+  };
+  // Registering a new org needs an account first; the form opens right after signing in
+  const registerOrg = () => {
+    startOrgRegistration();
+    setView("signup");
+  };
 
   return (
     <div className="landing">
@@ -50,14 +68,21 @@ export default function Landing() {
             <button type="button" className="btn btn-accent btn-pill btn-lg" onClick={openSignIn}>
               Sign in to {current.shortName} <Icon name="arrowRight" size={20} />
             </button>
-            <button type="button" className="btn btn-outline-navy btn-pill btn-lg" onClick={() => setView("signup")}>
+            <button
+              type="button"
+              className="btn btn-outline-navy btn-pill btn-lg"
+              onClick={() => {
+                endOrgRegistration();
+                setView("signup");
+              }}
+            >
               Create an account
             </button>
           </div>
         </div>
       </main>
 
-      {organizations.length > 1 && (
+      {organizations.length > 0 && (
         <section className="org-picker container" aria-labelledby="org-picker-title">
           <h2 id="org-picker-title">Organizations on OrgConnect</h2>
           <p className="muted">Pick your organization. One account works for every org you join.</p>
@@ -69,6 +94,7 @@ export default function Landing() {
                   key={org.id}
                   type="button"
                   className={`org-card ${selected ? "is-selected" : ""}`}
+                  style={{ "--card-navy": org.theme?.navy || DEFAULT_NAVY }}
                   aria-pressed={selected}
                   onClick={() => selectOrg(org.slug)}
                 >
@@ -88,6 +114,11 @@ export default function Landing() {
                 </button>
               );
             })}
+            <button type="button" className="org-card org-card-register" onClick={registerOrg}>
+              <span className="org-register-icon" aria-hidden="true"><Icon name="plus" size={18} /></span>
+              <span className="org-card-name">Register your organization</span>
+              <span className="org-card-tagline">Bring your student org to OrgConnect. An admin reviews each request.</span>
+            </button>
           </div>
         </section>
       )}

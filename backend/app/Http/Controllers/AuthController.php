@@ -34,12 +34,14 @@ class AuthController extends Controller
     }
 
     // POST /api/register  -> { token, user }
-    // New accounts are always members with a Pending application to the selected org.
+    // New accounts are members with a Pending application to the selected org,
+    // unless they signed up to register a new org (registerOrg: true).
     public function register(RegisterRequest $request)
     {
         $data = $request->validated();
-        $org = Organization::current();
-        if (! $org) {
+        $registeringOrg = $data['registerOrg'] ?? false;
+        $org = $registeringOrg ? null : Organization::current();
+        if (! $org && ! $registeringOrg) {
             throw ValidationException::withMessages(['organization' => 'Pick the organization you want to join.']);
         }
 
@@ -52,12 +54,14 @@ class AuthController extends Controller
                 'course' => $data['course'],
                 'year_level' => $data['yearLevel'],
             ]);
-            $user->memberships()->create([
-                'organization_id' => $org->id,
-                'role' => 'member',
-                'position' => 'Member',
-                'status' => 'Pending',
-            ]);
+            if ($org) {
+                $user->memberships()->create([
+                    'organization_id' => $org->id,
+                    'role' => 'member',
+                    'position' => 'Member',
+                    'status' => 'Pending',
+                ]);
+            }
 
             return $user;
         });

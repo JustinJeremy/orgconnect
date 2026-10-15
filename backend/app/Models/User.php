@@ -33,6 +33,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_admin' => 'boolean',
         ];
     }
 
@@ -116,6 +117,7 @@ class User extends Authenticatable
             'course' => $this->course,
             'yearLevel' => $this->year_level,
             'membershipStatus' => $this->membership->status,
+            'isAdmin' => $this->is_admin,   // platform admin: reviews org registrations
             'canManageMembers' => $this->canManageMembers(),
             'isPresident' => $this->isPresident(),
             // For the "under review" and "inactive" screens

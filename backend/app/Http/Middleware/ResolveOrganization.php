@@ -14,7 +14,8 @@ class ResolveOrganization
     public function handle(Request $request, Closure $next): Response
     {
         $slug = $request->header('X-Organization');
-        Organization::setCurrent($slug ? Organization::where('slug', $slug)->first() : null);
+        // Orgs waiting for review, rejected or suspended can't be used
+        Organization::setCurrent($slug ? Organization::active()->where('slug', $slug)->first() : null);
 
         return $next($request);
     }

@@ -10,9 +10,16 @@ import { useAuth } from "../context/AuthContext.jsx";
 //
 // variant="sidebar"  white text on the dark sidebar
 // variant="light"    dark text on light pages (join screen, landing)
+// The org menu's "Register an organization" line also shows your latest request
+function requestNote(request) {
+  if (request?.status === "Pending") return `${request.shortName} · waiting for review`;
+  if (request?.status === "Rejected") return `${request.shortName} · not approved, see why`;
+  return "Bring your org to OrgConnect";
+}
+
 export default function OrgSwitcher({ variant = "light" }) {
   const { organizations, current, selectOrg } = useOrg();
-  const { user, memberships } = useAuth();
+  const { user, memberships, orgRequests, startOrgRegistration } = useAuth();
   const [menuPos, setMenuPos] = useState(null); // null = closed
   const open = Boolean(menuPos);
   const ref = useRef(null);
@@ -125,6 +132,22 @@ export default function OrgSwitcher({ variant = "light" }) {
                 {others.map(renderItem)}
               </ul>
             </>
+          )}
+          {user && (
+            <button
+              type="button"
+              className="org-option org-register"
+              onClick={() => {
+                setMenuPos(null);
+                startOrgRegistration();
+              }}
+            >
+              <span className="org-register-icon" aria-hidden="true"><Icon name="plus" size={16} /></span>
+              <span className="org-option-text">
+                <span className="org-option-name">Register an organization</span>
+                <span className="org-option-note">{requestNote(orgRequests?.[0])}</span>
+              </span>
+            </button>
           )}
         </div>,
         document.body

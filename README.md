@@ -48,7 +48,8 @@ Password for all: `password123`
 |---|---|
 | `member@orgconnect.test` (Juan) | Member of both orgs, so switching is instant |
 | `officer@orgconnect.test` (Maria) | Officer in Computer Society only; Data Science Society shows the join page |
-| `andrea.lim@orgconnect.test` | Data Science Society President (officer view) |
+| `andrea.lim@orgconnect.test` | Data Science Society President (officer view); has a pending request to register JPCS |
+| `admin@orgconnect.test` | Platform admin: reviews org registration requests, suspends or reactivates orgs |
 
 ## Running the tests
 
@@ -59,7 +60,8 @@ php artisan test
 
 The tests use a separate in-memory SQLite database, so they never touch your MySQL data.
 They cover sign-in and sign-up, officer vs member access, events and RSVPs, volunteer hours,
-peer tutoring, members and passwords, profiles, and the paged lists (`backend/tests/Feature`).
+peer tutoring, members and passwords, profiles, the paged lists, pending and inactive members,
+and registering a new org with the platform admin's review (`backend/tests/Feature`).
 
 ## After pulling changes
 

@@ -5,6 +5,7 @@ import LoginForm from "../components/LoginForm.jsx";
 import SignUpForm from "../components/SignUpForm.jsx";
 import OrgSwitcher from "../components/OrgSwitcher.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 
 // The Figma frame for Sign in / Sign up is 1099 x 720. On computer screens the page is laid out
 // in those exact coordinates and scaled to fit the window, so it keeps the Figma proportions
@@ -42,6 +43,7 @@ function useFrameScale() {
 
 export default function AuthPage({ mode, onModeChange, onBack }) {
   const { current: org } = useOrg();
+  const { registeringOrg } = useAuth();
   // gutter lets the background text start at the window's left edge, like in Figma
   const { scale, gutter } = useFrameScale();
 
@@ -63,11 +65,18 @@ export default function AuthPage({ mode, onModeChange, onBack }) {
 
             <div className="auth-side-logo">
               <Logo size={101} stacked />
-              <div className="auth-org">
-                <span className="auth-org-label">Organization</span>
-                <OrgSwitcher />
-                <span className="auth-org-college">{org.college}</span>
-              </div>
+              {registeringOrg ? (
+                <div className="auth-org">
+                  <span className="auth-org-label">Register your organization</span>
+                  <span className="auth-org-college">Sign in or create an account first. An admin reviews every new org.</span>
+                </div>
+              ) : (
+                <div className="auth-org">
+                  <span className="auth-org-label">Organization</span>
+                  <OrgSwitcher />
+                  <span className="auth-org-college">{org.college}</span>
+                </div>
+              )}
             </div>
           </section>
 

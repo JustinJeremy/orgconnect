@@ -1,7 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { orgsApi } from "../api/services.js";
 import { errorMessage, getOrgSlug, setOrgSlug } from "../api/client.js";
-import { applyTheme } from "../utils/theme.js";
 
 // Holds the list of organizations and the one being viewed.
 // The selected org is sent to the API with every request (X-Organization header).
@@ -37,11 +36,6 @@ export function OrgProvider({ children }) {
   }, [loadOrganizations]);
 
   const current = organizations.find((o) => o.slug === slug) || null;
-
-  // Recolor the whole app with the org's palette
-  useEffect(() => {
-    applyTheme(current?.theme);
-  }, [current]);
 
   return (
     <OrgContext.Provider value={{ organizations, current, loading, error, selectOrg, reload: loadOrganizations }}>

@@ -2,19 +2,57 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Organization extends Model
 {
     protected $fillable = [
-        'slug', 'name', 'short_name', 'college', 'tagline', 'description', 'mission', 'vision', 'founded_year',
+        'slug', 'status', 'requested_by', 'proof_url', 'review_note', 'reviewed_at', 'name', 'short_name', 'college', 'tagline', 'description', 'mission', 'vision', 'founded_year',
         'adviser', 'email', 'facebook_url', 'office', 'meeting_schedule', 'membership_fee', 'courses', 'tutoring_areas', 'theme', 'logo_path',
     ];
 
     protected function casts(): array
     {
-        return ['courses' => 'array', 'tutoring_areas' => 'array', 'theme' => 'array', 'founded_year' => 'integer'];
+        return ['courses' => 'array', 'tutoring_areas' => 'array', 'theme' => 'array', 'founded_year' => 'integer', 'reviewed_at' => 'datetime'];
+    }
+
+    // Orgs people can see and use (not waiting for review, rejected or suspended)
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('status', 'Active');
+    }
+
+    // The student who asked to register this org
+    public function requester(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'requested_by');
+    }
+
+    // An org registration request, as the requester and the platform admin see it
+    public function toRequest(): array
+    {
+        return [
+            'id' => $this->id,
+            'slug' => $this->slug,
+            'status' => $this->status,
+            'name' => $this->name,
+            'shortName' => $this->short_name,
+            'college' => $this->college,
+            'tagline' => $this->tagline,
+            'description' => $this->description,
+            'adviser' => $this->adviser,
+            'email' => $this->email,
+            'courses' => $this->courses ?? [],
+            'proofUrl' => $this->proof_url,
+            'requestedBy' => $this->requester?->name,
+            'requestedByEmail' => $this->requester?->email,
+            'submittedAt' => $this->created_at?->format('Y-m-d'),
+            'reviewedAt' => $this->reviewed_at?->format('Y-m-d'),
+            'reviewNote' => $this->review_note,
+        ];
     }
 
     // The org picked in the app (sent by the frontend in the X-Organization header).

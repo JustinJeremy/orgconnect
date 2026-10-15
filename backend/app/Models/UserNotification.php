@@ -9,7 +9,8 @@ class UserNotification extends Model
 {
     use BelongsToOrganization;
 
-    protected $fillable = ['user_id', 'message', 'link', 'is_read'];
+    // organization_id: normally the selected org (BelongsToOrganization); set it to send to another org
+    protected $fillable = ['organization_id', 'user_id', 'message', 'link', 'is_read'];
 
     protected function casts(): array
     {

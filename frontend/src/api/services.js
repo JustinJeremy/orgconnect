@@ -50,6 +50,21 @@ export const orgsApi = {
   removeLogo: () => del("/organization/logo"),
 };
 
+// Registering a new org (reviewed by a platform admin)
+// OrgRequest { id, slug, status: "Pending"|"Active"|"Rejected", name, shortName, college, tagline, description,
+//              adviser, email, courses, proofUrl, requestedBy, submittedAt, reviewedAt, reviewNote }
+export const orgRequestsApi = {
+  mine: () => get("/org-requests"), // the signed-in user's requests, newest first
+  create: (data) => post("/org-requests", data),
+};
+
+// Platform admin
+export const adminApi = {
+  overview: () => get("/admin/overview"), // -> { stats, requests: [OrgRequest], organizations: [...] }
+  decide: (id, decision, extra = {}) => patch(`/admin/org-requests/${id}`, { decision, ...extra }), // Approved | Rejected
+  setStatus: (id, status) => patch(`/admin/organizations/${id}`, { status }), // Active | Suspended
+};
+
 export const eventsApi = {
   list: () => get("/events"),
   page: getPage("/events"), // { tab, category, search, sort, page, perPage }

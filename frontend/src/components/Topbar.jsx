@@ -63,7 +63,7 @@ export default function Topbar({ title, subtitle, notifications, onMarkAllRead, 
                 <button type="button" className="btn btn-primary btn-block" onClick={() => startTour(null)}>
                   Take the full tour
                 </button>
-                <p className="help-label">Or just one part</p>
+                {tourSections.length > 0 && <p className="help-label">Or just one part</p>}
                 <ul className="help-list">
                   {tourSections.map((s) => (
                     <li key={s.key}>
