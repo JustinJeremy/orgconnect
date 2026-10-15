@@ -5,6 +5,7 @@ import EmptyState from "./EmptyState.jsx";
 import Pagination from "./Pagination.jsx";
 import { StatusBadge } from "./Badges.jsx";
 import { POSITIONS } from "../data/constants.js";
+import { useAuth } from "../context/AuthContext.jsx";
 import { membersApi } from "../api/services.js";
 import usePagedList from "../hooks/usePagedList.js";
 import { formatDate, initials } from "../utils/format.js";
@@ -12,7 +13,8 @@ import { formatDate, initials } from "../utils/format.js";
 const PER_PAGE = 10;
 const EMPTY = { name: "", email: "", position: "Member", status: "Active" };
 
-function MemberForm({ member, onSave, onCancel }) {
+// isPresident: only the President can make someone an officer
+function MemberForm({ member, onSave, onCancel, isPresident }) {
   const [formData, setFormData] = useState(
     member ? { name: member.name, email: member.email, position: member.position, status: member.status } : EMPTY
   );
@@ -63,7 +65,7 @@ function MemberForm({ member, onSave, onCancel }) {
           <div className="field">
             <label htmlFor="m-position">Position</label>
             <select id="m-position" className="input" name="position" value={formData.position} onChange={handleChange}>
-              {POSITIONS.map((p) => (
+              {(isPresident ? POSITIONS : ["Member"]).map((p) => (
                 <option key={p} value={p}>{p}</option>
               ))}
             </select>
@@ -83,6 +85,9 @@ function MemberForm({ member, onSave, onCancel }) {
 }
 
 export default function MemberList({ members, onSave, onRemove, onResetPassword }) {
+  const { user } = useAuth();
+  // President, VPs and Secretary manage members; only the President manages officers; nobody edits themselves
+  const canManage = (m) => user.canManageMembers && m.id !== user.id && (m.position === "Member" || user.isPresident);
   const [search, setSearch] = useState("");
   const [form, setForm] = useState(null); // null | { member? }
 
@@ -109,9 +114,11 @@ export default function MemberList({ members, onSave, onRemove, onResetPassword 
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <button type="button" className="btn btn-accent toolbar-cta" data-tour="member-add" onClick={() => setForm({})}>
-          <Icon name="plus" size={17} /> Add member
-        </button>
+        {user.canManageMembers && (
+          <button type="button" className="btn btn-accent toolbar-cta" data-tour="member-add" onClick={() => setForm({})}>
+            <Icon name="plus" size={17} /> Add member
+          </button>
+        )}
       </div>
 
       <section className="panel flush">
@@ -155,23 +162,25 @@ export default function MemberList({ members, onSave, onRemove, onResetPassword 
                       <StatusBadge status={m.status} />
                     </td>
                     <td className="right">
-                      <div className="row-actions">
-                        <button type="button" className="icon-btn sm" aria-label={`Edit ${m.name}`} onClick={() => setForm({ member: m })}>
-                          <Icon name="edit" size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          className="icon-btn sm"
-                          aria-label={`Reset password for ${m.name}`}
-                          title="Reset password"
-                          onClick={() => onResetPassword(m)}
-                        >
-                          <Icon name="key" size={16} />
-                        </button>
-                        <button type="button" className="icon-btn sm danger" aria-label={`Remove ${m.name}`} onClick={() => onRemove(m)}>
-                          <Icon name="trash" size={16} />
-                        </button>
-                      </div>
+                      {canManage(m) && (
+                        <div className="row-actions">
+                          <button type="button" className="icon-btn sm" aria-label={`Edit ${m.name}`} onClick={() => setForm({ member: m })}>
+                            <Icon name="edit" size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="icon-btn sm"
+                            aria-label={`Reset password for ${m.name}`}
+                            title="Reset password"
+                            onClick={() => onResetPassword(m)}
+                          >
+                            <Icon name="key" size={16} />
+                          </button>
+                          <button type="button" className="icon-btn sm danger" aria-label={`Remove ${m.name}`} onClick={() => onRemove(m)}>
+                            <Icon name="trash" size={16} />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -182,7 +191,7 @@ export default function MemberList({ members, onSave, onRemove, onResetPassword 
       </section>
       <Pagination page={list.page} totalPages={list.totalPages} onChange={list.setPage} />
 
-      {form && <MemberForm member={form.member} onSave={handleSave} onCancel={() => setForm(null)} />}
+      {form && <MemberForm member={form.member} isPresident={user.isPresident} onSave={handleSave} onCancel={() => setForm(null)} />}
     </>
   );
 }

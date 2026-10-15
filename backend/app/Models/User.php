@@ -42,6 +42,31 @@ class User extends Authenticatable
         return $this->membership->role === 'officer';
     }
 
+    // Officers who manage the member roster: applications, adding, editing and removing members.
+    // Only the President manages other officers (see MemberController).
+    public const MEMBER_MANAGERS = ['President', 'Secretary'];
+
+    public function canManageMembers(): bool
+    {
+        $position = (string) $this->membership->position;
+
+        return $this->isOfficer() && (in_array($position, self::MEMBER_MANAGERS, true) || str_starts_with($position, 'VP'));
+    }
+
+    public function isPresident(): bool
+    {
+        return $this->isOfficer() && $this->membership->position === 'President';
+    }
+
+    // Also a member of (or applicant to) another org: only they can change their own account details
+    public function inOtherOrganizations(): bool
+    {
+        return $this->memberships()
+            ->where('organization_id', '!=', Organization::current()?->id)
+            ->where('status', '!=', 'Rejected')
+            ->exists();
+    }
+
     // Role, position, status and join date in the currently selected organization.
     // Someone who hasn't joined it gets an empty record (status null).
     public function membership(): HasOne
@@ -91,6 +116,8 @@ class User extends Authenticatable
             'course' => $this->course,
             'yearLevel' => $this->year_level,
             'membershipStatus' => $this->membership->status,
+            'canManageMembers' => $this->canManageMembers(),
+            'isPresident' => $this->isPresident(),
         ];
     }
 

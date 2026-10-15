@@ -60,6 +60,7 @@ Route::middleware(['auth:sanctum', 'org.member'])->group(function () {
 
     // Members & applications (officers)
     Route::get('/members', [MemberController::class, 'index']);
+    Route::get('/members/export', [MemberController::class, 'export']);
     Route::post('/members', [MemberController::class, 'store']);
     Route::put('/members/{member}', [MemberController::class, 'update']);
     Route::delete('/members/{member}', [MemberController::class, 'destroy']);

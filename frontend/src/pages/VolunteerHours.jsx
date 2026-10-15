@@ -11,7 +11,8 @@ import ApprovalCenter from "../components/ApprovalCenter.jsx";
 import Pagination from "../components/Pagination.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import usePagedList from "../hooks/usePagedList.js";
-import { hoursApi } from "../api/services.js";
+import { hoursApi, membersApi } from "../api/services.js";
+import { errorMessage } from "../api/client.js";
 
 const STATUSES = ["All", "Pending", "Approved", "Rejected"];
 const PER_PAGE = 10;
@@ -30,25 +31,26 @@ function StatusSelect({ value, onChange }) {
   );
 }
 
-function exportCsv(members, hours, flash) {
-  const rows = [["Member", "Email", "Position", "Status", "Approved hours", "Pending hours"]];
-  members.forEach((m) => {
-    const pending = sumHours(hours.filter((h) => h.memberName === m.name && h.status === "Pending"));
-    rows.push([m.name, m.email, m.position, m.status, m.approvedHours ?? 0, pending]);
-  });
-  const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
-  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "volunteer-hours-summary.csv";
-  link.click();
-  URL.revokeObjectURL(url);
-  flash("Exported volunteer-hours-summary.csv");
+// The server builds the CSV, one row per member account (so two people with the same name stay separate)
+async function exportCsv(flash) {
+  try {
+    const res = await membersApi.exportHours();
+    const url = URL.createObjectURL(res.data);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "volunteer-hours-summary.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+    flash("Exported volunteer-hours-summary.csv");
+  } catch (error) {
+    flash(errorMessage(error), "error");
+  }
 }
 
 /* ---------- Officer ---------- */
 
 function OfficerView({ data, loading, hours: hourActions, members: memberActions, flash }) {
+  const { user } = useAuth();
   const { hours, members, applications } = data;
   const [tab, setTab] = useState("hours");
   const [status, setStatus] = useState("Pending");
@@ -80,7 +82,7 @@ function OfficerView({ data, loading, hours: hourActions, members: memberActions
             <StatusSelect value={status} onChange={setStatus} />
           </>
         )}
-        <button type="button" className="btn btn-outline toolbar-cta export-btn" data-tour="hours-export" onClick={() => exportCsv(members, hours, flash)} disabled={!members.length}>
+        <button type="button" className="btn btn-outline toolbar-cta export-btn" data-tour="hours-export" onClick={() => exportCsv(flash)} disabled={!members.length}>
           <Icon name="download" size={16} /> Export summary
         </button>
       </div>
@@ -93,7 +95,7 @@ function OfficerView({ data, loading, hours: hourActions, members: memberActions
           items={[
             { key: "hours", label: "Hour Logs", count: pendingLogs },
             { key: "members", label: "Members" },
-            { key: "applications", label: "Applications", count: pendingApps },
+            ...(user.canManageMembers ? [{ key: "applications", label: "Applications", count: pendingApps }] : []),
           ]}
         />
       </div>
@@ -110,7 +112,7 @@ function OfficerView({ data, loading, hours: hourActions, members: memberActions
                 text={status === "Pending" && !query ? "New submissions from members will appear here." : "Try another status or search."}
               />
             ) : (
-              <HoursTable rows={list.items} isOfficer onDecide={hourActions.decide} />
+              <HoursTable rows={list.items} isOfficer userId={user.id} onDecide={hourActions.decide} />
             )}
           </section>
           <Pagination page={list.page} totalPages={list.totalPages} onChange={list.setPage} />

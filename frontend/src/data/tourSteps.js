@@ -1,8 +1,9 @@
 // Guided tour content, grouped by section (the help menu can start any section on its own).
-// Each step: { title, body, page?, target?, click? }
+// Each step: { title, body, page?, target?, click?, managersOnly? }
 //   page   - the app page to open first ("dashboard", "events", "hours", "tutoring", "announcements", "profile")
 //   click  - an element to click before the step (only tabs: the tour never changes any data)
 //   target - the element to highlight; when it isn't on screen the card shows in the middle instead
+//   managersOnly - only for officers who manage members (President, Vice Presidents, Secretary)
 
 const NAV = [
   {
@@ -152,14 +153,14 @@ const OFFICER = [
         click: '[data-tour="tab-hours"]',
         target: '[data-tour="hours-tabs"]',
         title: "Hours, members and applications",
-        body: "Three tabs: hour logs to verify, the member roster, and new membership applications.",
+        body: "Hour logs to verify and the member roster. The President, Vice Presidents and Secretary also see new membership applications here.",
       },
       {
         page: "hours",
         click: '[data-tour="tab-hours"]',
         target: '[data-tour="hours-tools"]',
         title: "Verify volunteer hours",
-        body: "Filter logs by status or search by member or activity, then approve or reject each one. The member is notified.",
+        body: "Filter logs by status or search by member or activity, then approve or reject each one. Your own logs are reviewed by another officer.",
       },
       {
         page: "hours",
@@ -170,6 +171,7 @@ const OFFICER = [
       },
       {
         page: "hours",
+        managersOnly: true,
         click: '[data-tour="tab-members"]',
         target: '[data-tour="member-add"]',
         title: "Add a member",
@@ -177,13 +179,15 @@ const OFFICER = [
       },
       {
         page: "hours",
+        managersOnly: true,
         click: '[data-tour="tab-members"]',
         target: [".table tbody tr .row-actions", ".page .empty-state"],
         title: "Edit, reset or remove",
-        body: "Change a member's position or status, reset a forgotten password (key icon), or remove them from the org.",
+        body: "Change a member's status, reset a forgotten password (key icon), or remove them. Only the President promotes, edits or removes officers.",
       },
       {
         page: "hours",
+        managersOnly: true,
         click: '[data-tour="tab-applications"]',
         target: '[data-tour="applications"]',
         title: "Membership applications",
@@ -391,11 +395,10 @@ export function tourSections(isOfficer) {
   return isOfficer ? OFFICER : MEMBER;
 }
 
-export function buildTour(isOfficer, sectionKey = null) {
+// canManageMembers = false leaves out the steps about managing the roster
+export function buildTour(isOfficer, sectionKey = null, canManageMembers = false) {
   const sections = tourSections(isOfficer);
-  if (sectionKey) {
-    const section = sections.find((s) => s.key === sectionKey);
-    return section.steps.map((step) => ({ ...step, section: section.label }));
-  }
-  return [...sections.flatMap((s) => s.steps.map((step) => ({ ...step, section: s.label }))), { ...FINISH, section: "Done" }];
+  const label = (s) => s.steps.filter((step) => canManageMembers || !step.managersOnly).map((step) => ({ ...step, section: s.label }));
+  if (sectionKey) return label(sections.find((s) => s.key === sectionKey));
+  return [...sections.flatMap(label), { ...FINISH, section: "Done" }];
 }

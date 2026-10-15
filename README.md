@@ -87,6 +87,8 @@ database from scratch (this **deletes** everything in your local database).
   temporary password. Members then change it on **Profile & settings** (click your name in the sidebar).
 - **Remember me** off: you're signed out when the browser closes (and after 12 hours at most).
 - Sign in, sign up and password changes allow 5 attempts per minute.
-
-- **ACCOUNTS** 
-
+- **Who manages members:** the President, Vice Presidents and Secretary approve applications and
+  add, edit or remove members. Only the President promotes, edits or removes officers. Nobody can
+  change their own position, and officers never approve their own hours or tutoring requests.
+- An officer can't change the email or password of someone who also belongs to another org;
+  that person changes their own on the Profile page.
