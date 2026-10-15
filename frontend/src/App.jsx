@@ -63,7 +63,7 @@ function greeting() {
   return "Good evening";
 }
 
-// Lists loaded from the API. Members and applications are officer-only.
+// Lists loaded from the API. Members, applications and reactivation requests are officer-only.
 const LOADERS = {
   events: eventsApi.list,
   hours: hoursApi.list,
@@ -78,6 +78,7 @@ const LOADERS = {
 const OFFICER_LOADERS = {
   members: membersApi.list,
   applications: membersApi.applications,
+  reactivations: membersApi.reactivations,
 };
 const EMPTY_DATA = Object.fromEntries(
   [...Object.keys(LOADERS), ...Object.keys(OFFICER_LOADERS)].map((key) => [key, []])
@@ -312,6 +313,12 @@ function MainApp() {
         upsert("applications", await membersApi.decideApplication(app.id, status));
         if (status === "Approved") reload("members");
       }, status === "Approved" ? `${app.name} is now a member` : `${app.name}'s application was declined`),
+    decideReactivation: (request, status) =>
+      run(async () => {
+        await membersApi.decideReactivation(request.id, status);
+        drop("reactivations", request.id);
+        if (status === "Approved") reload("members");
+      }, status === "Approved" ? `${request.name} is active again` : `${request.name}'s request was declined`),
   };
 
   // ---- Tutoring ----
@@ -506,7 +513,8 @@ function App() {
   }
   if (!user) return <Landing />;
   if (user.orgSlug !== current.slug) return loadingScreen; // switching orgs
-  if (!user.membershipStatus || user.membershipStatus === "Rejected") return <JoinOrg />;
+  // Not a member yet, still under review, or inactive: the org's own screen instead of the app
+  if (user.membershipStatus !== "Active") return <JoinOrg />;
   // key: switching orgs starts the app fresh and loads that org's data
   return <MainApp key={current.slug} />;
 }

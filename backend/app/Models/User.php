@@ -118,6 +118,17 @@ class User extends Authenticatable
             'membershipStatus' => $this->membership->status,
             'canManageMembers' => $this->canManageMembers(),
             'isPresident' => $this->isPresident(),
+            // For the "under review" and "inactive" screens
+            'appliedAt' => $this->membership->created_at?->format('Y-m-d'),
+            'inactive' => $this->membership->status === 'Inactive' ? [
+                'reason' => $this->membership->inactive_reason,
+                'by' => $this->membership->inactiveBy?->name,
+                'byPosition' => $this->membership->inactiveBy?->memberships()
+                    ->where('organization_id', $this->membership->organization_id)->value('position'),
+                'at' => $this->membership->inactive_at?->format('Y-m-d'),
+                'requestedAt' => $this->membership->reactivation_requested_at?->format('Y-m-d'),
+                'message' => $this->membership->reactivation_message,
+            ] : null,
         ];
     }
 
@@ -131,11 +142,26 @@ class User extends Authenticatable
             'position' => $this->membership->position,
             'joinDate' => optional($this->membership->join_date ?? $this->created_at)->format('Y-m-d'),
             'status' => $this->membership->status === 'Inactive' ? 'Inactive' : 'Active',
+            'inactiveReason' => $this->membership->inactive_reason,
             'approvedHours' => (float) ($this->approved_sum ?? $this->approvedHours()),
         ];
     }
 
     // A membership application (a student who signed up)
+    // An inactive member asking to be active again (officers' Requests tab)
+    public function toReactivation(): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'email' => $this->email,
+            'message' => $this->membership->reactivation_message,
+            'requestedAt' => $this->membership->reactivation_requested_at?->format('Y-m-d'),
+            'reason' => $this->membership->inactive_reason,
+            'inactiveAt' => $this->membership->inactive_at?->format('Y-m-d'),
+        ];
+    }
+
     public function toApplication(): array
     {
         return [

@@ -99,6 +99,28 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Cancel a pending application to the selected org
+  const withdrawApplication = async () => {
+    try {
+      await orgsApi.withdraw(orgSlug);
+      await loadAccount();
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, message: errorMessage(error) };
+    }
+  };
+
+  // An inactive member asks the officers to make them active again
+  const requestReactivation = async (message) => {
+    try {
+      await orgsApi.requestReactivation(orgSlug, message);
+      await loadAccount();
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, message: errorMessage(error) };
+    }
+  };
+
   // nextView: "signin" | "signup" to open that form right after signing out
   const logout = async (nextView = null) => {
     try {
@@ -123,6 +145,8 @@ export function AuthProvider({ children }) {
         updateProfile,
         changePassword,
         joinOrg,
+        withdrawApplication,
+        requestReactivation,
         logout,
         authView,
         clearAuthView: () => setAuthView(null),

@@ -287,16 +287,6 @@ function MemberDashboard({ header, data, loading, onNavigate }) {
       <div className="dash-main">
         {header}
 
-        {user.membershipStatus === "Pending" && (
-          <div className="banner" role="status">
-            <Icon name="clock" size={18} />
-            <span>
-              <strong>Your membership application is under review.</strong> You can browse events and request tutoring
-              in the meantime.
-            </span>
-          </div>
-        )}
-
         <section className="feed-list" data-tour="feed" aria-label="Feed">
           {loading ? (
             <div className="feed-post"><div className="skeleton-list" aria-hidden="true"><span /><span /><span /></div></div>

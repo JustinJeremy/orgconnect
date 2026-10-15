@@ -13,6 +13,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import usePagedList from "../hooks/usePagedList.js";
 import { hoursApi, membersApi } from "../api/services.js";
 import { errorMessage } from "../api/client.js";
+import { initials, shortDate } from "../utils/format.js";
 
 const STATUSES = ["All", "Pending", "Approved", "Rejected"];
 const PER_PAGE = 10;
@@ -51,13 +52,13 @@ async function exportCsv(flash) {
 
 function OfficerView({ data, loading, hours: hourActions, members: memberActions, flash }) {
   const { user } = useAuth();
-  const { hours, members, applications } = data;
+  const { hours, members, applications, reactivations } = data;
   const [tab, setTab] = useState("hours");
   const [status, setStatus] = useState("Pending");
   const [search, setSearch] = useState("");
 
   const pendingLogs = hours.filter((h) => h.status === "Pending").length;
-  const pendingApps = applications.filter((a) => a.status === "Pending").length;
+  const pendingApps = applications.filter((a) => a.status === "Pending").length + reactivations.length;
   const query = search.trim();
   // One page of hour logs from the API; reloads when a log is approved, rejected or deleted
   const list = usePagedList(hoursApi.page, { status, search }, PER_PAGE, hours);
@@ -95,7 +96,7 @@ function OfficerView({ data, loading, hours: hourActions, members: memberActions
           items={[
             { key: "hours", label: "Hour Logs", count: pendingLogs },
             { key: "members", label: "Members" },
-            ...(user.canManageMembers ? [{ key: "applications", label: "Applications", count: pendingApps }] : []),
+            ...(user.canManageMembers ? [{ key: "applications", label: "Requests", count: pendingApps }] : []),
           ]}
         />
       </div>
@@ -126,7 +127,53 @@ function OfficerView({ data, loading, hours: hourActions, members: memberActions
           <ApprovalCenter applications={applications} onDecideApplication={memberActions.decideApplication} tabs={["memberships"]} />
         </Panel>
       )}
+
+      {tab === "applications" && (
+        <Panel title="Reactivation requests" tour="reactivations" subtitle="Inactive members asking to be active again">
+          <ReactivationList requests={reactivations} onDecide={memberActions.decideReactivation} />
+        </Panel>
+      )}
     </div>
+  );
+}
+
+// Inactive members who asked to be active again: their message, and why they were made inactive
+function ReactivationList({ requests, onDecide }) {
+  const [busy, setBusy] = useState(null);
+
+  if (!requests.length) return <EmptyState compact title="No reactivation requests" text="Inactive members who ask to come back will show up here." />;
+
+  const decide = async (request, status) => {
+    setBusy(request.id);
+    await onDecide(request, status);
+    setBusy(null);
+  };
+
+  return (
+    <ul className="review-list">
+      {requests.map((r) => (
+        <li key={r.id} className="reactivation-row">
+          <span className="avatar sm">{initials(r.name)}</span>
+          <div className="review-text">
+            <div className="review-name">{r.name}</div>
+            <div className="reactivation-message">"{r.message}"</div>
+            {r.reason && <div className="review-detail">Inactive since {shortDate(r.inactiveAt)}: {r.reason}</div>}
+          </div>
+          <div className="review-when">
+            <strong>Requested</strong>
+            <span>{shortDate(r.requestedAt)}</span>
+          </div>
+          <div className="review-actions">
+            <button type="button" className="btn btn-outline btn-sm" disabled={busy === r.id} onClick={() => decide(r, "Declined")} aria-label={`Decline ${r.name}`}>
+              Decline
+            </button>
+            <button type="button" className="btn btn-outline btn-sm btn-approve" disabled={busy === r.id} onClick={() => decide(r, "Approved")}>
+              Reactivate
+            </button>
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
 

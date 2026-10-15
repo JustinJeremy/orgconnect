@@ -29,6 +29,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/user/password', [ProfileController::class, 'password'])->middleware('throttle:password');
     Route::get('/my-organizations', [OrganizationController::class, 'mine']);
     Route::post('/organizations/{organization:slug}/join', [OrganizationController::class, 'join']);
+    Route::delete('/organizations/{organization:slug}/application', [OrganizationController::class, 'withdraw']);
+    Route::post('/organizations/{organization:slug}/reactivation', [OrganizationController::class, 'requestReactivation']);
 });
 
 // Signed in AND a member of the selected org
@@ -67,6 +69,8 @@ Route::middleware(['auth:sanctum', 'org.member'])->group(function () {
     Route::post('/members/{member}/reset-password', [MemberController::class, 'resetPassword']);
     Route::get('/applications', [MemberController::class, 'applications']);
     Route::patch('/applications/{applicant}', [MemberController::class, 'decideApplication']);
+    Route::get('/reactivations', [MemberController::class, 'reactivations']);
+    Route::patch('/reactivations/{member}', [MemberController::class, 'decideReactivation']);
 
     // Peer tutoring
     Route::get('/tutoring-sessions', [TutoringController::class, 'sessions']);

@@ -35,11 +35,11 @@ class AccessTest extends TestCase
         $this->actingIn($rejected, $this->compSoc())->getJson('/api/events')->assertForbidden();
     }
 
-    public function test_a_pending_applicant_can_already_browse(): void
+    public function test_a_pending_applicant_cannot_use_the_org_yet(): void
     {
         $pending = $this->person($this->compSoc(), 'member', 'Pending');
 
-        $this->actingIn($pending, $this->compSoc())->getJson('/api/events')->assertOk();
+        $this->actingIn($pending, $this->compSoc())->getJson('/api/events')->assertForbidden();
     }
 
     public function test_members_cannot_use_officer_actions(): void

@@ -33,6 +33,40 @@ class OrganizationController extends Controller
             ]);
     }
 
+    // DELETE /api/organizations/{organization}/application -> withdraw a pending application
+    public function withdraw(Request $request, Organization $organization)
+    {
+        $deleted = $request->user()->memberships()
+            ->where('organization_id', $organization->id)
+            ->where('status', 'Pending')
+            ->delete();
+        abort_unless($deleted, 404, 'There is no pending application to withdraw.');
+
+        return ['ok' => true];
+    }
+
+    // POST /api/organizations/{organization}/reactivation  { message } -> an inactive member asks to be active again
+    public function requestReactivation(Request $request, Organization $organization)
+    {
+        $message = trim($request->validate(['message' => 'required|string|max:1000'])['message']);
+        $user = $request->user();
+        $membership = $user->memberships()->where('organization_id', $organization->id)->first();
+        abort_unless($membership?->status === 'Inactive', 422, 'Only inactive members can ask to be reactivated.');
+
+        $membership->update(['reactivation_message' => $message, 'reactivation_requested_at' => now()]);
+
+        foreach (MembershipRecord::managerIds($organization->id) as $officerId) {
+            UserNotification::create([
+                'organization_id' => $organization->id,
+                'user_id' => $officerId,
+                'message' => "{$user->name} asked to be reactivated in {$organization->short_name}",
+                'link' => 'hours',
+            ]);
+        }
+
+        return ['ok' => true];
+    }
+
     // POST /api/organizations/{organization}/join -> apply to another org with the same account
     public function join(Request $request, Organization $organization)
     {

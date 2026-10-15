@@ -78,6 +78,13 @@ class DataScienceSocietySeeder extends Seeder
         $id = fn (string $key) => $u[str_contains($key, '@') ? $key : "$key@orgconnect.test"]->id;
         $president = $id('andrea.lim');
 
+        // Why the inactive member was made inactive (shown on their screen)
+        $u['rafael.santos@orgconnect.test']->memberships()->where('organization_id', $org->id)->update([
+            'inactive_reason' => 'No activity this semester. Message the officers when you are ready to join DSS events again.',
+            'inactive_by' => $president,
+            'inactive_at' => now()->subDays(12),
+        ]);
+
         // ---- Events ----
         $events = [
             ['Intro to Python for Data Analysis', 'Workshop', 6, '13:00', 'CCS Analytics Lab (Room 210)', 'F2F', 35,

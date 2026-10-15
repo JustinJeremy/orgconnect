@@ -25,6 +25,8 @@ class MemberRequest extends FormRequest
             'email' => $email,
             'position' => 'required|string|max:50',
             'status' => 'required|in:Active,Inactive',
+            // Shown to the member when they open the org, so they know why and can ask to be reactivated
+            'inactiveReason' => 'required_if:status,Inactive|nullable|string|max:500',
         ];
     }
 
