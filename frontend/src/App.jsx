@@ -140,7 +140,7 @@ function MainApp() {
   // ---- Guided tour (help button in the top bar) ----
   const startTour = (sectionKey = null) => {
     setMenuOpen(false);
-    setTourSteps(buildTour(isOfficer, sectionKey));
+    setTourSteps(buildTour(isOfficer, sectionKey, user.canManageMembers));
   };
 
   // Show the full tour automatically the first time someone signs in on this browser
@@ -153,7 +153,7 @@ function MainApp() {
     } catch {
       return; // storage blocked: don't start a tour on every visit
     }
-    setTourSteps(buildTour(isOfficer));
+    setTourSteps(buildTour(isOfficer, null, user.canManageMembers));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
 

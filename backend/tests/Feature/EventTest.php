@@ -84,6 +84,7 @@ class EventTest extends TestCase
             ->map(fn ($u) => $this->actingIn($u, $org)->postJson("/api/events/{$event->id}/rsvp")->json('registrations'))
             ->last();
         $cameId = collect($registrations)->firstWhere('userId', $came->id)['id'];
+        Event::withoutGlobalScopes()->whereKey($event->id)->update(['date' => now()->subDay()->toDateString()]);   // the event has now happened
 
         $this->actingIn($officer, $org)
             ->putJson("/api/events/{$event->id}/attendance", ['attendees' => [$cameId], 'completed' => true])

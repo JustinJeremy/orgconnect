@@ -33,7 +33,8 @@ abstract class TestCase extends BaseTestCase
     }
 
     // A user with a membership in $org. $role: officer | member; $status: Active | Inactive | Pending | Rejected
-    protected function person(Organization $org, string $role = 'member', string $status = 'Active', array $attributes = []): User
+    // $position defaults to President for officers and Member for members
+    protected function person(Organization $org, string $role = 'member', string $status = 'Active', array $attributes = [], ?string $position = null): User
     {
         $user = User::factory()->create($attributes + [
             'student_id' => fake()->unique()->numerify('2025-#####'),
@@ -43,7 +44,7 @@ abstract class TestCase extends BaseTestCase
         $user->memberships()->create([
             'organization_id' => $org->id,
             'role' => $role,
-            'position' => $role === 'officer' ? 'President' : 'Member',
+            'position' => $position ?? ($role === 'officer' ? 'President' : 'Member'),
             'status' => $status,
             'join_date' => $status === 'Active' ? now() : null,
         ]);
