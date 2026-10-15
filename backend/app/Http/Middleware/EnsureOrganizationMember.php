@@ -7,8 +7,9 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-// For org pages: an org must be selected and the user must have joined it.
-// Pending applicants can already browse, as before; rejected ones can't.
+// For org pages: an org must be selected and the user must be an active member of it.
+// Pending applicants and inactive members see their own screen in the app instead
+// (application under review / reason + reactivation request), and can't use the org.
 class EnsureOrganizationMember
 {
     public function handle(Request $request, Closure $next): Response
@@ -18,6 +19,8 @@ class EnsureOrganizationMember
         $status = $request->user()->membership->status;
         abort_if($status === null, 403, "You're not a member of this organization yet.");
         abort_if($status === 'Rejected', 403, 'Your membership application to this organization was not approved.');
+        abort_if($status === 'Pending', 403, 'Your application is still being reviewed by an officer.');
+        abort_if($status === 'Inactive', 403, 'Your membership in this organization is inactive.');
 
         return $next($request);
     }

@@ -16,7 +16,9 @@ const EMPTY = { name: "", email: "", position: "Member", status: "Active" };
 // isPresident: only the President can make someone an officer
 function MemberForm({ member, onSave, onCancel, isPresident }) {
   const [formData, setFormData] = useState(
-    member ? { name: member.name, email: member.email, position: member.position, status: member.status } : EMPTY
+    member
+      ? { name: member.name, email: member.email, position: member.position, status: member.status, inactiveReason: member.inactiveReason || "" }
+      : EMPTY
   );
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -30,8 +32,14 @@ function MemberForm({ member, onSave, onCancel, isPresident }) {
     e.preventDefault();
     if (!formData.name.trim() || !formData.email.trim()) return setError("Name and email are required.");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return setError("Enter a valid email address.");
+    if (formData.status === "Inactive" && !formData.inactiveReason?.trim()) return setError("Give a reason so the member knows why.");
     setSaving(true);
-    await onSave({ ...formData, name: formData.name.trim(), email: formData.email.trim() });
+    await onSave({
+      ...formData,
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      inactiveReason: formData.status === "Inactive" ? formData.inactiveReason.trim() : null,
+    });
     setSaving(false);
   };
 
@@ -78,6 +86,21 @@ function MemberForm({ member, onSave, onCancel, isPresident }) {
             </select>
           </div>
         </div>
+        {formData.status === "Inactive" && (
+          <div className="field">
+            <label htmlFor="m-reason">Reason <span className="muted">(shown to the member)</span></label>
+            <textarea
+              id="m-reason"
+              className="input"
+              name="inactiveReason"
+              rows="3"
+              maxLength={500}
+              placeholder="e.g. Membership fee for this semester is unpaid"
+              value={formData.inactiveReason || ""}
+              onChange={handleChange}
+            />
+          </div>
+        )}
         {error && <span className="field-error">{error}</span>}
       </div>
     </Modal>

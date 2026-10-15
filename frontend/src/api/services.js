@@ -39,6 +39,8 @@ export const orgsApi = {
   list: () => get("/organizations"), // public: every org with its details and color theme
   mine: () => get("/my-organizations"), // -> [{ organizationId, role, position, status }]
   join: (slug) => post(`/organizations/${slug}/join`), // -> updated user for that org
+  withdraw: (slug) => del(`/organizations/${slug}/application`), // cancel a pending application
+  requestReactivation: (slug, message) => post(`/organizations/${slug}/reactivation`, { message }), // inactive members
   // Officers of the selected org: PNG/JPG/WebP up to 2 MB -> updated org (with logoUrl)
   uploadLogo: (file) => {
     const body = new FormData();
@@ -87,6 +89,8 @@ export const membersApi = {
   remove: (id) => del(`/members/${id}`),
   applications: () => get("/applications"),
   decideApplication: (id, status) => patch(`/applications/${id}`, { status }),
+  reactivations: () => get("/reactivations"), // inactive members asking to be active again
+  decideReactivation: (id, status) => patch(`/reactivations/${id}`, { status }), // Approved | Declined
   resetPassword: (id) => post(`/members/${id}/reset-password`), // -> { temporaryPassword }
 };
 

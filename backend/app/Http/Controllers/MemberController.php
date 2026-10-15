@@ -93,7 +93,12 @@ class MemberController extends Controller
             "{$member->name} also belongs to another organization, so only they can change their name and email.");
 
         $member->update(['name' => $data['name'], 'email' => $data['email']]);
+        $wasInactive = $member->membership->status === 'Inactive';
         $this->saveMembership($member, $data);
+
+        if ($data['status'] === 'Inactive' && ! $wasInactive) {
+            UserNotification::send($member->id, 'Your membership in '.Organization::current()->short_name.' was set to inactive', 'dashboard');
+        }
 
         return $member->fresh()->toMember();
     }
@@ -153,6 +158,42 @@ class MemberController extends Controller
         return collect(range(1, 10))->map(fn () => $alphabet[random_int(0, strlen($alphabet) - 1)])->implode('');
     }
 
+    // GET /api/reactivations  (officers) -> inactive members who asked to be active again
+    public function reactivations(Request $request)
+    {
+        $this->officerOnly($request);
+
+        return User::withMembershipStatus(['Inactive'])
+            ->whereHas('membership', fn ($q) => $q->whereNotNull('reactivation_requested_at'))
+            ->with('membership')
+            ->get()
+            ->sortByDesc(fn (User $u) => $u->membership->reactivation_requested_at)
+            ->values()
+            ->map->toReactivation();
+    }
+
+    // PATCH /api/reactivations/{member}  { status: Approved | Declined }  (President, VPs, Secretary)
+    public function decideReactivation(Request $request, User $member)
+    {
+        $this->membersManagerOnly($request);
+        $approved = $request->validate(['status' => 'required|in:Approved,Declined'])['status'] === 'Approved';
+        $membership = $member->membership;
+        abort_unless($membership->status === 'Inactive' && $membership->reactivation_requested_at, 404, 'No reactivation request from this member.');
+
+        $membership->update($approved ? [
+            'status' => 'Active',
+            'inactive_reason' => null, 'inactive_by' => null, 'inactive_at' => null,
+            'reactivation_message' => null, 'reactivation_requested_at' => null,
+        ] : ['reactivation_message' => null, 'reactivation_requested_at' => null]);
+
+        $org = Organization::current()->short_name;
+        UserNotification::send($member->id, $approved
+            ? "Welcome back! Your {$org} membership is active again"
+            : "Your request to reactivate your {$org} membership was declined", 'dashboard');
+
+        return ['ok' => true];
+    }
+
     // GET /api/members/export  (officers) -> CSV of every member's approved and pending hours, by account
     public function export(Request $request)
     {
@@ -191,12 +232,31 @@ class MemberController extends Controller
         abort_unless($member->membership->status, 404, 'This person is not in your organization.');
     }
 
+    // Inactive: keep the reason, who set it and when (a new reason clears any earlier reactivation request).
+    // Active again: forget all of that.
     private function saveMembership(User $member, array $data, array $extra = []): void
     {
+        $existing = $member->memberships()->where('organization_id', Organization::current()->id)->first();
+        $inactive = $data['status'] === 'Inactive';
+        $reason = $inactive ? trim((string) ($data['inactiveReason'] ?? '')) : null;
+        $changed = ! $existing || $existing->status !== 'Inactive' || $existing->inactive_reason !== $reason;
+
         $member->memberships()->updateOrCreate(['organization_id' => Organization::current()->id], [
             'role' => $data['position'] === 'Member' ? 'member' : 'officer',
             'position' => $data['position'],
             'status' => $data['status'],
-        ] + $extra);
+        ] + ($inactive ? ($changed ? [
+            'inactive_reason' => $reason,
+            'inactive_by' => request()->user()->id,
+            'inactive_at' => now(),
+            'reactivation_message' => null,
+            'reactivation_requested_at' => null,
+        ] : []) : [
+            'inactive_reason' => null,
+            'inactive_by' => null,
+            'inactive_at' => null,
+            'reactivation_message' => null,
+            'reactivation_requested_at' => null,
+        ]) + $extra);
     }
 }

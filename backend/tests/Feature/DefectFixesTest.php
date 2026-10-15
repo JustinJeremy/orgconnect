@@ -80,7 +80,7 @@ class DefectFixesTest extends TestCase
 
         // Their status in this org can still be changed
         $this->actingIn($president, $org)->putJson("/api/members/{$shared->id}", [
-            'name' => $shared->name, 'email' => 'andrea@school.edu.ph', 'position' => 'Member', 'status' => 'Inactive',
+            'name' => $shared->name, 'email' => 'andrea@school.edu.ph', 'position' => 'Member', 'status' => 'Inactive', 'inactiveReason' => 'Missed three assemblies',
         ])->assertOk();
     }
 
@@ -123,7 +123,7 @@ class DefectFixesTest extends TestCase
 
         // A VP can manage regular members
         $this->actingIn($vp, $org)->putJson("/api/members/{$member->id}", [
-            'name' => $member->name, 'email' => $member->email, 'position' => 'Member', 'status' => 'Inactive',
+            'name' => $member->name, 'email' => $member->email, 'position' => 'Member', 'status' => 'Inactive', 'inactiveReason' => 'Missed three assemblies',
         ])->assertOk();
 
         // The President can promote and remove officers

@@ -50,6 +50,13 @@ class ComputerSocietySeeder extends Seeder
         $id = fn (string $key) => $u[str_contains($key, '@') ? $key : "$key@orgconnect.test"]->id;
         $president = $id('officer@orgconnect.test');
 
+        // Why the inactive member was made inactive (shown on their screen)
+        $u['enzo.villanueva@orgconnect.test']->memberships()->where('organization_id', $org->id)->update([
+            'inactive_reason' => 'Missed three general assemblies in a row and the membership fee for this school year is unpaid.',
+            'inactive_by' => $president,
+            'inactive_at' => now()->subDays(5),
+        ]);
+
         // ---- Events ----
         $events = [
             ['Laravel + React Full-Stack Workshop', 'Workshop', 5, '13:00', 'CCS Building, Room 304', 'F2F', 40,
