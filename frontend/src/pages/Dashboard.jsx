@@ -124,6 +124,8 @@ function OfficerDashboard({ data, loading, onNavigate, events: eventActions, hou
             onDecideHours={hourActions.decide}
             onDecideRequest={tutoring.decide}
             onDecideApplication={memberActions.decideApplication}
+            tabs={user.canManageMembers ? ["hours", "tutoring", "memberships"] : ["hours", "tutoring"]}
+            userId={user.id}
             limit={5}
           />
         </Panel>

@@ -37,8 +37,9 @@ class MemberController extends Controller
     // A brand-new account gets a temporary password, returned once so the officer can pass it on.
     public function store(MemberRequest $request)
     {
-        $this->officerOnly($request);
+        $this->membersManagerOnly($request);
         $data = $request->validated();
+        $this->presidentForOfficers($request, $data['position'] !== 'Member');
         $temporary = self::temporaryPassword();
 
         $member = DB::transaction(function () use ($data, $temporary) {
@@ -61,15 +62,14 @@ class MemberController extends Controller
     // Not allowed for someone who is an officer in another org, so one org can't take over another org's officer.
     public function resetPassword(Request $request, User $member)
     {
-        $this->officerOnly($request);
+        $this->membersManagerOnly($request);
         $this->ensureInThisOrg($member);
         abort_if($member->id === $request->user()->id, 422, 'Change your own password on your Profile page.');
+        $this->presidentForOfficers($request, $member->isOfficer());
 
-        $officerElsewhere = $member->memberships()
-            ->where('organization_id', '!=', Organization::current()->id)
-            ->where('role', 'officer')
-            ->exists();
-        abort_if($officerElsewhere, 422, "{$member->name} is an officer in another organization, so only they can change their password.");
+        // One org's officers must not be able to take over an account another org relies on
+        abort_if($member->inOtherOrganizations(), 422,
+            "{$member->name} also belongs to another organization, so only they can change their password.");
 
         $temporary = self::temporaryPassword();
         $member->update(['password' => $temporary]);
@@ -81,9 +81,16 @@ class MemberController extends Controller
     // PUT /api/members/{member}  (officers)
     public function update(MemberRequest $request, User $member)
     {
-        $this->officerOnly($request);
+        $this->membersManagerOnly($request);
         $this->ensureInThisOrg($member);
+        abort_if($member->id === $request->user()->id, 422, "You can't change your own position or status. Ask another officer.");
         $data = $request->validated();
+        $this->presidentForOfficers($request, $member->isOfficer() || $data['position'] !== 'Member');
+
+        // Name and email belong to the whole account; another org's member changes their own on the Profile page
+        $detailsChanged = $data['name'] !== $member->name || strcasecmp($data['email'], $member->email) !== 0;
+        abort_if($detailsChanged && $member->inOtherOrganizations(), 422,
+            "{$member->name} also belongs to another organization, so only they can change their name and email.");
 
         $member->update(['name' => $data['name'], 'email' => $data['email']]);
         $this->saveMembership($member, $data);
@@ -94,9 +101,10 @@ class MemberController extends Controller
     // DELETE /api/members/{member}  (officers) -> removes them from this org only; their account stays
     public function destroy(Request $request, User $member)
     {
-        $this->officerOnly($request);
+        $this->membersManagerOnly($request);
         $this->ensureInThisOrg($member);
         abort_if($member->id === $request->user()->id, 422, "You can't remove yourself.");
+        $this->presidentForOfficers($request, $member->isOfficer());
 
         $member->membership()->delete();
 
@@ -118,7 +126,7 @@ class MemberController extends Controller
     // PATCH /api/applications/{applicant}  (officers approve or reject)
     public function decideApplication(DecideApplicationRequest $request, User $applicant)
     {
-        $this->officerOnly($request);
+        $this->membersManagerOnly($request);
         $approved = $request->validated('status') === 'Approved';
 
         abort_unless($applicant->membership->status === 'Pending', 404, 'No pending application from this student.');
@@ -142,6 +150,39 @@ class MemberController extends Controller
         $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
 
         return collect(range(1, 10))->map(fn () => $alphabet[random_int(0, strlen($alphabet) - 1)])->implode('');
+    }
+
+    // GET /api/members/export  (officers) -> CSV of every member's approved and pending hours, by account
+    public function export(Request $request)
+    {
+        $this->officerOnly($request);
+
+        $members = User::withMembershipStatus(['Active', 'Inactive'])
+            ->with('membership')
+            ->withSum(['hourLogs as approved_sum' => fn ($q) => $q->where('status', 'Approved')], 'hours')
+            ->withSum(['hourLogs as pending_sum' => fn ($q) => $q->where('status', 'Pending')], 'hours')
+            ->orderBy('name')
+            ->get();
+
+        $rows = [['Member', 'Email', 'Student ID', 'Position', 'Status', 'Approved hours', 'Pending hours']];
+        foreach ($members as $m) {
+            $rows[] = [$m->name, $m->email, $m->student_id, $m->membership->position, $m->membership->status,
+                (float) $m->approved_sum, (float) $m->pending_sum];
+        }
+        $csv = collect($rows)->map(fn ($row) => collect($row)
+            ->map(fn ($value) => '"'.str_replace('"', '""', (string) $value).'"')
+            ->implode(','))->implode("\n");
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="volunteer-hours-summary.csv"',
+        ]);
+    }
+
+    // Promoting, demoting, editing or removing an officer is for the President only
+    private function presidentForOfficers(Request $request, bool $involvesOfficer): void
+    {
+        abort_if($involvesOfficer && ! $request->user()->isPresident(), 403, 'Only the President can manage officers.');
     }
 
     private function ensureInThisOrg(User $member): void

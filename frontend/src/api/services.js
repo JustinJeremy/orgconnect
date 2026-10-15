@@ -66,6 +66,7 @@ export const hoursApi = {
 export const membersApi = {
   list: () => get("/members"),
   page: getPage("/members"), // { search, page, perPage }
+  exportHours: () => api.get("/members/export", { responseType: "blob" }), // CSV of every member's hours
   create: (data) => post("/members", data),
   update: (id, data) => put(`/members/${id}`, data),
   remove: (id) => del(`/members/${id}`),

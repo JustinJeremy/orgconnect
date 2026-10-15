@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\UserNotification;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
@@ -119,6 +120,10 @@ class EventController extends Controller
     {
         $this->officerOnly($request);
         $data = $request->validated();
+
+        // Certificates only after the event has started
+        $starts = Carbon::parse($event->date->format('Y-m-d').' '.$event->time);
+        abort_if($data['completed'] && $starts->isFuture(), 422, "This event hasn't happened yet. Mark it completed once it has started.");
 
         $present = collect($data['attendees']);
 

@@ -110,6 +110,7 @@ class TutoringController extends Controller
     {
         $session = $tutoringRequest->session;
         $this->ownerOrOfficer($request->user(), $session->tutor_id, 'answer this request');
+        abort_if($tutoringRequest->user_id === $request->user()->id, 403, "You can't answer your own tutoring request.");
 
         $status = $request->validated('status');
         $allowed = [

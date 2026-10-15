@@ -6,7 +6,7 @@ use App\Http\Controllers\Concerns\ListsOrPages;
 use App\Http\Controllers\Concerns\OfficerOnly;
 use App\Http\Requests\DecideHourRequest;
 use App\Http\Requests\StoreHourRequest;
-use App\Models\User;
+use App\Models\Organization;
 use App\Models\UserNotification;
 use App\Models\VolunteerHour;
 use Illuminate\Http\Request;
@@ -43,6 +43,8 @@ class HourController extends Controller
     public function decide(DecideHourRequest $request, VolunteerHour $hour)
     {
         $this->officerOnly($request);
+        abort_if($hour->user_id === $request->user()->id, 403, 'Another officer has to review your own hours.');
+        abort_unless($hour->status === 'Pending', 422, "This log was already {$hour->status}.");
         $data = $request->validated();
 
         $hour->update([
@@ -71,18 +73,21 @@ class HourController extends Controller
     }
 
     // GET /api/leaderboard  -> top members by approved hours
+    // Only people still on this org's roster (active or inactive); one query for names and totals
     public function leaderboard()
     {
-        return VolunteerHour::selectRaw('user_id, SUM(hours) as total')
-            ->where('status', 'Approved')
-            ->groupBy('user_id')
+        return VolunteerHour::query()
+            ->join('users', 'users.id', '=', 'volunteer_hours.user_id')
+            ->join('membership_records as m', fn ($join) => $join
+                ->on('m.user_id', '=', 'users.id')
+                ->where('m.organization_id', Organization::current()->id)
+                ->whereIn('m.status', ['Active', 'Inactive']))
+            ->where('volunteer_hours.status', 'Approved')
+            ->groupBy('volunteer_hours.user_id', 'users.name')
+            ->selectRaw('volunteer_hours.user_id as id, users.name as name, SUM(volunteer_hours.hours) as total')
             ->orderByDesc('total')
             ->limit(10)
             ->get()
-            ->map(fn ($row) => [
-                'id' => $row->user_id,
-                'name' => User::find($row->user_id)?->name,
-                'hours' => (float) $row->total,
-            ]);
+            ->map(fn ($row) => ['id' => $row->id, 'name' => $row->name, 'hours' => (float) $row->total]);
     }
 }

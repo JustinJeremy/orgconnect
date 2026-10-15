@@ -18,7 +18,7 @@ export default function HoursTable({ rows, isOfficer, userId, onDecide, onDelete
         </thead>
         <tbody>
           {rows.map((log) => {
-            const canDecide = isOfficer && log.status === "Pending";
+            const canDecide = isOfficer && log.status === "Pending" && log.userId !== userId; // never your own
             const canDelete = !isOfficer && log.userId === userId && log.status === "Pending";
             return (
               <tr key={log.id}>
