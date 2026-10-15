@@ -309,7 +309,7 @@ const MEMBER = [
       {
         page: "events",
         click: '[data-tour="tab-upcoming"]',
-        target: [".card-grid > .event-card:not(.skeleton-card)", ".page .empty-state"],
+        target: [".event-rows > .event-card", ".card-grid > .event-card:not(.skeleton-card)", ".page .empty-state"],
         title: "RSVP",
         body: "Press RSVP to save your spot; press it again to cancel. Attend and you'll get a certificate.",
       },

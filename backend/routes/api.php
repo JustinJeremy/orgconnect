@@ -88,6 +88,10 @@ Route::middleware(['auth:sanctum', 'org.member'])->group(function () {
     Route::put('/announcements/{announcement}', [AnnouncementController::class, 'update']);
     Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy']);
     Route::post('/announcements/{announcement}/read', [AnnouncementController::class, 'markRead']);
+    Route::post('/announcements/{announcement}/like', [AnnouncementController::class, 'like']);
+    Route::delete('/announcements/{announcement}/like', [AnnouncementController::class, 'unlike']);
+    Route::get('/announcements/{announcement}/comments', [AnnouncementController::class, 'comments']);
+    Route::post('/announcements/{announcement}/comments', [AnnouncementController::class, 'addComment']);
 
     // In-app notifications
     Route::get('/notifications', [NotificationController::class, 'index']);

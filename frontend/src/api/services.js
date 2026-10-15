@@ -115,8 +115,7 @@ export const announcementsApi = {
   remove: (id) => del(`/announcements/${id}`),
   markRead: (id) => post(`/announcements/${id}/read`),
   markAllRead: () => post("/announcements/read-all"),
-  // Likes and comments: endpoints the backend team is adding (see the UI redesign design doc). Until they exist these calls fail
-  // and the feed falls back quietly (counts show 0, comments show "not available yet").
+  // Likes and comments on the dashboard feed
   like: (id) => post(`/announcements/${id}/like`), // -> { likes, likedByMe }
   unlike: (id) => del(`/announcements/${id}/like`), // -> { likes, likedByMe }
   comments: (id) => get(`/announcements/${id}/comments`), // -> [{ id, userName, text, createdAt }]

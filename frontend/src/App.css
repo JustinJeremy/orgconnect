@@ -2498,3 +2498,27 @@ select.input {
 @media (prefers-reduced-motion: reduce) {
   .event-card.is-highlighted { animation: none; box-shadow: 0 0 0 3px var(--accent); }
 }
+
+/* ==========================================================
+   Screens outside the Figma frames, in the same style:
+   cards with large rounded corners and a soft shadow, no border, light page background
+   ========================================================== */
+.main .panel:not(.dash-card) {
+  border: 0;
+  border-radius: 0.8125rem;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
+}
+.main .panel-head h2 { color: var(--navy); }
+.main .stat-row:not(.stat-cards) { border: 0; border-radius: 0.8125rem; box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25); }
+.main .stat-row:not(.stat-cards) .stat-value { color: var(--accent); }
+
+/* Join page (and the pending / inactive screens that share its layout) */
+.join-page { background: linear-gradient(90deg, #eef4fb 0%, #f8fbfd 100%); }
+.join-hero { border-radius: 1.4375rem; box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25); }
+.join-page .panel { border: 0; border-radius: 1.4375rem; box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25); }
+.join-facts dt { color: #57708d; }
+
+/* Dialogs and the guided tour card */
+.modal { border-radius: 1.4375rem; overflow: hidden; }
+.modal-head h2 { color: var(--navy); }
+.tour-card { border-radius: 1.4375rem; }
