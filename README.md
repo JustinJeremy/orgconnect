@@ -1,7 +1,43 @@
 # OrgConnect
 
-A web-based platform for student organization events, volunteer hours, and peer tutoring.
+A web-based platform for student organizations: events and attendance, volunteer hours, peer tutoring,
+members and announcements, for several orgs on one account.
 Group 4 · IPT (Integrative Programming and Technologies) · React + Laravel full-stack project.
+Supports SDG 4 (Quality Education, through peer tutoring and shared resources) and SDG 17 (Partnerships,
+by connecting students, officers and orgs).
+
+## What it does
+
+**Members**
+- RSVP to events, see them on a calendar, and download a certificate for events they attended
+- Log volunteer hours for an officer to approve, and see the leaderboard
+- Book peer tutoring sessions and open shared learning resources
+- Read, like and comment on announcements in the dashboard feed
+- Use one account for every org they join, and switch orgs from the menu
+
+**Officers**
+- Create events (with posters), record attendance and mark events completed
+- Approve or reject volunteer hours and tutoring requests (never their own)
+- Manage the member roster, approve applications and reactivation requests, and export hours as CSV
+- Post announcements and upload the org's logo
+
+**Platform admin**
+- Review requests to register new orgs, then approve or reject them (with a reason)
+- Suspend or reactivate an org
+
+Each org has its own colors (Data Science Society is green, Computer Society navy). A guided tour
+(the **?** button next to the bell) walks through every feature.
+
+## How things connect
+
+| To get this… | …this has to happen first |
+|---|---|
+| A new org on OrgConnect | A student sends a registration request and the admin approves it; the student becomes its President |
+| Using an org | You apply (sign up, or "Apply to join") and an officer approves you; until then you see "under review" |
+| Using it again after being made inactive | You see the officer's reason, send a reactivation request, and an officer approves it |
+| A certificate | You RSVP, attend, and an officer records attendance and completes the event |
+| Hours counting on the leaderboard | An officer approves your log |
+| A suspended org working again | The admin reactivates it |
 
 ## Folders
 
@@ -42,14 +78,65 @@ npm run dev                 # http://localhost:5173
 
 ## Test accounts
 
-Password for all: `password123`
+The seeder creates two orgs, Computer Society (CompSoc) and Data Science Society (DSS), with sample
+events, hours, tutoring and announcements. Password for every account: `password123`
 
 | Account | What it shows |
 |---|---|
-| `member@orgconnect.test` (Juan) | Member of both orgs, so switching is instant |
-| `officer@orgconnect.test` (Maria) | Officer in Computer Society only; Data Science Society shows the join page |
-| `andrea.lim@orgconnect.test` | Data Science Society President (officer view); has a pending request to register JPCS |
-| `admin@orgconnect.test` | Platform admin: reviews org registration requests, suspends or reactivates orgs |
+| `admin@orgconnect.test` | Platform admin: org requests (JPCS is waiting), all orgs, suspend/reactivate |
+| `officer@orgconnect.test` (Maria Santos) | CompSoc President; DSS shows its join page |
+| `andrea.lim@orgconnect.test` | DSS President; has a pending request to register JPCS |
+| `member@orgconnect.test` (Juan Dela Cruz) | Member of both orgs, so switching is instant |
+| `enzo.villanueva@orgconnect.test` | Inactive in CompSoc: sees the reason and can ask to be reactivated |
+| `carla.mendez@orgconnect.test` | Applied to CompSoc: sees "application under review" |
+
+<details>
+<summary>Every sample account</summary>
+
+| Name | Email | Org | Position | Status |
+|---|---|---|---|---|
+| OrgConnect Admin | `admin@orgconnect.test` | (platform) | Platform admin | |
+| Maria Santos | `officer@orgconnect.test` | CompSoc | President | Active |
+| Leo Manalo | `leo.manalo@orgconnect.test` | CompSoc | VP Academics | Active |
+| Angela Rivera | `angela.rivera@orgconnect.test` | CompSoc | Secretary | Active |
+| Nico Fernandez | `nico.fernandez@orgconnect.test` | CompSoc | Treasurer | Active |
+| Juan Dela Cruz | `member@orgconnect.test` | CompSoc and DSS | Member | Active |
+| Joanna Uy | `joanna.uy@orgconnect.test` | CompSoc | Member | Active |
+| Mark Dela Rosa | `mark.delarosa@orgconnect.test` | CompSoc | Member | Active |
+| Patricia Lim | `patricia.lim@orgconnect.test` | CompSoc | Member | Active |
+| Ryan Castillo | `ryan.castillo@orgconnect.test` | CompSoc | Member | Active |
+| Bianca Torres | `bianca.torres@orgconnect.test` | CompSoc | Member | Active |
+| Enzo Villanueva | `enzo.villanueva@orgconnect.test` | CompSoc | Member | Inactive |
+| Carla Mendez | `carla.mendez@orgconnect.test` | CompSoc | Member | Pending |
+| Jerome Santiago | `jerome.santiago@orgconnect.test` | CompSoc | Member | Pending |
+| Andrea Lim | `andrea.lim@orgconnect.test` | DSS | President | Active |
+| Paolo Reyes | `paolo.reyes@orgconnect.test` | DSS | VP Academics | Active |
+| Bea Navarro | `bea.navarro@orgconnect.test` | DSS | Secretary | Active |
+| Marco Villareal | `marco.villareal@orgconnect.test` | DSS | Treasurer | Active |
+| Carlo Mendoza | `carlo.mendoza@orgconnect.test` | DSS | Member | Active |
+| Denise Tan | `denise.tan@orgconnect.test` | DSS | Member | Active |
+| Miguel Ramos | `miguel.ramos@orgconnect.test` | DSS | Member | Active |
+| Sofia Garcia | `sofia.garcia@orgconnect.test` | DSS | Member | Active |
+| Gabriel Aquino | `gabriel.aquino@orgconnect.test` | DSS | Member | Active |
+| Isabel Cruz | `isabel.cruz@orgconnect.test` | DSS | Member | Active |
+| Rafael Santos | `rafael.santos@orgconnect.test` | DSS | Member | Inactive |
+| Kyle Bautista | `kyle.bautista@orgconnect.test` | DSS | Member | Pending |
+| Trisha Domingo | `trisha.domingo@orgconnect.test` | DSS | Member | Pending |
+
+</details>
+
+## Who can do what
+
+| | Member | Treasurer and other officers | President, VPs, Secretary | President | Platform admin |
+|---|:-:|:-:|:-:|:-:|:-:|
+| Events, RSVPs, hours, tutoring, feed | ✓ | ✓ | ✓ | ✓ | |
+| Create events, record attendance, post announcements | | ✓ | ✓ | ✓ | |
+| Approve hours and tutoring requests (not their own) | | ✓ | ✓ | ✓ | |
+| Approve applications and reactivations; add, edit or remove members | | | ✓ | ✓ | |
+| Promote, edit or remove officers | | | | ✓ | |
+| Approve new orgs; suspend or reactivate orgs | | | | | ✓ |
+
+Nobody can change their own position.
 
 ## Running the tests
 
@@ -60,8 +147,8 @@ php artisan test
 
 The tests use a separate in-memory SQLite database, so they never touch your MySQL data.
 They cover sign-in and sign-up, officer vs member access, events and RSVPs, volunteer hours,
-peer tutoring, members and passwords, profiles, the paged lists, pending and inactive members,
-and registering a new org with the platform admin's review (`backend/tests/Feature`).
+peer tutoring, members and passwords, profiles, the paged lists, the feed, pending and inactive
+members, and registering a new org with the platform admin's review (`backend/tests/Feature`).
 
 ## After pulling changes
 
@@ -71,7 +158,7 @@ When you `git pull` new work from the group, update your copy before running it:
 cd backend
 composer install            # only if composer.json changed
 php artisan migrate         # adds any new database tables/columns
-php artisan db:seed         # optional: refreshes the sample data (safe to run again)
+php artisan db:seed         # refreshes the sample data, adds new sample accounts (safe to run again)
 
 cd ../frontend
 npm install                 # only if package.json changed
@@ -83,14 +170,12 @@ database from scratch (this **deletes** everything in your local database).
 ## Accounts and passwords
 
 - **Sign up** creates an account and an application to the selected org; an officer approves it.
+  Signing up from **Register your organization** skips the application and opens the org request form.
 - **Officers adding a member** on Members & Hours → Members: a brand-new account gets a
   temporary password, shown once to the officer to pass on.
 - **Forgot password:** an officer resets it (key icon on the member row) and passes on the new
   temporary password. Members then change it on **Profile & settings** (click your name in the sidebar).
 - **Remember me** off: you're signed out when the browser closes (and after 12 hours at most).
 - Sign in, sign up and password changes allow 5 attempts per minute.
-- **Who manages members:** the President, Vice Presidents and Secretary approve applications and
-  add, edit or remove members. Only the President promotes, edits or removes officers. Nobody can
-  change their own position, and officers never approve their own hours or tutoring requests.
 - An officer can't change the email or password of someone who also belongs to another org;
   that person changes their own on the Profile page.
