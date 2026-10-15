@@ -58,9 +58,6 @@ function SessionsTab({ sessions, requests, loading, actions, onPost, onEdit }) {
       <div className="toolbar">
         <SearchBox id="session-search" label="Search tutoring sessions" placeholder="Search by subject or tutor" value={search} onChange={setSearch} />
         <AreaSelect id="session-area" value={area} onChange={setArea} />
-        <button type="button" className="btn btn-accent toolbar-cta" onClick={onPost}>
-          <Icon name="plus" size={17} /> Post a session
-        </button>
       </div>
 
       {loading || !list.loaded ? (
@@ -138,7 +135,7 @@ function RequestsTab({ sessions, requests, actions }) {
         </select>
       </div>
 
-      <section className="panel flush">
+      <section className="panel flush" data-tour="tutoring-requests">
         {!list.loaded ? (
           <div className="skeleton-list padded" aria-hidden="true"><span /><span /><span /></div>
         ) : list.total === 0 ? (
@@ -232,7 +229,7 @@ function ResourcesTab({ resources, loading, actions, onShare, onEdit }) {
 
   return (
     <>
-      <div className="toolbar">
+      <div className="toolbar" data-tour="resource-tools">
         <SearchBox id="resource-search" label="Search resources" placeholder="Search by title or who shared it" value={search} onChange={setSearch} />
         <AreaSelect id="resource-subject" value={subject} onChange={setSubject} allLabel="All subjects" />
         <label htmlFor="resource-type" className="sr-only">Type</label>
@@ -242,9 +239,6 @@ function ResourcesTab({ resources, loading, actions, onShare, onEdit }) {
             <option key={t} value={t}>{t}</option>
           ))}
         </select>
-        <button type="button" className="btn btn-accent toolbar-cta" onClick={onShare}>
-          <Icon name="plus" size={17} /> Share a resource
-        </button>
       </div>
 
       <section className="panel flush">
@@ -329,16 +323,28 @@ export default function Tutoring({ data, loading, actions }) {
 
   return (
     <div className="page">
-      <Tabs
-        label="Section"
-        value={tab}
-        onChange={setTab}
-        items={[
-          { key: "sessions", label: "Sessions" },
-          { key: "requests", label: "Requests", count: pendingToAnswer },
-          { key: "resources", label: "Resources" },
-        ]}
-      />
+      <div className="tab-card" data-tour="tutoring-tabs">
+        <Tabs
+          label="Section"
+          value={tab}
+          onChange={setTab}
+          items={[
+            { key: "sessions", label: "Sessions", count: sessions.length },
+            { key: "requests", label: "Requests", count: pendingToAnswer },
+            { key: "resources", label: "Resources" },
+          ]}
+        />
+        {tab === "sessions" && (
+          <button type="button" className="btn btn-accent toolbar-cta" data-tour="session-post" onClick={() => setSessionForm({})}>
+            <Icon name="plus" size={16} /> Post Session
+          </button>
+        )}
+        {tab === "resources" && (
+          <button type="button" className="btn btn-accent toolbar-cta" data-tour="resource-share" onClick={() => setResourceForm({})}>
+            <Icon name="plus" size={16} /> Share Resource
+          </button>
+        )}
+      </div>
 
       {tab === "sessions" && (
         <SessionsTab

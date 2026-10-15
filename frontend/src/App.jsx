@@ -18,6 +18,7 @@ import TemporaryPasswordDialog from "./components/TemporaryPasswordDialog.jsx";
 import Tour from "./components/Tour.jsx";
 import { buildTour, tourSections } from "./data/tourSteps.js";
 import { errorMessage } from "./api/client.js";
+import { notificationTarget } from "./utils/notificationTarget.js";
 import {
   announcementsApi,
   eventsApi,
@@ -86,7 +87,25 @@ function MainApp() {
   const { user } = useAuth();
   const isOfficer = user.role === "officer";
   const [page, setPage] = useState("dashboard");
+  const [eventFocus, setEventFocus] = useState(null); // { eventId?, eventTitle?, key }: an event to show (from a notification)
   const [menuOpen, setMenuOpen] = useState(false);
+  // Desktop: the sidebar can shrink to icons only (remembered on this browser)
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("orgconnect_sidebar_collapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggleCollapsed = () =>
+    setCollapsed((c) => {
+      try {
+        localStorage.setItem("orgconnect_sidebar_collapsed", c ? "0" : "1");
+      } catch {
+        /* storage blocked: still toggles for this visit */
+      }
+      return !c;
+    });
 
   const [data, setData] = useState(EMPTY_DATA);
   const [loading, setLoading] = useState(true);
@@ -191,8 +210,22 @@ function MainApp() {
 
   // ---- Events ----
   const events = {
-    save: (id, form) =>
-      run(async () => upsert("events", id ? await eventsApi.update(id, form) : await eventsApi.create(form)), id ? "Event updated" : "Event published"),
+    // poster: a File to upload, null to remove the current one, undefined to leave it as is
+    save: (id, form, poster) =>
+      run(async () => {
+        let event = id ? await eventsApi.update(id, form) : await eventsApi.create(form);
+        upsert("events", event);
+        try {
+          if (poster) event = await eventsApi.uploadPoster(event.id, poster);
+          else if (poster === null && event.posterUrl) event = await eventsApi.removePoster(event.id);
+          upsert("events", event);
+        } catch (error) {
+          // The event itself is saved, so don't keep the form open (saving again would publish it twice)
+          flash(`${id ? "Event updated" : "Event published"}, but the poster wasn't saved: ${errorMessage(error)}`, "error");
+          return;
+        }
+        flash(id ? "Event updated" : "Event published");
+      }),
     remove: async (event) => {
       const ok = await confirm({
         title: "Delete event?",
@@ -347,49 +380,86 @@ function MainApp() {
       set("notifications", (list) => list.map((n) => ({ ...n, isRead: true })));
     });
 
+  // Clicking a notification (read or unread) marks it read and opens the page it is about
+  const openNotification = (notification) => {
+    if (!notification.isRead) {
+      set("notifications", (list) => list.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n)));
+      notificationsApi.markRead(notification.id).catch(() => reload("notifications"));
+    }
+    const target = notificationTarget(notification);
+    setPage(target.page);
+    // Events: show and highlight the event the notification is about
+    setEventFocus(target.eventId || target.eventTitle ? { ...target, key: Date.now() } : null);
+  };
+
   // ---- Page ----
   const meta =
     page === "dashboard"
       ? {
-          title: `${greeting()}, ${user.name.split(" ")[0]}`,
+          // Figma: officers get a greeting, members a plain "Dashboard"
+          title: isOfficer ? `${greeting()}, ${user.name.split(" ")[0]}` : "Dashboard",
           subtitle: new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }),
         }
-      : { title: PAGE_META[page].title, subtitle: PAGE_META[page][isOfficer ? "officer" : "member"] };
+      : { title: PAGE_META[page].title }; // Figma: page titles stand alone, no subtitle
 
   const pageProps = { data, loading, onNavigate: setPage, flash };
 
+  const topbar = (
+    <Topbar
+      title={meta.title}
+      subtitle={meta.subtitle}
+      notifications={data.notifications}
+      onMarkAllRead={markNotificationsRead}
+      onOpenNotification={openNotification}
+      onOpenMenu={() => setMenuOpen(true)}
+      tourSections={tourSections(isOfficer)}
+      onStartTour={startTour}
+    />
+  );
+
+  const errorBanner = loadError && (
+    <div className="banner banner-error" role="alert">
+      <span>{loadError}</span>
+      <button type="button" className="btn btn-outline btn-sm" onClick={loadAll}>
+        Try again
+      </button>
+    </div>
+  );
+
   return (
-    <div className="layout">
-      <Sidebar page={page} onNavigate={setPage} open={menuOpen} onClose={() => setMenuOpen(false)} />
+    <div className={`layout ${collapsed ? "is-collapsed" : ""}`}>
+      <Sidebar
+        page={page}
+        onNavigate={setPage}
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        collapsed={collapsed}
+        onToggleCollapse={toggleCollapsed}
+      />
 
-      <main className="main">
-        <Topbar
-          title={meta.title}
-          subtitle={meta.subtitle}
-          notifications={data.notifications}
-          onMarkAllRead={markNotificationsRead}
-          onOpenMenu={() => setMenuOpen(true)}
-          tourSections={tourSections(isOfficer)}
-          onStartTour={startTour}
-        />
-
-        {loadError && (
-          <div className="banner banner-error" role="alert">
-            <span>{loadError}</span>
-            <button type="button" className="btn btn-outline btn-sm" onClick={loadAll}>
-              Try again
-            </button>
-          </div>
+      <main className={`main ${page === "dashboard" ? "main-dashboard" : ""}`}>
+        {page === "dashboard" ? (
+          // The dashboard lays out its own header column and right-hand rail (Figma)
+          <Dashboard
+            {...pageProps}
+            header={<>{topbar}{errorBanner}</>}
+            events={events}
+            hours={hours}
+            members={members}
+            tutoring={tutoring}
+            announcements={announcements}
+          />
+        ) : (
+          <>
+            {topbar}
+            {errorBanner}
+            {page === "events" && <Events {...pageProps} actions={events} focus={eventFocus} onFocusDone={() => setEventFocus(null)} />}
+            {page === "hours" && <VolunteerHours {...pageProps} hours={hours} members={members} />}
+            {page === "tutoring" && <Tutoring {...pageProps} actions={tutoring} />}
+            {page === "announcements" && <Announcements {...pageProps} actions={announcements} />}
+            {page === "profile" && <Profile {...pageProps} />}
+          </>
         )}
-
-        {page === "dashboard" && (
-          <Dashboard {...pageProps} events={events} hours={hours} members={members} tutoring={tutoring} />
-        )}
-        {page === "events" && <Events {...pageProps} actions={events} />}
-        {page === "hours" && <VolunteerHours {...pageProps} hours={hours} members={members} />}
-        {page === "tutoring" && <Tutoring {...pageProps} actions={tutoring} />}
-        {page === "announcements" && <Announcements {...pageProps} actions={announcements} />}
-        {page === "profile" && <Profile {...pageProps} />}
       </main>
 
       {attendanceEvent && (

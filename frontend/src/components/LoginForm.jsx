@@ -35,7 +35,7 @@ export default function LoginForm({ onSwitch }) {
     <form className="auth-form" onSubmit={handleSubmit} noValidate>
       <div className="auth-heading">
         <h2>Welcome back</h2>
-        <p>Sign in to {org.name} to see your events, hours and tutoring sessions.</p>
+        <p>Sign in to see your events, hours and tutoring sessions.</p>
       </div>
 
       {error && <div className="alert alert-error" role="alert">{error}</div>}

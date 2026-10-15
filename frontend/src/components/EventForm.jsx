@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Icon from "./Icon.jsx";
 import Modal from "./Modal.jsx";
 import { EVENT_CATEGORIES, EVENT_MODES } from "../data/constants.js";
 import { todayIso, isPast } from "../utils/format.js";
@@ -13,6 +14,9 @@ const EMPTY = {
   capacity: 50,
   description: "",
 };
+
+const POSTER_TYPES = ["image/png", "image/jpeg", "image/webp"];
+const POSTER_MAX_MB = 5;
 
 // Create / edit an event
 export default function EventForm({ initial, onSave, onCancel }) {
@@ -33,6 +37,31 @@ export default function EventForm({ initial, onSave, onCancel }) {
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const registered = initial?.registrations?.length || 0;
+
+  // poster: undefined = keep the current one, a File = upload it, null = remove it
+  const [poster, setPoster] = useState(undefined);
+  const [posterPreview, setPosterPreview] = useState(initial?.posterUrl || null);
+  useEffect(() => {
+    if (!(poster instanceof File)) return;
+    const url = URL.createObjectURL(poster);
+    setPosterPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [poster]);
+
+  const handlePoster = (e) => {
+    const file = e.target.files[0];
+    e.target.value = ""; // lets the same file be picked again
+    if (!file) return;
+    if (!POSTER_TYPES.includes(file.type)) return setErrors({ ...errors, poster: "Use a PNG, JPG or WebP image." });
+    if (file.size > POSTER_MAX_MB * 1024 * 1024) return setErrors({ ...errors, poster: `The poster must be ${POSTER_MAX_MB} MB or smaller.` });
+    setErrors({ ...errors, poster: undefined });
+    setPoster(file);
+  };
+
+  const removePoster = () => {
+    setPoster(initial?.posterUrl ? null : undefined);
+    setPosterPreview(null);
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -69,7 +98,7 @@ export default function EventForm({ initial, onSave, onCancel }) {
       location: formData.location.trim(),
       description: formData.description.trim(),
       capacity: Number(formData.capacity),
-    });
+    }, poster);
     setSaving(false);
   };
 
@@ -152,6 +181,34 @@ export default function EventForm({ initial, onSave, onCancel }) {
             Description <span className="optional">Optional</span>
           </label>
           <textarea id="ev-description" className="input" rows="3" name="description" value={formData.description} onChange={handleChange} />
+        </div>
+
+        <div className="field span-2">
+          <span className="field-label" id="ev-poster-label">
+            Poster <span className="optional">Optional</span>
+          </span>
+          {posterPreview ? (
+            <div className="poster-field">
+              <img src={posterPreview} alt="Event poster preview" className="poster-preview" />
+              <div className="poster-actions">
+                <label className="btn btn-outline btn-sm">
+                  <Icon name="upload" size={15} /> Change
+                  <input type="file" accept={POSTER_TYPES.join(",")} className="sr-only" onChange={handlePoster} aria-labelledby="ev-poster-label" />
+                </label>
+                <button type="button" className="btn btn-outline btn-sm" onClick={removePoster}>
+                  Remove
+                </button>
+              </div>
+            </div>
+          ) : (
+            <label className="poster-drop">
+              <Icon name="image" size={24} />
+              <strong>Add a poster</strong>
+              <span>PNG, JPG or WebP, up to {POSTER_MAX_MB} MB</span>
+              <input type="file" accept={POSTER_TYPES.join(",")} className="sr-only" onChange={handlePoster} aria-labelledby="ev-poster-label" />
+            </label>
+          )}
+          {errors.poster && <span className="field-error">{errors.poster}</span>}
         </div>
       </div>
     </Modal>

@@ -71,7 +71,6 @@ export default function Landing() {
                   className={`org-card ${selected ? "is-selected" : ""}`}
                   aria-pressed={selected}
                   onClick={() => selectOrg(org.slug)}
-                  style={{ "--card-navy": org.theme?.navy, "--card-highlight": org.theme?.highlight }}
                 >
                   <span className="org-card-band" aria-hidden="true" />
                   <span className="org-card-college">{org.college}</span>

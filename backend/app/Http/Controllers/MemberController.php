@@ -138,7 +138,8 @@ class MemberController extends Controller
 
         UserNotification::send(
             $applicant->id,
-            $approved ? 'Your membership application was approved. Welcome!' : 'Your membership application was not approved.'
+            $approved ? 'Your membership application was approved. Welcome!' : 'Your membership application was not approved.',
+            'dashboard'
         );
 
         return $applicant->fresh()->toApplication();

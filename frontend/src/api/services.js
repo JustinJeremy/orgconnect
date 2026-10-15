@@ -13,7 +13,8 @@ import api, { unwrap } from "./client.js";
 // Session       { id, subject, area, tutorId, tutorName, schedule, location, slots, description }
 // Request       { id, sessionId, userId, requesterName, yearLevel, status: "Pending"|"Confirmed"|"Rejected"|"Completed" }
 // Resource      { id, title, subject, type, url, uploadedBy }
-// Announcement  { id, title, category, content, pinned, authorName, authorPosition, createdAt, isRead, readCount }
+// Announcement  { id, title, category, content, pinned, authorName, authorPosition, createdAt, isRead, readCount,
+//                 likes?, likedByMe?, commentCount? (likes/comments: once the backend adds them) }
 // Notification  { id, message, createdAt, isRead }
 // Leader        { id, name, hours }
 
@@ -38,6 +39,13 @@ export const orgsApi = {
   list: () => get("/organizations"), // public: every org with its details and color theme
   mine: () => get("/my-organizations"), // -> [{ organizationId, role, position, status }]
   join: (slug) => post(`/organizations/${slug}/join`), // -> updated user for that org
+  // Officers of the selected org: PNG/JPG/WebP up to 2 MB -> updated org (with logoUrl)
+  uploadLogo: (file) => {
+    const body = new FormData();
+    body.append("logo", file);
+    return post("/organization/logo", body);
+  },
+  removeLogo: () => del("/organization/logo"),
 };
 
 export const eventsApi = {
@@ -46,6 +54,13 @@ export const eventsApi = {
   create: (data) => post("/events", data),
   update: (id, data) => put(`/events/${id}`, data),
   remove: (id) => del(`/events/${id}`),
+  // Officers: PNG/JPG/WebP up to 5 MB -> updated Event (with posterUrl)
+  uploadPoster: (id, file) => {
+    const body = new FormData();
+    body.append("poster", file);
+    return post(`/events/${id}/poster`, body);
+  },
+  removePoster: (id) => del(`/events/${id}/poster`), // -> updated Event
   rsvp: (id) => post(`/events/${id}/rsvp`), // -> updated Event
   cancelRsvp: (id) => del(`/events/${id}/rsvp`), // -> updated Event
   // attendees: ids of registrations marked present
@@ -100,9 +115,15 @@ export const announcementsApi = {
   remove: (id) => del(`/announcements/${id}`),
   markRead: (id) => post(`/announcements/${id}/read`),
   markAllRead: () => post("/announcements/read-all"),
+  // Likes and comments on the dashboard feed
+  like: (id) => post(`/announcements/${id}/like`), // -> { likes, likedByMe }
+  unlike: (id) => del(`/announcements/${id}/like`), // -> { likes, likedByMe }
+  comments: (id) => get(`/announcements/${id}/comments`), // -> [{ id, userName, text, createdAt }]
+  addComment: (id, text) => post(`/announcements/${id}/comments`, { text }), // -> the new comment
 };
 
 export const notificationsApi = {
   list: () => get("/notifications"),
   markAllRead: () => post("/notifications/read-all"),
+  markRead: (id) => post(`/notifications/${id}/read`), // -> updated Notification
 };

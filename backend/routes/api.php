@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Route;
 
 // Public: org picker, sign in and sign up
 Route::get('/organizations', [OrganizationController::class, 'index']);
+Route::get('/organizations/{organization:slug}/logo', [OrganizationController::class, 'logo']);
+Route::get('/events/{event}/poster', [EventController::class, 'poster'])->whereNumber('event');
 // Limited attempts per minute (see AppServiceProvider)
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:register');
@@ -32,6 +34,10 @@ Route::middleware('auth:sanctum')->group(function () {
 // Signed in AND a member of the selected org
 Route::middleware(['auth:sanctum', 'org.member'])->group(function () {
 
+    // Organization logo (officers)
+    Route::post('/organization/logo', [OrganizationController::class, 'uploadLogo']);
+    Route::delete('/organization/logo', [OrganizationController::class, 'removeLogo']);
+
     // Events & attendance
     Route::get('/events', [EventController::class, 'index']);
     Route::post('/events', [EventController::class, 'store']);
@@ -42,6 +48,8 @@ Route::middleware(['auth:sanctum', 'org.member'])->group(function () {
     Route::put('/events/{event}/attendance', [EventController::class, 'attendance']);
     Route::get('/events/{event}/certificate', [EventController::class, 'certificate']);
     Route::get('/certificates', [EventController::class, 'certificates']);
+    Route::post('/events/{event}/poster', [EventController::class, 'uploadPoster']);
+    Route::delete('/events/{event}/poster', [EventController::class, 'removePoster']);
 
     // Volunteer hours
     Route::get('/hours', [HourController::class, 'index']);
@@ -80,8 +88,13 @@ Route::middleware(['auth:sanctum', 'org.member'])->group(function () {
     Route::put('/announcements/{announcement}', [AnnouncementController::class, 'update']);
     Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy']);
     Route::post('/announcements/{announcement}/read', [AnnouncementController::class, 'markRead']);
+    Route::post('/announcements/{announcement}/like', [AnnouncementController::class, 'like']);
+    Route::delete('/announcements/{announcement}/like', [AnnouncementController::class, 'unlike']);
+    Route::get('/announcements/{announcement}/comments', [AnnouncementController::class, 'comments']);
+    Route::post('/announcements/{announcement}/comments', [AnnouncementController::class, 'addComment']);
 
     // In-app notifications
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/read-all', [NotificationController::class, 'readAll']);
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'read'])->whereNumber('id');
 });

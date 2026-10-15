@@ -1,5 +1,4 @@
-// Each organization has its own color palette (stored in the database as `theme`).
-// Applying it overrides the CSS variables defined in App.css :root.
+// CSS variables an org theme used to override (kept so old overrides get cleared).
 const VARS = {
   navy: "--navy",
   navyDark: "--navy-dark",
@@ -18,12 +17,12 @@ const VARS = {
   ring2: "--ring-2",
 };
 
-export function applyTheme(theme = {}) {
+// Every organization now uses the same three-color palette defined in App.css :root
+// (navy #1B3A6B, sky #D0E6F4, orange #F58A1F). A theme stored for an org in the
+// database is ignored on purpose: this only clears any override left from before.
+export function applyTheme() {
   const root = document.documentElement.style;
-  Object.entries(VARS).forEach(([key, cssVar]) => {
-    if (theme[key]) root.setProperty(cssVar, theme[key]);
-    else root.removeProperty(cssVar);
-  });
+  Object.values(VARS).forEach((cssVar) => root.removeProperty(cssVar));
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta && theme.navy) meta.setAttribute("content", theme.navy);
+  if (meta) meta.setAttribute("content", "#1b3a6b");
 }

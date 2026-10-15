@@ -9,7 +9,7 @@ class Organization extends Model
 {
     protected $fillable = [
         'slug', 'name', 'short_name', 'college', 'tagline', 'description', 'mission', 'vision', 'founded_year',
-        'adviser', 'email', 'facebook_url', 'office', 'meeting_schedule', 'membership_fee', 'courses', 'tutoring_areas', 'theme',
+        'adviser', 'email', 'facebook_url', 'office', 'meeting_schedule', 'membership_fee', 'courses', 'tutoring_areas', 'theme', 'logo_path',
     ];
 
     protected function casts(): array
@@ -65,6 +65,8 @@ class Organization extends Model
             'courses' => $this->courses ?? [],
             'tutoringAreas' => $this->tutoringAreas(),
             'theme' => $this->theme,
+            // ?v= changes on every upload so browsers don't keep showing the old logo
+            'logoUrl' => $this->logo_path ? url("/api/organizations/{$this->slug}/logo").'?v='.$this->updated_at?->timestamp : null,
             'memberCount' => $this->memberships()->where('status', 'Active')->count(),
         ];
     }

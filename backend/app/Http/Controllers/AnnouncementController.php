@@ -20,7 +20,8 @@ class AnnouncementController extends Controller
         $user = $request->user();
 
         // List filters: ?view=unread &category= &search= (+ ?page)
-        $query = Announcement::with(['author.membership', 'readers'])
+        $query = Announcement::with(['author.membership', 'readers', 'likers'])
+            ->withCount('comments')
             ->when($request->input('view') === 'unread', fn ($q) => $q
                 ->where('user_id', '!=', $user->id)
                 ->whereDoesntHave('readers', fn ($r) => $r->where('users.id', $user->id)))
@@ -42,7 +43,8 @@ class AnnouncementController extends Controller
 
         UserNotification::send(
             User::where('id', '!=', $request->user()->id)->withMembershipStatus(['Active', 'Pending'])->pluck('id'),
-            "New announcement: {$post->title}"
+            "New announcement: {$post->title}",
+            'announcements'
         );
 
         return response()->json($post->toFrontend($request->user()), 201);
@@ -76,6 +78,43 @@ class AnnouncementController extends Controller
     }
 
     // POST /api/announcements/read-all
+    // POST /api/announcements/{announcement}/like  -> { likes, likedByMe }
+    public function like(Request $request, Announcement $announcement)
+    {
+        $announcement->likers()->syncWithoutDetaching([$request->user()->id]);
+
+        return ['likes' => $announcement->likers()->count(), 'likedByMe' => true];
+    }
+
+    // DELETE /api/announcements/{announcement}/like  -> { likes, likedByMe }
+    public function unlike(Request $request, Announcement $announcement)
+    {
+        $announcement->likers()->detach($request->user()->id);
+
+        return ['likes' => $announcement->likers()->count(), 'likedByMe' => false];
+    }
+
+    // GET /api/announcements/{announcement}/comments  -> oldest first
+    public function comments(Announcement $announcement)
+    {
+        return $announcement->comments()->with('user')->get()->map->toFrontend();
+    }
+
+    // POST /api/announcements/{announcement}/comments  { text }  -> the new comment; the author is notified
+    public function addComment(Request $request, Announcement $announcement)
+    {
+        $data = $request->validate(['text' => 'required|string|max:1000']);
+        $user = $request->user();
+
+        $comment = $announcement->comments()->create(['user_id' => $user->id, 'text' => trim($data['text'])]);
+
+        if ($announcement->user_id !== $user->id) {
+            UserNotification::send($announcement->user_id, "{$user->name} commented on {$announcement->title}", 'dashboard');
+        }
+
+        return response()->json($comment->load('user')->toFrontend(), 201);
+    }
+
     public function markAllRead(Request $request)
     {
         $user = $request->user();

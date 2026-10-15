@@ -115,7 +115,7 @@ export default function MemberList({ members, onSave, onRemove, onResetPassword 
           />
         </div>
         {user.canManageMembers && (
-          <button type="button" className="btn btn-accent toolbar-cta" onClick={() => setForm({})}>
+          <button type="button" className="btn btn-accent toolbar-cta" data-tour="member-add" onClick={() => setForm({})}>
             <Icon name="plus" size={17} /> Add member
           </button>
         )}

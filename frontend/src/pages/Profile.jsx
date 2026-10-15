@@ -1,16 +1,20 @@
 import { useState } from "react";
 import Icon from "../components/Icon.jsx";
 import Panel from "../components/Panel.jsx";
+import OrgSwatch from "../components/OrgSwatch.jsx";
 import StatRow from "../components/StatRow.jsx";
 import { StatusBadge } from "../components/Badges.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
+import { orgsApi } from "../api/services.js";
+import { errorMessage } from "../api/client.js";
 import { COURSES, YEAR_LEVELS } from "../data/constants.js";
 import { initials, myRegistration } from "../utils/format.js";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Name, student ID, email, course and year level
+// Name, student ID, email, course and year level. Your own details are yours to keep up to date
+// (officers can't change the email of someone who also belongs to another org).
 function DetailsForm({ user, flash }) {
   const { updateProfile } = useAuth();
   const [formData, setFormData] = useState({
@@ -146,6 +150,58 @@ function PasswordForm({ flash }) {
   );
 }
 
+// Officers: upload or remove the selected org's logo (shown in the org dropdown and lists)
+function OrgLogoForm({ flash }) {
+  const { current: org, reload } = useOrg();
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const run = async (request, message) => {
+    setError("");
+    setBusy(true);
+    try {
+      await request();
+      await reload(); // refresh every org dropdown with the new logo
+      flash(message);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleFile = (e) => {
+    const file = e.target.files[0];
+    e.target.value = ""; // lets the same file be picked again
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) return setError("The logo must be 2 MB or smaller.");
+    run(() => orgsApi.uploadLogo(file), "Logo updated");
+  };
+
+  return (
+    <div className="org-logo-form">
+      {error && <div className="alert alert-error" role="alert">{error}</div>}
+      <div className="org-logo-row">
+        <span className="org-logo-preview">
+          {org.logoUrl ? <img src={org.logoUrl} alt={`${org.name} logo`} /> : <Icon name="image" size={28} />}
+        </span>
+        <div className="org-logo-actions">
+          <label className={`btn btn-primary btn-sm ${busy ? "is-disabled" : ""}`}>
+            <Icon name="upload" size={15} /> {org.logoUrl ? "Change logo" : "Upload logo"}
+            <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleFile} disabled={busy} />
+          </label>
+          {org.logoUrl && (
+            <button type="button" className="btn btn-outline btn-sm" disabled={busy} onClick={() => run(orgsApi.removeLogo, "Logo removed")}>
+              Remove
+            </button>
+          )}
+          <p className="muted small">PNG, JPG or WebP, up to 2 MB. A square image works best.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Every org you joined or applied to, with your role there; switch to it from here
 function MyOrganizations() {
   const { memberships } = useAuth();
@@ -159,9 +215,7 @@ function MyOrganizations() {
     <ul className="org-list">
       {mine.map(({ org, m }) => (
         <li key={org.id} className={org.slug === current.slug ? "is-current" : ""}>
-          <span className="org-swatch" style={{ background: org.theme?.navy }} aria-hidden="true">
-            <span style={{ background: org.theme?.highlight }} />
-          </span>
+          <OrgSwatch org={org} />
           <span className="org-option-text">
             <span className="org-option-name">{org.name}</span>
             <span className="org-option-note">{m.role === "officer" ? `${m.position} · Officer` : "Member"}</span>
@@ -213,7 +267,7 @@ export default function Profile({ data, loading, flash }) {
         </div>
       </Panel>
 
-      <StatRow items={stats} loading={loading} />
+      <StatRow items={stats} loading={loading} className="stat-accent" />
 
       <div className="dash-grid">
         <Panel title="Personal details" tour="profile-details" subtitle="Shown to officers on the member roster" className="span-7">
@@ -222,6 +276,11 @@ export default function Profile({ data, loading, flash }) {
         <Panel title="Change password" className="span-5" tour="profile-password">
           <PasswordForm flash={flash} />
         </Panel>
+        {user.role === "officer" && (
+          <Panel title="Organization logo" subtitle={`Shown for ${org.name} in the organization menu`} className="span-5">
+            <OrgLogoForm flash={flash} />
+          </Panel>
+        )}
         <Panel title="My organizations" tour="profile-orgs" subtitle="One account works for every org you join" className="span-7">
           <MyOrganizations />
         </Panel>
