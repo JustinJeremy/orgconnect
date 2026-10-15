@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EventController;
@@ -7,6 +8,7 @@ use App\Http\Controllers\HourController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganizationController;
+use App\Http\Controllers\OrgRequestController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TutoringController;
 use Illuminate\Support\Facades\Route;
@@ -31,6 +33,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/organizations/{organization:slug}/join', [OrganizationController::class, 'join']);
     Route::delete('/organizations/{organization:slug}/application', [OrganizationController::class, 'withdraw']);
     Route::post('/organizations/{organization:slug}/reactivation', [OrganizationController::class, 'requestReactivation']);
+    // Ask to register a new org (reviewed by a platform admin)
+    Route::get('/org-requests', [OrgRequestController::class, 'index']);
+    Route::post('/org-requests', [OrgRequestController::class, 'store'])->middleware('throttle:register');
+});
+
+// Platform admin: org registrations and suspensions
+Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+    Route::get('/overview', [AdminController::class, 'overview']);
+    Route::patch('/org-requests/{organization}', [AdminController::class, 'decide']);
+    Route::patch('/organizations/{organization}', [AdminController::class, 'setStatus']);
 });
 
 // Signed in AND a member of the selected org

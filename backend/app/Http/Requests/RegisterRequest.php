@@ -17,13 +17,15 @@ class RegisterRequest extends FormRequest
             'course' => ['required', 'string', 'max:50', ...$this->courseRule()],
             'yearLevel' => 'required|string|max:50',
             'password' => 'required|string|min:8|confirmed',
+            // Signing up to register a new org: no application to the selected org
+            'registerOrg' => 'sometimes|boolean',
         ];
     }
 
     // Only courses the selected org accepts (no rule if the org hasn't listed any)
     private function courseRule(): array
     {
-        $courses = Organization::current()?->courses;
+        $courses = $this->boolean('registerOrg') ? null : Organization::current()?->courses;
 
         return $courses ? [Rule::in($courses)] : [];
     }

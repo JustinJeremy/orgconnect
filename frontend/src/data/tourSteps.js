@@ -9,7 +9,7 @@ const NAV = [
   {
     target: ".sidebar .org-switcher-btn",
     title: "Switch organizations",
-    body: "One account works for every org you join. Pick another org here; if you haven't joined it yet, you'll see its page and can apply.",
+    body: "One account works for every org you join. Pick another org here; if you haven't joined it yet, you'll see its page and can apply. Starting a new org? \"Register an organization\" at the bottom of this menu sends it to an OrgConnect admin for review.",
   },
   {
     target: ".nav",
@@ -389,6 +389,41 @@ const MEMBER = [
   },
   PROFILE,
 ];
+
+// Platform admin console (AdminApp)
+export const ADMIN_TOUR = [
+  {
+    page: "overview",
+    target: '[data-tour="admin-stats"]',
+    title: "Platform overview",
+    body: "Totals across every org: live organizations, requests waiting for you, active members and approved volunteer hours.",
+  },
+  {
+    page: "overview",
+    target: '[data-tour="admin-requests"]',
+    title: "Org requests",
+    body: "Students who want to bring their org onto OrgConnect. Open View details to check everything they sent, fix the course list if needed, then approve or reject.",
+  },
+  {
+    page: "overview",
+    target: '[data-tour="admin-requests"]',
+    title: "What approving does",
+    body: "The org goes live in the org list, and the student who asked becomes its President. They add their own officers, then students can apply. Rejecting asks for a reason, which the student sees so they can fix it and send it again.",
+  },
+  {
+    page: "overview",
+    target: '[data-tour="admin-orgs"]',
+    title: "All organizations",
+    body: "Every live org with its President, members and events. Suspend hides an org and stops its members from using it until you reactivate it; nothing is deleted.",
+  },
+  {
+    page: "overview",
+    target: '[data-tour="admin-nav"]',
+    title: "Menu",
+    body: "Org requests also lists the ones you rejected; Organizations shows the full table. The number shows requests waiting for review.",
+  },
+  { ...FINISH, page: "overview", body: "Open this help button any time to replay the tour." },
+].map((step) => ({ ...step, section: "Platform admin" }));
 
 // sectionKey = null → the full tour
 export function tourSections(isOfficer) {

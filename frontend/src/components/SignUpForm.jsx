@@ -30,12 +30,13 @@ function validate(data) {
 }
 
 export default function SignUpForm({ onSwitch }) {
-  const { register } = useAuth();
+  const { register, registeringOrg } = useAuth();
   const { current: org } = useOrg();
   const [formData, setFormData] = useState(EMPTY);
 
   // Only the courses this org accepts (picking another org on this page updates the list)
-  const courses = org.courses?.length ? org.courses : COURSES;
+  // (registering a new org: any course)
+  const courses = !registeringOrg && org.courses?.length ? org.courses : COURSES;
   const course = courses.includes(formData.course) ? formData.course : courses[0];
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState("");
@@ -69,7 +70,11 @@ export default function SignUpForm({ onSwitch }) {
     <form className="auth-form" onSubmit={handleSubmit} noValidate>
       <div className="auth-heading">
         <h2>Create your account</h2>
-        <p>Join your org on OrgConnect. It takes less than a minute.</p>
+        <p>
+          {registeringOrg
+            ? "First create your account. Next you'll fill in your organization's details."
+            : "Join your org on OrgConnect. It takes less than a minute."}
+        </p>
       </div>
 
       {formError && <div className="alert alert-error" role="alert">{formError}</div>}

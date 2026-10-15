@@ -8,6 +8,9 @@ import VolunteerHours from "./pages/VolunteerHours.jsx";
 import Tutoring from "./pages/Tutoring.jsx";
 import Announcements from "./pages/Announcements.jsx";
 import JoinOrg from "./pages/JoinOrg.jsx";
+import RegisterOrg from "./pages/RegisterOrg.jsx";
+import AdminApp from "./pages/AdminApp.jsx";
+import { ADMIN_THEME, applyTheme } from "./utils/theme.js";
 import Profile from "./pages/Profile.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 import Topbar from "./components/Topbar.jsx";
@@ -499,7 +502,12 @@ function MainApp() {
 
 function App() {
   const { current, loading: orgsLoading, error: orgsError, reload } = useOrg();
-  const { user, checking } = useAuth();
+  const { user, checking, registeringOrg } = useAuth();
+  const isAdmin = Boolean(user?.isAdmin);
+  // Recolor the whole app: the selected org's palette, or charcoal for the platform admin
+  useEffect(() => {
+    applyTheme(isAdmin ? ADMIN_THEME : current?.theme);
+  }, [isAdmin, current]);
   const loadingScreen = <div className="app-loading" aria-busy="true" aria-label="Loading" />;
 
   if (orgsLoading || checking) return loadingScreen;
@@ -512,6 +520,10 @@ function App() {
     );
   }
   if (!user) return <Landing />;
+  // Platform admins have their own console; they don't belong to any org
+  if (isAdmin) return <AdminApp />;
+  // Registering a new org (from the landing page or the org menu)
+  if (registeringOrg) return <RegisterOrg />;
   if (user.orgSlug !== current.slug) return loadingScreen; // switching orgs
   // Not a member yet, still under review, or inactive: the org's own screen instead of the app
   if (user.membershipStatus !== "Active") return <JoinOrg />;

@@ -17,7 +17,7 @@ class OrganizationController extends Controller
     // GET /api/organizations  (public) -> every org, for the org picker
     public function index()
     {
-        return Organization::orderBy('name')->get()->map->toFrontend();
+        return Organization::active()->orderBy('name')->get()->map->toFrontend();
     }
 
     // GET /api/my-organizations -> orgs the signed-in user joined or applied to
@@ -70,6 +70,7 @@ class OrganizationController extends Controller
     // POST /api/organizations/{organization}/join -> apply to another org with the same account
     public function join(Request $request, Organization $organization)
     {
+        abort_unless($organization->status === 'Active', 404);
         $user = $request->user();
         $existing = $user->memberships()->where('organization_id', $organization->id)->first();
 

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { authApi, orgsApi } from "../api/services.js";
+import { authApi, orgRequestsApi, orgsApi } from "../api/services.js";
 import { errorMessage, getOrgSlug, getToken, setToken } from "../api/client.js";
 import { useOrg } from "./OrgContext.jsx";
 
@@ -7,21 +7,44 @@ import { useOrg } from "./OrgContext.jsx";
 // One account works across orgs; the user's role and membership status are for the selected org,
 // so the user is reloaded whenever the org changes. `user.orgSlug` says which org it was loaded for.
 const AuthContext = createContext(null);
+const REGISTER_KEY = "orgconnect_register_org";
 
 export function AuthProvider({ children }) {
   const { current } = useOrg();
   const orgSlug = current?.slug;
   const [user, setUser] = useState(null);
   const [memberships, setMemberships] = useState([]); // [{ organizationId, role, position, status }]
+  const [orgRequests, setOrgRequests] = useState([]); // orgs this user asked to register, newest first
   const [checking, setChecking] = useState(() => Boolean(getToken()));
   const [authView, setAuthView] = useState(null); // which form Landing should open after signing out
+  // Signing up / in to register a new org: shows the registration form instead of the org (kept across reloads)
+  const [registeringOrg, setRegisteringOrg] = useState(() => {
+    try {
+      return sessionStorage.getItem(REGISTER_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const setRegistering = useCallback((on) => {
+    try {
+      if (on) sessionStorage.setItem(REGISTER_KEY, "1");
+      else sessionStorage.removeItem(REGISTER_KEY);
+    } catch {
+      /* storage blocked: still works for this visit */
+    }
+    setRegisteringOrg(on);
+  }, []);
 
   const loadAccount = useCallback(async () => {
     const slug = getOrgSlug();
-    const [account, mine] = await Promise.all([authApi.me(), orgsApi.mine()]);
+    const [account, mine, requests] = await Promise.all([authApi.me(), orgsApi.mine(), orgRequestsApi.mine()]);
     setUser({ ...account, orgSlug: slug });
     setMemberships(mine);
+    setOrgRequests(requests);
+    return { mine, requests };
   }, []);
+
+  const reloadOrgRequests = useCallback(async () => setOrgRequests(await orgRequestsApi.mine()), []);
 
   // Restore the session on page load, and reload the user after switching orgs
   useEffect(() => {
@@ -36,7 +59,9 @@ export function AuthProvider({ children }) {
 
   const startSession = async ({ token }, remember = true) => {
     setToken(token, remember);
-    await loadAccount();
+    const { mine, requests } = await loadAccount();
+    // Someone who's only here for their org request sees its status right after signing in
+    if (!mine.length && requests.length) setRegistering(true);
   };
 
   const login = async (email, password, remember = true) => {
@@ -60,6 +85,7 @@ export function AuthProvider({ children }) {
           yearLevel: data.yearLevel,
           password: data.password,
           password_confirmation: data.confirmPassword,
+          registerOrg: registeringOrg, // don't apply to the selected org
         })
       );
       return { ok: true };
@@ -131,6 +157,8 @@ export function AuthProvider({ children }) {
     setToken(null);
     setUser(null);
     setMemberships([]);
+    setOrgRequests([]);
+    setRegistering(false);
     setAuthView(nextView);
   };
 
@@ -145,6 +173,11 @@ export function AuthProvider({ children }) {
         updateProfile,
         changePassword,
         joinOrg,
+        registeringOrg,
+        orgRequests,
+        reloadOrgRequests,
+        startOrgRegistration: () => setRegistering(true),
+        endOrgRegistration: () => setRegistering(false),
         withdrawApplication,
         requestReactivation,
         logout,

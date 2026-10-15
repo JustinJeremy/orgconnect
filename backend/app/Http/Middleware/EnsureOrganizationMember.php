@@ -14,7 +14,11 @@ class EnsureOrganizationMember
 {
     public function handle(Request $request, Closure $next): Response
     {
-        abort_unless(Organization::current(), 400, 'Pick an organization first.');
+        if (! Organization::current()) {
+            $slug = $request->header('X-Organization');
+            abort_if($slug && Organization::where('slug', $slug)->value('status') === 'Suspended', 403, 'This organization is suspended on OrgConnect.');
+            abort(400, 'Pick an organization first.');
+        }
 
         $status = $request->user()->membership->status;
         abort_if($status === null, 403, "You're not a member of this organization yet.");

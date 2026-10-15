@@ -42,6 +42,37 @@ class DatabaseSeeder extends Seeder
 
         $this->call([ComputerSocietySeeder::class, DataScienceSocietySeeder::class]);
         Organization::setCurrent(null);
+
+        $this->platform();
+    }
+
+    // The platform admin, and one org registration waiting for review
+    private function platform(): void
+    {
+        $admin = User::firstOrCreate(['email' => 'admin@orgconnect.test'], [
+            'name' => 'OrgConnect Admin',
+            'student_id' => 'ADMIN-0001',
+            'course' => 'Staff',
+            'year_level' => 'Staff',
+            'password' => 'password123',
+        ]);
+        $admin->forceFill(['is_admin' => true])->save();
+
+        $andrea = User::where('email', 'andrea.lim@orgconnect.test')->first();
+        Organization::firstOrCreate(['slug' => 'jpcs'], [
+            'status' => 'Pending',
+            'requested_by' => $andrea?->id,
+            'name' => 'Junior Philippine Computer Society – TIP',
+            'short_name' => 'JPCS',
+            'college' => 'College of Computer Studies',
+            'tagline' => "Building tomorrow's IT leaders, together.",
+            'description' => 'A student chapter of JPCS that runs coding bootcamps, industry talks and outreach for public schools.',
+            'adviser' => 'Engr. Paolo Dizon',
+            'email' => 'jpcs.tip@school.edu.ph',
+            'courses' => ['BSIT', 'BSCS', 'BSIS'],
+            'proof_url' => 'https://drive.google.com/file/d/osa-recognition-2026',
+            'theme' => [],
+        ]);
     }
 
     public static function account(Organization $org, string $email, array $fields, string $role, string $position, string $status = 'Active'): User

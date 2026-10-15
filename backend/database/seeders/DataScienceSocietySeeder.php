@@ -37,12 +37,13 @@ class DataScienceSocietySeeder extends Seeder
             'membership_fee' => '₱100 per semester',
             'courses' => ['BSCS', 'BSIT', 'BSIS'],
             'tutoring_areas' => ['Python', 'SQL & Databases', 'Statistics', 'Machine Learning', 'Data Visualization', 'Other'],
-            // Deep teal + coral
+            // Green in place of the default navy (keys: frontend/src/utils/theme.js)
             'theme' => [
-                'navy' => '#0f4c4f', 'navyDark' => '#0a3638', 'navy2' => '#17666a', 'brand' => '#0b7676',
-                'accent' => '#d1462f', 'accentDark' => '#b23a26', 'highlight' => '#ff8a65',
-                'bg' => '#f4f8f7', 'tint' => '#e6f3f1', 'primarySoft' => '#e2f0ee', 'primaryLine' => '#b9dad5',
-                'accentSoft' => '#fde9e4', 'sidebarMuted' => '#a9d1cc', 'ring1' => '#1f7a77', 'ring2' => '#155f5d',
+                'navy' => '#1d5a3c', 'navyDark' => '#144530', 'navy2' => '#2a6e4e',
+                'sky' => '#d2ecdb', 'skySoft' => '#e8f5ec', 'skyRgb' => '210, 236, 219', 'bg' => '#f3f9f5',
+                'primaryLine' => '#b5d9c2', 'sidebarMuted' => '#c4e2cf', 'ring1' => '#2f7352', 'ring2' => '#276446',
+                'pageFrom' => '#ecf6f0', 'softInk' => '#557566', 'softInk2' => '#8aaa98',
+                'cardLine' => '#d6e8dc', 'cardLineStrong' => '#b9d8c5', 'metaInk' => '#5f7a6c', 'metaInkStrong' => '#3d5a4b',
             ],
         ]);
         Organization::setCurrent($org);
