@@ -37,7 +37,7 @@ const PROFILE = {
       page: "profile",
       target: '[data-tour="profile-details"]',
       title: "Personal details",
-      body: "Your name, student ID, email, course and year level. They are locked here; ask your org admin if something needs to change. Officers see these on the member roster.",
+      body: "Keep your name, student ID, email, course and year level up to date. Officers see these on the member roster.",
     },
     {
       page: "profile",

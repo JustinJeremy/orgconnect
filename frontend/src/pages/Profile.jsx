@@ -8,35 +8,85 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
 import { orgsApi } from "../api/services.js";
 import { errorMessage } from "../api/client.js";
+import { COURSES, YEAR_LEVELS } from "../data/constants.js";
 import { initials, myRegistration } from "../utils/format.js";
 
-// Name, student ID, email, course and year level: shown locked, members can't edit them here
-function LockedField({ id, label, value, wide }) {
-  return (
-    <div className={`field ${wide ? "span-2" : ""}`}>
-      <label htmlFor={id}>{label}</label>
-      <div className="locked-input">
-        <input id={id} className="input" value={value || "—"} readOnly aria-readonly="true" tabIndex={-1} />
-        <Icon name="lock" size={16} className="locked-icon" />
-      </div>
-    </div>
-  );
-}
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function DetailsForm({ user }) {
+// Name, student ID, email, course and year level. Your own details are yours to keep up to date
+// (officers can't change the email of someone who also belongs to another org).
+function DetailsForm({ user, flash }) {
+  const { updateProfile } = useAuth();
+  const [formData, setFormData] = useState({
+    name: user.name,
+    studentId: user.studentId || "",
+    email: user.email,
+    course: user.course || COURSES[0],
+    yearLevel: user.yearLevel || YEAR_LEVELS[0],
+  });
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // Keep a course that isn't in the list (e.g. typed in by an officer) selectable
+  const courses = COURSES.includes(formData.course) ? COURSES : [...COURSES, formData.course];
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError("");
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const data = { ...formData, name: formData.name.trim(), studentId: formData.studentId.trim(), email: formData.email.trim() };
+    if (!data.name || !data.studentId || !data.email) return setError("Name, student ID and email are required.");
+    if (!EMAIL.test(data.email)) return setError("Enter a valid email address.");
+
+    setSaving(true);
+    const result = await updateProfile(data);
+    setSaving(false);
+    if (result.ok) flash("Profile updated");
+    else setError(result.message);
+  };
+
   return (
-    <div className="profile-form is-locked">
+    <form className="profile-form" onSubmit={handleSubmit} noValidate>
+      {error && <div className="alert alert-error" role="alert">{error}</div>}
       <div className="form-grid">
-        <LockedField id="pf-name" label="Full name" value={user.name} wide />
-        <LockedField id="pf-id" label="Student ID" value={user.studentId} />
-        <LockedField id="pf-email" label="School email" value={user.email} />
-        <LockedField id="pf-course" label="Course" value={user.course} />
-        <LockedField id="pf-year" label="Year level" value={user.yearLevel} />
+        <div className="field span-2">
+          <label htmlFor="pf-name">Full name</label>
+          <input id="pf-name" className="input" name="name" value={formData.name} onChange={handleChange} autoComplete="name" />
+        </div>
+        <div className="field">
+          <label htmlFor="pf-id">Student ID</label>
+          <input id="pf-id" className="input" name="studentId" value={formData.studentId} onChange={handleChange} />
+        </div>
+        <div className="field">
+          <label htmlFor="pf-email">School email</label>
+          <input id="pf-email" type="email" className="input" name="email" value={formData.email} onChange={handleChange} autoComplete="email" />
+        </div>
+        <div className="field">
+          <label htmlFor="pf-course">Course</label>
+          <select id="pf-course" className="input" name="course" value={formData.course} onChange={handleChange}>
+            {courses.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+        <div className="field">
+          <label htmlFor="pf-year">Year level</label>
+          <select id="pf-year" className="input" name="yearLevel" value={formData.yearLevel} onChange={handleChange}>
+            {YEAR_LEVELS.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
       </div>
-      <p className="locked-note">
-        <Icon name="lock" size={14} /> These details are locked. Ask your org admin if something needs to change.
-      </p>
-    </div>
+      <div className="form-actions">
+        <button type="submit" className="btn btn-primary" disabled={saving}>
+          {saving ? "Saving…" : "Save changes"}
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -221,7 +271,7 @@ export default function Profile({ data, loading, flash }) {
 
       <div className="dash-grid">
         <Panel title="Personal details" tour="profile-details" subtitle="Shown to officers on the member roster" className="span-7">
-          <DetailsForm user={user} />
+          <DetailsForm user={user} flash={flash} />
         </Panel>
         <Panel title="Change password" className="span-5" tour="profile-password">
           <PasswordForm flash={flash} />

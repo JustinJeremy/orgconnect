@@ -154,7 +154,7 @@ export default function SignUpForm({ onSwitch }) {
         {submitting ? "Creating account…" : "Create account"}
       </button>
 
-      <p className="form-note">New accounts join as Members. Officer roles are assigned by an Org Admin.</p>
+      <p className="form-note">New accounts join as Members. The org's President assigns officer roles.</p>
       {/* In <body>, so the auth card's zoom doesn't apply to it */}
       {showNotice && createPortal(<PrivacyNotice org={org} onClose={() => setShowNotice(false)} />, document.body)}
     </form>
