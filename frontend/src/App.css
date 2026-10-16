@@ -3562,3 +3562,5 @@ a.org-option { text-decoration: none; }
 .change-reason { margin: 0.625rem 0; font-size: 0.875rem; color: var(--ink-2); }
 .change-table td { vertical-align: top; white-space: pre-wrap; }
 .change-table .change-new { color: var(--green-ink); font-weight: 600; }
+/* Profile: panels on the same row are the same height */
+.profile-grid { align-items: stretch; }

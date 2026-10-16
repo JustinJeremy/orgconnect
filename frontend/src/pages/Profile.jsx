@@ -326,7 +326,7 @@ export default function Profile({ data, loading, flash }) {
       {history ? (
         <ProfileHistory tab={history} onTab={setHistory} onClose={() => setHistory(null)} orgName={org.shortName} flash={flash} />
       ) : (
-      <div className="dash-grid">
+      <div className="dash-grid profile-grid">
         <Panel title="Personal details" tour="profile-details" subtitle="Shown to officers on the member roster" className="span-7">
           <DetailsForm user={user} flash={flash} />
         </Panel>
