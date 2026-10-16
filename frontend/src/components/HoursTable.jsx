@@ -2,7 +2,8 @@ import Icon from "./Icon.jsx";
 import { StatusBadge } from "./Badges.jsx";
 import { formatDate } from "../utils/format.js";
 
-export default function HoursTable({ rows, isOfficer, userId, onDecide, onDelete }) {
+// highlightId: a log to highlight (opened from a notification)
+export default function HoursTable({ rows, isOfficer, userId, onDecide, onDelete, highlightId }) {
   return (
     <div className="table-wrap">
       <table className="table">
@@ -21,7 +22,7 @@ export default function HoursTable({ rows, isOfficer, userId, onDecide, onDelete
             const canDecide = isOfficer && log.status === "Pending" && log.userId !== userId; // never your own
             const canDelete = !isOfficer && log.userId === userId && log.status === "Pending";
             return (
-              <tr key={log.id}>
+              <tr key={log.id} data-focus={`hour-${log.id}`} className={log.id === highlightId ? "is-focused" : undefined}>
                 {isOfficer && <td className="strong">{log.memberName}</td>}
                 <td>{log.activity}</td>
                 <td className="muted nowrap">{formatDate(log.date)}</td>

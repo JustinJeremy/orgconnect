@@ -49,7 +49,7 @@ export default function Landing() {
         </div>
       </header>
 
-      <main className="hero">
+      <main className={`hero ${organizations.length > 0 ? "has-overlap" : ""}`}>
         <HeroShapes />
         <div className="container hero-inner">
           <p className="hero-eyebrow">
@@ -82,46 +82,56 @@ export default function Landing() {
         </div>
       </main>
 
+      {/* Org picker: a floating card that overlaps the bottom of the hero */}
       {organizations.length > 0 && (
         <section className="org-picker container" aria-labelledby="org-picker-title">
-          <h2 id="org-picker-title">Organizations on OrgConnect</h2>
-          <p className="muted">Pick your organization. One account works for every org you join.</p>
-          <div className="org-cards">
-            {organizations.map((org) => {
-              const selected = org.slug === current.slug;
-              return (
-                <button
-                  key={org.id}
-                  type="button"
-                  className={`org-card ${selected ? "is-selected" : ""}`}
-                  style={{ "--card-navy": org.theme?.navy || DEFAULT_NAVY }}
-                  aria-pressed={selected}
-                  onClick={() => selectOrg(org.slug)}
-                >
-                  <span className="org-card-band" aria-hidden="true" />
-                  <span className="org-card-college">{org.college}</span>
-                  <span className="org-card-name">{org.name}</span>
-                  <span className="org-card-tagline">{org.tagline}</span>
-                  <span className="org-card-meta">
-                    <Icon name="users" size={14} /> {org.memberCount} members
-                    {org.courses?.length > 0 && <> · {org.courses.join(", ")}</>}
-                  </span>
-                  {selected && (
-                    <span className="org-card-check">
-                      <Icon name="check" size={14} /> Selected
+          <div className="org-picker-card">
+            <h2 id="org-picker-title">Choose your organization</h2>
+            <p className="org-picker-lead">One account works for every org you join. You can switch anytime.</p>
+
+            <div className="org-cards">
+              {organizations.map((org) => {
+                const selected = org.slug === current.slug;
+                return (
+                  <button
+                    key={org.id}
+                    type="button"
+                    className={`org-card ${selected ? "is-selected" : ""}`}
+                    style={{ "--card-navy": org.theme?.navy || DEFAULT_NAVY }}
+                    aria-pressed={selected}
+                    onClick={() => selectOrg(org.slug)}
+                  >
+                    <span className="org-card-head">
+                      <span className="org-card-logo" aria-hidden="true">
+                        {org.logoUrl ? <img src={org.logoUrl} alt="" /> : (org.shortName || org.name).slice(0, 2)}
+                      </span>
+                      <span className="org-card-title">
+                        <span className="org-card-name">{org.name}</span>
+                        <span className="org-card-sub">{org.tagline || org.college}</span>
+                      </span>
+                      {/* Radio-style marker: filled with a check on the selected org */}
+                      <span className="org-card-radio" aria-hidden="true">
+                        {selected && <Icon name="check" size={12} />}
+                      </span>
                     </span>
-                  )}
-                </button>
-              );
-            })}
-            <button type="button" className="org-card org-card-register" onClick={registerOrg}>
-              <span className="org-register-icon" aria-hidden="true"><Icon name="plus" size={18} /></span>
-              <span className="org-card-name">Register your organization</span>
-              <span className="org-card-tagline">Bring your student org to OrgConnect. An admin reviews each request.</span>
-            </button>
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="org-register-line">
+              Don't see your organization?{" "}
+              <button type="button" className="org-register-link" onClick={registerOrg}>
+                Register it <Icon name="arrowRight" size={14} />
+              </button>
+            </p>
           </div>
         </section>
       )}
+
+      <footer className="landing-footer">
+        © OrgConnect {new Date().getFullYear()}. All rights reserved.
+      </footer>
     </div>
   );
 }

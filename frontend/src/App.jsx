@@ -20,6 +20,7 @@ import AttendanceModal from "./components/AttendanceModal.jsx";
 import ConfirmDialog from "./components/ConfirmDialog.jsx";
 import TemporaryPasswordDialog from "./components/TemporaryPasswordDialog.jsx";
 import Tour from "./components/Tour.jsx";
+import AvatarPicker from "./components/AvatarPicker.jsx";
 import { buildTour, tourSections } from "./data/tourSteps.js";
 import { errorMessage } from "./api/client.js";
 import { notificationTarget } from "./utils/notificationTarget.js";
@@ -92,7 +93,11 @@ function MainApp() {
   const { user } = useAuth();
   const isOfficer = user.role === "officer";
   const [page, setPage] = useState("dashboard");
-  const [eventFocus, setEventFocus] = useState(null); // { eventId?, eventTitle?, key }: an event to show (from a notification)
+  // An item to show and highlight on its page (from a notification or a dashboard card):
+  // { page, key, ...notificationTarget() }, e.g. { page: "events", eventId } or { page: "hours", kind: "hour", id }
+  const [focus, setFocus] = useState(null);
+  const clearFocus = useCallback(() => setFocus(null), []);
+  const focusFor = (name) => (focus?.page === name ? focus : null);
   const [menuOpen, setMenuOpen] = useState(false);
   // Desktop: the sidebar can shrink to icons only (remembered on this browser)
   const [collapsed, setCollapsed] = useState(() => {
@@ -406,8 +411,14 @@ function MainApp() {
     }
     const target = notificationTarget(notification);
     setPage(target.page);
-    // Events: show and highlight the event the notification is about
-    setEventFocus(target.eventId || target.eventTitle ? { ...target, key: Date.now() } : null);
+    // Show and highlight the item the notification is about (if it has one)
+    setFocus(target.page !== "dashboard" ? { ...target, key: Date.now() } : null);
+  };
+
+  // Dashboard event cards: open the Events page on that event (same highlight as a notification)
+  const openEvent = (event) => {
+    setPage("events");
+    setFocus({ page: "events", eventId: event.id, eventTitle: event.title, key: Date.now() });
   };
 
   // ---- Page ----
@@ -466,15 +477,16 @@ function MainApp() {
             members={members}
             tutoring={tutoring}
             announcements={announcements}
+            onOpenEvent={openEvent}
           />
         ) : (
           <>
             {topbar}
             {errorBanner}
-            {page === "events" && <Events {...pageProps} actions={events} focus={eventFocus} onFocusDone={() => setEventFocus(null)} />}
-            {page === "hours" && <VolunteerHours {...pageProps} hours={hours} members={members} />}
-            {page === "tutoring" && <Tutoring {...pageProps} actions={tutoring} />}
-            {page === "announcements" && <Announcements {...pageProps} actions={announcements} />}
+            {page === "events" && <Events {...pageProps} actions={events} focus={focusFor("events")} onFocusDone={clearFocus} />}
+            {page === "hours" && <VolunteerHours {...pageProps} hours={hours} members={members} focus={focusFor("hours")} onFocusDone={clearFocus} />}
+            {page === "tutoring" && <Tutoring {...pageProps} actions={tutoring} focus={focusFor("tutoring")} onFocusDone={clearFocus} />}
+            {page === "announcements" && <Announcements {...pageProps} actions={announcements} focus={focusFor("announcements")} onFocusDone={clearFocus} />}
             {page === "profile" && <Profile {...pageProps} />}
           </>
         )}
@@ -524,8 +536,26 @@ function MainApp() {
 
 function App() {
   const { current, loading: orgsLoading, error: orgsError, reload } = useOrg();
-  const { user, checking, registeringOrg } = useAuth();
+  const { user, checking, registeringOrg, setAvatar } = useAuth();
   const isAdmin = Boolean(user?.isAdmin);
+  // "Skip for now" on the avatar picker is remembered on this browser; Profile can still set one
+  const skipKey = user ? `orgconnect_avatar_skipped_${user.id}` : null;
+  const [avatarSkipped, setAvatarSkipped] = useState(false);
+  const skippedBefore = () => {
+    try {
+      return Boolean(skipKey && localStorage.getItem(skipKey));
+    } catch {
+      return false;
+    }
+  };
+  const skipAvatar = () => {
+    try {
+      localStorage.setItem(skipKey, "1");
+    } catch {
+      /* storage blocked: skipped for this visit only */
+    }
+    setAvatarSkipped(true);
+  };
   // Recolor the whole app: the selected org's palette, or charcoal for the platform admin
   useEffect(() => {
     applyTheme(isAdmin ? ADMIN_THEME : current?.theme);
@@ -549,6 +579,10 @@ function App() {
   if (user.orgSlug !== current.slug) return loadingScreen; // switching orgs
   // Not a member yet, still under review, or inactive: the org's own screen instead of the app
   if (user.membershipStatus !== "Active") return <JoinOrg />;
+  // First time in after being approved: pick an avatar
+  if (!user.avatar && !avatarSkipped && !skippedBefore()) {
+    return <AvatarPicker user={user} orgName={current.shortName} onSave={setAvatar} onSkip={skipAvatar} />;
+  }
   // key: switching orgs starts the app fresh and loads that org's data
   return <MainApp key={current.slug} />;
 }

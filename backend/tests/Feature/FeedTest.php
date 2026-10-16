@@ -68,4 +68,24 @@ class FeedTest extends TestCase
         $this->actingIn($compSocMember, $this->compSoc())->postJson("/api/announcements/{$post->id}/like")->assertNotFound();
         $this->actingIn($compSocMember, $this->compSoc())->getJson("/api/announcements/{$post->id}/comments")->assertNotFound();
     }
+
+    public function test_the_author_edits_their_comment_as_often_as_they_like_and_others_cannot(): void
+    {
+        $org = $this->compSoc();
+        $officer = $this->person($org, 'officer');
+        $member = $this->person($org);
+        $other = $this->person($org);
+        $post = $this->postIn($org, $officer);
+        $commentId = $this->actingIn($member, $org)->postJson("/api/announcements/{$post->id}/comments", ['text' => 'See you there'])->json('id');
+        $url = "/api/announcements/{$post->id}/comments/{$commentId}";
+
+        $this->actingIn($member, $org)->putJson($url, ['text' => 'See you there!'])->assertOk()->assertJsonPath('edited', true);
+        $this->actingIn($member, $org)->putJson($url, ['text' => 'See you there at 1 PM!'])->assertOk()->assertJsonPath('text', 'See you there at 1 PM!');
+        $this->actingIn($other, $org)->putJson($url, ['text' => 'Hacked'])->assertForbidden();
+        $this->actingIn($other, $org)->deleteJson($url)->assertForbidden();
+
+        // An officer can remove any comment
+        $this->actingIn($officer, $org)->deleteJson($url)->assertOk();
+        $this->assertDatabaseMissing('announcement_comments', ['id' => $commentId]);
+    }
 }

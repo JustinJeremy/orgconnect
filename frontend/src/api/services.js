@@ -31,6 +31,13 @@ export const authApi = {
   register: (data) => post("/register", data), // -> { token, user }
   me: () => get("/user"),
   updateProfile: (data) => put("/user", data), // -> updated user
+  setAvatar: (avatar) => put("/user/avatar", { avatar }), // -> updated user
+  // Their own photo as avatar: PNG/JPG/WebP up to 2 MB -> updated user (avatar "photo", avatarUrl)
+  uploadAvatarPhoto: (file) => {
+    const body = new FormData();
+    body.append("photo", file);
+    return post("/user/avatar/photo", body);
+  },
   changePassword: (data) => put("/user/password", data), // { currentPassword, password, password_confirmation }
   logout: () => post("/logout"),
 };
@@ -140,6 +147,8 @@ export const announcementsApi = {
   unlike: (id) => del(`/announcements/${id}/like`), // -> { likes, likedByMe }
   comments: (id) => get(`/announcements/${id}/comments`), // -> [{ id, userName, text, createdAt }]
   addComment: (id, text) => post(`/announcements/${id}/comments`, { text }), // -> the new comment
+  updateComment: (id, commentId, text) => put(`/announcements/${id}/comments/${commentId}`, { text }), // author only
+  deleteComment: (id, commentId) => del(`/announcements/${id}/comments/${commentId}`), // author or officer
 };
 
 export const notificationsApi = {

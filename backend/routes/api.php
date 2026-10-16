@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/organizations', [OrganizationController::class, 'index']);
 Route::get('/organizations/{organization:slug}/logo', [OrganizationController::class, 'logo']);
 Route::get('/events/{event}/poster', [EventController::class, 'poster'])->whereNumber('event');
+Route::get('/users/{user}/avatar', [ProfileController::class, 'avatarImage'])->whereNumber('user');
 // Limited attempts per minute (see AppServiceProvider)
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:register');
@@ -28,6 +29,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::put('/user', [ProfileController::class, 'update']);
+    Route::put('/user/avatar', [ProfileController::class, 'avatar']);
+    Route::post('/user/avatar/photo', [ProfileController::class, 'avatarPhoto']);
     Route::put('/user/password', [ProfileController::class, 'password'])->middleware('throttle:password');
     Route::get('/my-organizations', [OrganizationController::class, 'mine']);
     Route::post('/organizations/{organization:slug}/join', [OrganizationController::class, 'join']);
@@ -109,6 +112,8 @@ Route::middleware(['auth:sanctum', 'org.member'])->group(function () {
     Route::delete('/announcements/{announcement}/like', [AnnouncementController::class, 'unlike']);
     Route::get('/announcements/{announcement}/comments', [AnnouncementController::class, 'comments']);
     Route::post('/announcements/{announcement}/comments', [AnnouncementController::class, 'addComment']);
+    Route::put('/announcements/{announcement}/comments/{comment}', [AnnouncementController::class, 'updateComment']);
+    Route::delete('/announcements/{announcement}/comments/{comment}', [AnnouncementController::class, 'deleteComment']);
 
     // In-app notifications
     Route::get('/notifications', [NotificationController::class, 'index']);

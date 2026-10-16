@@ -55,7 +55,7 @@ class HourController extends Controller
         UserNotification::send(
             $hour->user_id,
             "Your {$hour->hours} hrs for {$hour->activity} were " . strtolower($data['status']),
-            'hours'
+            "hours/{$hour->id}"
         );
 
         return $hour->load('user')->toFrontend();

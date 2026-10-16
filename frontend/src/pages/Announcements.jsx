@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Icon from "../components/Icon.jsx";
 import Tabs from "../components/Tabs.jsx";
 import EmptyState from "../components/EmptyState.jsx";
@@ -6,17 +6,21 @@ import AnnouncementForm from "../components/AnnouncementForm.jsx";
 import Pagination from "../components/Pagination.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import usePagedList from "../hooks/usePagedList.js";
+import useFocusItem from "../hooks/useFocusItem.js";
 import { announcementsApi } from "../api/services.js";
 import { ANNOUNCEMENT_CATEGORIES } from "../data/constants.js";
 import { formatDate, relativeDate } from "../utils/format.js";
 
 const PER_PAGE = 8;
 
-function Post({ post, isOfficer, memberCount, actions, onEdit }) {
+function Post({ post, isOfficer, memberCount, actions, onEdit, highlighted = false }) {
   const unread = !isOfficer && !post.isRead;
 
   return (
-    <article className={`post ${unread ? "is-unread" : ""} ${post.category === "Urgent" ? "is-urgent" : ""}`}>
+    <article
+      className={`post ${unread ? "is-unread" : ""} ${post.category === "Urgent" ? "is-urgent" : ""} ${highlighted ? "is-focused" : ""}`}
+      data-focus={`post-${post.id}`}
+    >
       <div className="post-meta">
         {post.pinned && (
           <span className="post-pinned">
@@ -74,7 +78,8 @@ function Post({ post, isOfficer, memberCount, actions, onEdit }) {
   );
 }
 
-export default function Announcements({ data, loading, actions }) {
+// focus: { kind: "post", id, search, key } from a clicked notification
+export default function Announcements({ data, loading, actions, focus, onFocusDone }) {
   const { user } = useAuth();
   const isOfficer = user.role === "officer";
   const { announcements, members } = data;
@@ -89,6 +94,16 @@ export default function Announcements({ data, loading, actions }) {
   const filtersActive = Boolean(search.trim()) || category !== "All";
   // One page of posts from the API (pinned first, then newest); reloads when posts change or are read
   const list = usePagedList(announcementsApi.page, { view: view === "unread" ? "unread" : "", category, search }, PER_PAGE, announcements);
+
+  // From a notification: show every post, search for its title, then scroll to it and highlight it
+  useEffect(() => {
+    if (!focus) return;
+    setView("all");
+    setCategory("All");
+    setSearch(focus.search || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus?.key]);
+  const highlightId = useFocusItem({ focus, kind: "post", items: list.items, ready: list.loaded, onDone: onFocusDone });
 
   const handleSave = async (values) => {
     const ok = await actions.save(form.post?.id, values);
@@ -170,6 +185,7 @@ export default function Announcements({ data, loading, actions }) {
               memberCount={memberCount}
               actions={actions}
               onEdit={(p) => setForm({ post: p })}
+              highlighted={post.id === highlightId}
             />
           ))}
         </div>

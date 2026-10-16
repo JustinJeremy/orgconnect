@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Icon from "../components/Icon.jsx";
 import Tabs from "../components/Tabs.jsx";
 import Panel from "../components/Panel.jsx";
@@ -11,6 +11,7 @@ import ApprovalCenter from "../components/ApprovalCenter.jsx";
 import Pagination from "../components/Pagination.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import usePagedList from "../hooks/usePagedList.js";
+import useFocusItem from "../hooks/useFocusItem.js";
 import { hoursApi, membersApi } from "../api/services.js";
 import { errorMessage } from "../api/client.js";
 import { initials, shortDate } from "../utils/format.js";
@@ -50,7 +51,7 @@ async function exportCsv(flash) {
 
 /* ---------- Officer ---------- */
 
-function OfficerView({ data, loading, hours: hourActions, members: memberActions, flash }) {
+function OfficerView({ data, loading, hours: hourActions, members: memberActions, flash, focus, onFocusDone }) {
   const { user } = useAuth();
   const { hours, members, applications, reactivations } = data;
   const [tab, setTab] = useState("hours");
@@ -62,6 +63,22 @@ function OfficerView({ data, loading, hours: hourActions, members: memberActions
   const query = search.trim();
   // One page of hour logs from the API; reloads when a log is approved, rejected or deleted
   const list = usePagedList(hoursApi.page, { status, search }, PER_PAGE, hours);
+
+  // From a notification: an application -> the Applications tab; an hour log -> that log
+  useEffect(() => {
+    if (!focus) return;
+    if (focus.kind === "applications") {
+      // Only member managers have the Requests tab; other officers stay on Members
+      setTab(user.canManageMembers ? "applications" : "members");
+      onFocusDone?.();
+      return;
+    }
+    setTab("hours");
+    setStatus("All");
+    setSearch(focus.search || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus?.key]);
+  const highlightId = useFocusItem({ focus, kind: "hour", items: list.items, ready: list.loaded, onDone: onFocusDone });
 
   return (
     <div className="page">
@@ -113,7 +130,7 @@ function OfficerView({ data, loading, hours: hourActions, members: memberActions
                 text={status === "Pending" && !query ? "New submissions from members will appear here." : "Try another status or search."}
               />
             ) : (
-              <HoursTable rows={list.items} isOfficer userId={user.id} onDecide={hourActions.decide} />
+              <HoursTable rows={list.items} isOfficer userId={user.id} onDecide={hourActions.decide} highlightId={highlightId} />
             )}
           </section>
           <Pagination page={list.page} totalPages={list.totalPages} onChange={list.setPage} />
@@ -179,12 +196,18 @@ function ReactivationList({ requests, onDecide }) {
 
 /* ---------- Member ---------- */
 
-function MemberView({ data, loading, hours: hourActions }) {
+function MemberView({ data, loading, hours: hourActions, focus, onFocusDone }) {
   const { user } = useAuth();
   const [status, setStatus] = useState("All");
   const mine = data.hours.filter((h) => h.userId === user.id);
   // The table loads one page of your logs from the API; the totals above use all of them
   const list = usePagedList(hoursApi.page, { status }, PER_PAGE, data.hours);
+
+  // From a notification: show logs of every status, then scroll to that log and highlight it
+  useEffect(() => {
+    if (focus) setStatus("All");
+  }, [focus?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const highlightId = useFocusItem({ focus, kind: "hour", items: list.items, ready: list.loaded, onDone: onFocusDone });
 
   const stats = [
     { label: "Approved hours", value: sumHours(mine.filter((h) => h.status === "Approved")), note: "Counted toward your record" },
@@ -212,7 +235,7 @@ function MemberView({ data, loading, hours: hourActions }) {
             />
           ) : (
             <>
-              <HoursTable rows={list.items} userId={user.id} onDelete={hourActions.remove} />
+              <HoursTable rows={list.items} userId={user.id} onDelete={hourActions.remove} highlightId={highlightId} />
               {list.totalPages > 1 && (
                 <div className="panel-pagination">
                   <Pagination page={list.page} totalPages={list.totalPages} onChange={list.setPage} />

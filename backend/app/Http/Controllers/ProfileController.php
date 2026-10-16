@@ -4,6 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\PasswordRequest;
 use App\Http\Requests\ProfileRequest;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 // The signed-in user's own account (Profile & settings page)
 class ProfileController extends Controller
@@ -23,6 +27,45 @@ class ProfileController extends Controller
         ]);
 
         return $user->toFrontend();
+    }
+
+    // PUT /api/user/avatar  { avatar }  -> updated user ("initials" = no picture, just their initials)
+    public function avatar(Request $request)
+    {
+        $data = $request->validate(['avatar' => ['required', Rule::in([...User::AVATARS, 'initials'])]]);
+        $user = $request->user();
+        $this->deletePhoto($user);
+        $user->update(['avatar' => $data['avatar'], 'avatar_path' => null]);
+
+        return $user->toFrontend();
+    }
+
+    // POST /api/user/avatar/photo  (multipart: photo) -> updated user, with their own photo as avatar
+    public function avatarPhoto(Request $request)
+    {
+        // No SVG: it can carry scripts
+        $request->validate(['photo' => ['required', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048']]);
+        $user = $request->user();
+        $this->deletePhoto($user);
+        $user->update(['avatar' => 'photo', 'avatar_path' => $request->file('photo')->store('avatars', 'public')]);
+
+        return $user->toFrontend();
+    }
+
+    // GET /api/users/{user}/avatar  (public, so <img> tags can load it) -> the user's uploaded photo
+    public function avatarImage(User $user)
+    {
+        $disk = Storage::disk('public');
+        abort_unless($user->avatar_path && $disk->exists($user->avatar_path), 404);
+
+        return response()->file($disk->path($user->avatar_path), ['Cache-Control' => 'public, max-age=31536000']);
+    }
+
+    private function deletePhoto(User $user): void
+    {
+        if ($user->avatar_path) {
+            Storage::disk('public')->delete($user->avatar_path);
+        }
     }
 
     // PUT /api/user/password

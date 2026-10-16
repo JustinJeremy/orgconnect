@@ -3,6 +3,7 @@ import Icon from "../components/Icon.jsx";
 import Logo from "../components/Logo.jsx";
 import LoginForm from "../components/LoginForm.jsx";
 import SignUpForm from "../components/SignUpForm.jsx";
+import SignUpChooser from "../components/SignUpChooser.jsx";
 import OrgSwitcher from "../components/OrgSwitcher.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -43,9 +44,19 @@ function useFrameScale() {
 
 export default function AuthPage({ mode, onModeChange, onBack }) {
   const { current: org } = useOrg();
-  const { registeringOrg } = useAuth();
+  const { registeringOrg, startOrgRegistration, endOrgRegistration } = useAuth();
   // gutter lets the background text start at the window's left edge, like in Figma
   const { scale, gutter } = useFrameScale();
+
+  // Sign up starts with a choice (join an org / register one). Coming from "Register it" on the
+  // landing page, that choice is already made.
+  const [pathChosen, setPathChosen] = useState(registeringOrg);
+  const choosePath = (path) => {
+    if (path === "register") startOrgRegistration();
+    else endOrgRegistration();
+    setPathChosen(true);
+  };
+  const showChooser = mode === "signup" && !pathChosen;
 
   return (
     <div className={`auth-page ${scale ? "is-staged" : ""}`}>
@@ -80,9 +91,11 @@ export default function AuthPage({ mode, onModeChange, onBack }) {
             </div>
           </section>
 
-          <section className={`auth-main is-${mode}`}>
+          <section className={`auth-main is-${showChooser ? "choose" : mode}`}>
             <div className="auth-card">
-              <div className="auth-tabs" role="tablist" aria-label="Account">
+              <div className={`auth-tabs is-${mode}`} role="tablist" aria-label="Account">
+                {/* White pill that slides under the active tab */}
+                <span className="auth-tabs-indicator" aria-hidden="true" />
                 <button
                   type="button"
                   role="tab"
@@ -103,11 +116,16 @@ export default function AuthPage({ mode, onModeChange, onBack }) {
                 </button>
               </div>
 
-              {mode === "signin" ? (
-                <LoginForm onSwitch={() => onModeChange("signup")} />
-              ) : (
-                <SignUpForm onSwitch={() => onModeChange("signin")} />
-              )}
+              {/* Keyed by mode so the new form fades in on each switch */}
+              <div className="auth-form-panel" key={showChooser ? "choose" : mode}>
+                {mode === "signin" ? (
+                  <LoginForm onSwitch={() => onModeChange("signup")} />
+                ) : showChooser ? (
+                  <SignUpChooser onChoose={choosePath} onSignIn={() => onModeChange("signin")} />
+                ) : (
+                  <SignUpForm onSwitch={() => onModeChange("signin")} onBack={() => setPathChosen(false)} />
+                )}
+              </div>
             </div>
           </section>
         </div>

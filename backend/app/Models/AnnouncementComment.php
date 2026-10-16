@@ -8,7 +8,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 // A comment on an announcement in the feed. Belongs to its org through the announcement.
 class AnnouncementComment extends Model
 {
-    protected $fillable = ['announcement_id', 'user_id', 'text'];
+    protected $fillable = ['announcement_id', 'user_id', 'text', 'edited_at'];
+
+    protected function casts(): array
+    {
+        return ['edited_at' => 'datetime'];
+    }
 
     public function user(): BelongsTo
     {
@@ -23,6 +28,7 @@ class AnnouncementComment extends Model
             'userName' => $this->user?->name,
             'text' => $this->text,
             'createdAt' => $this->created_at->format('Y-m-d\TH:i:s'),
+            'edited' => $this->edited_at !== null,   // shown as "(edited)"
         ];
     }
 }

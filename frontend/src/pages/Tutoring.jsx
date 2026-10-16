@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Icon from "../components/Icon.jsx";
 import Tabs from "../components/Tabs.jsx";
 import EmptyState from "../components/EmptyState.jsx";
@@ -10,6 +10,7 @@ import { StatusBadge } from "../components/Badges.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
 import usePagedList from "../hooks/usePagedList.js";
+import useFocusItem from "../hooks/useFocusItem.js";
 import { tutoringApi } from "../api/services.js";
 import { RESOURCE_TYPES } from "../data/constants.js";
 
@@ -99,7 +100,8 @@ function SessionsTab({ sessions, requests, loading, actions, onPost, onEdit }) {
 /* ---------- Requests ---------- */
 
 // Officers answer every request. Peer tutors answer the requests sent to their own sessions.
-function RequestsTab({ sessions, requests, actions }) {
+// focus: { kind: "request", id, view, key } from a clicked notification
+function RequestsTab({ sessions, requests, actions, focus, onFocusDone }) {
   const { user } = useAuth();
   const isOfficer = user.role === "officer";
   const sessionById = (id) => sessions.find((s) => s.id === id);
@@ -114,6 +116,15 @@ function RequestsTab({ sessions, requests, actions }) {
   const scope = isOfficer ? undefined : isTutor && view === "received" ? "received" : "sent";
   const list = usePagedList(tutoringApi.requestsPage, { view: scope, status }, ROWS_PER_PAGE, requests);
   const showStudent = isOfficer || (isTutor && view === "received");
+
+  // From a notification: the right list (received/sent), every status, then that request
+  useEffect(() => {
+    if (!focus) return;
+    if (isTutor) setView(focus.view || "sent");
+    setStatus("All");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus?.key]);
+  const highlightId = useFocusItem({ focus, kind: "request", items: list.items, ready: list.loaded, onDone: onFocusDone });
 
   return (
     <>
@@ -166,7 +177,7 @@ function RequestsTab({ sessions, requests, actions }) {
                 {list.items.map((r) => {
                   const s = sessionById(r.sessionId) || {};
                   return (
-                    <tr key={r.id}>
+                    <tr key={r.id} data-focus={`request-${r.id}`} className={r.id === highlightId ? "is-focused" : undefined}>
                       {showStudent && (
                         <td>
                           <div className="strong">{r.requesterName}</div>
@@ -296,12 +307,16 @@ function ResourcesTab({ resources, loading, actions, onShare, onEdit }) {
 
 /* ---------- Page ---------- */
 
-export default function Tutoring({ data, loading, actions }) {
+export default function Tutoring({ data, loading, actions, focus, onFocusDone }) {
   const { user } = useAuth();
   const isOfficer = user.role === "officer";
   const { sessions, requests, resources } = data;
 
   const [tab, setTab] = useState("sessions");
+  // A tutoring notification opens the Requests tab
+  useEffect(() => {
+    if (focus) setTab("requests");
+  }, [focus?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const [sessionForm, setSessionForm] = useState(null); // null | { session? }
   const [resourceForm, setResourceForm] = useState(null); // null | { resource? }
 
@@ -356,7 +371,7 @@ export default function Tutoring({ data, loading, actions }) {
           onEdit={(session) => setSessionForm({ session })}
         />
       )}
-      {tab === "requests" && <RequestsTab sessions={sessions} requests={requests} actions={actions} />}
+      {tab === "requests" && <RequestsTab sessions={sessions} requests={requests} actions={actions} focus={focus} onFocusDone={onFocusDone} />}
       {tab === "resources" && (
         <ResourcesTab
           resources={resources}

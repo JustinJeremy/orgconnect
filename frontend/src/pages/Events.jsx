@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Icon from "../components/Icon.jsx";
 import EventCard from "../components/EventCard.jsx";
 import EventForm from "../components/EventForm.jsx";
@@ -12,9 +12,30 @@ import { EVENT_CATEGORIES } from "../data/constants.js";
 const PER_PAGE = 9;
 
 // Pill filter under the search bar (All / Upcoming / Past / My Events)
+// One highlight slides under the active pill (measured from the active button)
 function EventPills({ items, value, onChange }) {
+  const wrapRef = useRef(null);
+  const [mark, setMark] = useState(null); // { x, w } of the active pill
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = wrapRef.current?.querySelector(".pill.active");
+      if (el) setMark({ x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [value]);
+
   return (
-    <div className="pills" role="tablist" aria-label="Which events" data-tour="event-filters">
+    <div className="pills" role="tablist" aria-label="Which events" data-tour="event-filters" ref={wrapRef}>
+      {mark && (
+        <span
+          className="pill-mark"
+          aria-hidden="true"
+          style={{ width: mark.w, height: mark.h, transform: `translate(${mark.x}px, ${mark.y}px)` }}
+        />
+      )}
       {items.map((item) => (
         <button
           key={item.key}
@@ -152,6 +173,7 @@ export default function Events({ data, loading, actions, focus, onFocusDone }) {
 
       <EventPills items={tabs} value={tab} onChange={setTab} />
 
+      {/* Skeleton only for the very first load; switching tabs keeps the current list (dimmed) until the next one arrives */}
       {loading || !list.loaded ? (
         <div className={listClass} aria-hidden="true">
           {[0, 1, 2].map((i) => <div key={i} className="event-card skeleton-card" />)}
@@ -183,7 +205,7 @@ export default function Events({ data, loading, actions, focus, onFocusDone }) {
           />
         )
       ) : (
-        <>
+        <div className={`list-swap ${list.pending ? "is-pending" : ""}`} aria-busy={list.pending}>
           <p className="result-count">
             {list.total} {list.total === 1 ? "event" : "events"}
             {filtersActive && (
@@ -192,13 +214,16 @@ export default function Events({ data, loading, actions, focus, onFocusDone }) {
               </button>
             )}
           </p>
-          <div className={listClass} ref={listRef}>
-            {list.items.map((event) => (
-              <EventCard key={event.id} event={event} userId={user.id} isOfficer={isOfficer} actions={cardActions} layout={isOfficer ? "box" : "row"} highlighted={event.id === highlightId} />
+          {/* Keyed on the list version: a new tab, filter or page re-mounts the cards so they rise in, in order */}
+          <div className={`${listClass} list-enter`} ref={listRef} key={list.version}>
+            {list.items.map((event, i) => (
+              <div key={event.id} className="list-item" style={{ "--i": Math.min(i, 8) }}>
+                <EventCard event={event} userId={user.id} isOfficer={isOfficer} actions={cardActions} layout={isOfficer ? "box" : "row"} highlighted={event.id === highlightId} />
+              </div>
             ))}
           </div>
           <Pagination page={list.page} totalPages={list.totalPages} onChange={list.setPage} />
-        </>
+        </div>
       )}
 
       {form && <EventForm initial={form.event} onSave={handleSave} onCancel={() => setForm(null)} />}

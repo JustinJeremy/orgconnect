@@ -25,7 +25,7 @@ by connecting students, officers and orgs).
 - Review requests to register new orgs, then approve or reject them (with a reason)
 - Suspend or reactivate an org
 
-Each org has its own colors (Data Science Society is green, Computer Society navy). A guided tour
+Each org has its own colors (Data Science Society ocean blue, Computer Society navy). A guided tour
 (the **?** button next to the bell) walks through every feature.
 
 ## How things connect

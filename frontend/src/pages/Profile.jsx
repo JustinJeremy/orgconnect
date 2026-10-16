@@ -4,12 +4,14 @@ import Panel from "../components/Panel.jsx";
 import OrgSwatch from "../components/OrgSwatch.jsx";
 import StatRow from "../components/StatRow.jsx";
 import { StatusBadge } from "../components/Badges.jsx";
+import { UserAvatar } from "../components/Avatars.jsx";
+import AvatarPicker from "../components/AvatarPicker.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
 import { orgsApi } from "../api/services.js";
 import { errorMessage } from "../api/client.js";
 import { COURSES, YEAR_LEVELS } from "../data/constants.js";
-import { initials, myRegistration } from "../utils/format.js";
+import { myRegistration } from "../utils/format.js";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -237,8 +239,19 @@ function MyOrganizations() {
 }
 
 export default function Profile({ data, loading, flash }) {
-  const { user, logout } = useAuth();
+  const { user, logout, setAvatar } = useAuth();
   const { current: org } = useOrg();
+  const [pickingAvatar, setPickingAvatar] = useState(false);
+
+  // avatar: a character key, or { photo: File }. Errors show in the picker, so it gets the result.
+  const saveAvatar = async (avatar) => {
+    const result = await setAvatar(avatar);
+    if (result.ok) {
+      setPickingAvatar(false);
+      flash?.("Avatar updated");
+    }
+    return result;
+  };
 
   const myLogs = data.hours.filter((h) => h.userId === user.id);
   const approved = myLogs.filter((h) => h.status === "Approved").reduce((s, h) => s + Number(h.hours), 0);
@@ -255,7 +268,12 @@ export default function Profile({ data, loading, flash }) {
     <div className="page">
       <Panel>
         <div className="profile-card">
-          <span className="avatar">{initials(user.name)}</span>
+          {/* Click the avatar to change it */}
+          <button type="button" className="profile-avatar-btn" onClick={() => setPickingAvatar(true)} title="Change avatar">
+            <UserAvatar user={user} />
+            <span className="profile-avatar-edit" aria-hidden="true"><Icon name="edit" size={13} /></span>
+            <span className="sr-only">Change avatar</span>
+          </button>
           <div className="profile-card-text">
             <h2>{user.name}</h2>
             <p>
@@ -286,6 +304,9 @@ export default function Profile({ data, loading, flash }) {
           <MyOrganizations />
         </Panel>
       </div>
+      {pickingAvatar && (
+        <AvatarPicker user={user} orgName={org.shortName} current={user.avatar} onSave={saveAvatar} onClose={() => setPickingAvatar(false)} />
+      )}
     </div>
   );
 }
