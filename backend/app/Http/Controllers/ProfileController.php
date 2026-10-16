@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\PasswordRequest;
 use App\Http\Requests\ProfileRequest;
+use App\Models\Certificate;
+use App\Models\Event;
 use App\Models\User;
+use App\Models\VolunteerHour;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -66,6 +69,51 @@ class ProfileController extends Controller
         if ($user->avatar_path) {
             Storage::disk('public')->delete($user->avatar_path);
         }
+    }
+
+    // GET /api/my-history -> your own record in the selected org, for the history pages on Profile:
+    //   hours: every log you submitted, with who reviewed it
+    //   events: every event you signed up for (attended, missed, or still to come)
+    //   certificates: the ones you earned
+    public function history(Request $request)
+    {
+        $user = $request->user();
+
+        $hours = VolunteerHour::with('reviewer')->where('user_id', $user->id)
+            ->orderByDesc('date')->orderByDesc('id')->get()
+            ->map(fn (VolunteerHour $h) => [
+                'id' => $h->id,
+                'activity' => $h->activity,
+                'date' => $h->date->format('Y-m-d'),
+                'hours' => $h->hours,
+                'status' => $h->status,
+                'reviewedBy' => $h->reviewer?->name,
+            ]);
+
+        $certified = Certificate::where('user_id', $user->id)->pluck('event_id')->all();
+        $events = Event::whereHas('registrations', fn ($q) => $q->where('user_id', $user->id))
+            ->with(['registrations' => fn ($q) => $q->where('user_id', $user->id)])
+            ->orderByDesc('date')->get()
+            ->map(fn (Event $e) => [
+                'id' => $e->id,
+                'title' => $e->title,
+                'category' => $e->category,
+                'date' => $e->date->format('Y-m-d'),
+                'time' => $e->time,
+                'location' => $e->location,
+                // attended | missed (a completed event they signed up for but didn't attend) | going
+                'result' => $e->status !== 'completed' ? 'going' : ($e->registrations->first()?->status === 'attended' ? 'attended' : 'missed'),
+                'hasCertificate' => in_array($e->id, $certified, true),
+            ]);
+
+        $certificates = Certificate::with('event')->where('user_id', $user->id)
+            ->whereHas('event')   // only this org's (events are scoped to the selected org)
+            ->get()
+            ->sortByDesc(fn (Certificate $c) => $c->event->date)
+            ->values()
+            ->map->toFrontend();
+
+        return ['hours' => $hours, 'events' => $events, 'certificates' => $certificates];
     }
 
     // PUT /api/user/password

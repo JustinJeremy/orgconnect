@@ -79,7 +79,10 @@ npm run dev                 # http://localhost:5173
 ## Test accounts
 
 The seeder creates two orgs, Computer Society (CompSoc) and Data Science Society (DSS), with sample
-events, hours, tutoring and announcements. Password for every account: `password123`
+events, hours, tutoring and announcements, plus a semester of history for the demo (`DemoSeeder`):
+past events with attendance, certificates and volunteer hours (officers miss only one or two), event
+posters, and three events per org on the presentation day, **October 20, 2026** (change it with
+`DEMO_DAY=2026-10-27` in `backend/.env` before seeding). Password for every account: `password123`
 
 | Account | What it shows |
 |---|---|

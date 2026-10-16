@@ -22,6 +22,12 @@ class VolunteerHour extends Model
         return $this->belongsTo(User::class);
     }
 
+    // The officer who approved or rejected it
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
     public function toFrontend(): array
     {
         return [

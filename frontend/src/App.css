@@ -1347,7 +1347,7 @@ select.input {
 .search .input { padding-left: 2.375rem; }
 .search-icon { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
 .select { padding-right: 2rem; cursor: pointer; }
-.result-count { display: flex; align-items: center; gap: 0.625rem; color: var(--muted); font-size: 0.9375rem; margin-bottom: -0.375rem; }
+.result-count { display: flex; align-items: center; gap: 0.625rem; color: var(--muted); font-size: 0.9375rem; margin: 0 0 0.875rem; }   /* clear of the cards below */
 
 /* Lists */
 .row-list { list-style: none; margin: 0; padding: 0; }
@@ -3415,3 +3415,35 @@ span.course-chip { cursor: default; }
 
 /* Avatar picker: "Use my initials" and "Skip for now" side by side */
 .avatar-picker-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.25rem 1.25rem; }
+
+/* ---------- Batch 13: Profile history ---------- */
+/* Profile stat cards open the history */
+button.stat-link {
+  border-top: 0; border-right: 0; border-bottom: 0; background: none;
+  font: inherit; color: inherit; text-align: left; cursor: pointer; position: relative;
+}
+button.stat-link:hover, button.stat-link.is-active { background: var(--sky-soft); }
+button.stat-link.is-active::after {
+  content: ""; position: absolute; left: 1.25rem; right: 1.25rem; bottom: 0; height: 4px;
+  border-radius: 4px 4px 0 0; background: var(--accent);
+}
+button.stat-link:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.stat-more { display: inline-flex; align-items: center; gap: 0.25rem; margin-top: 0.25rem; font-size: 0.8125rem; font-weight: 700; color: var(--navy); }
+
+.profile-history { display: flex; flex-direction: column; gap: 1.25rem; }
+.history-tabs { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.history-tabs .tabs { flex: 1; min-width: 0; }
+.history-result { display: inline-block; padding: 0.125rem 0.625rem; border-radius: 999px; font-size: 0.8125rem; font-weight: 700; }
+.history-result.is-attended { background: var(--green-soft); color: var(--green-ink); }
+.history-result.is-missed { background: var(--red-soft); color: var(--red); }
+.history-result.is-going { background: var(--sky-soft); color: var(--navy); }
+.history-certs { list-style: none; margin: 0; padding: 0 1.25rem; }
+.history-certs li { display: flex; align-items: center; gap: 0.875rem; padding: 0.875rem 0; border-bottom: 1px solid var(--line-2); }
+.history-certs li:last-child { border-bottom: 0; }
+.history-cert-icon { display: grid; place-items: center; flex: none; width: 2.5rem; height: 2.5rem; border-radius: 0.75rem; background: var(--orange-soft); color: var(--accent-dark); }
+/* Cropped posters keep their left side, where the title usually is */
+.dash-event-image img, .event-thumb-img { object-position: left center; }
+/* Links styled as buttons (e.g. "Open" on a shared resource) aren't underlined */
+a.btn { text-decoration: none; }
+/* List view: with a poster, the date badge goes top-right (over the rings), not over the poster's title */
+.event-thumb:has(.event-thumb-img) { justify-content: flex-end; }

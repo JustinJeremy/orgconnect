@@ -6,6 +6,7 @@ import StatRow from "../components/StatRow.jsx";
 import { StatusBadge } from "../components/Badges.jsx";
 import { UserAvatar } from "../components/Avatars.jsx";
 import AvatarPicker from "../components/AvatarPicker.jsx";
+import ProfileHistory from "../components/ProfileHistory.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
 import { orgsApi } from "../api/services.js";
@@ -242,6 +243,7 @@ export default function Profile({ data, loading, flash }) {
   const { user, logout, setAvatar } = useAuth();
   const { current: org } = useOrg();
   const [pickingAvatar, setPickingAvatar] = useState(false);
+  const [history, setHistory] = useState(null); // null | "hours" | "events" | "certificates"
 
   // avatar: a character key, or { photo: File }. Errors show in the picker, so it gets the result.
   const saveAvatar = async (avatar) => {
@@ -259,9 +261,10 @@ export default function Profile({ data, loading, flash }) {
 
   const stats = [
     // Your own numbers (the officer dashboard shows the whole org's)
-    { label: "Your approved hours", value: approved, note: `Your logs in ${org.shortName}` },
-    { label: "Events you attended", value: attended, note: `In ${org.shortName}` },
-    { label: "Your certificates", value: data.certificates.length, note: "From events you attended" },
+    // Each opens your history for it
+    { label: "Your approved hours", value: approved, note: `Your logs in ${org.shortName}`, onClick: () => setHistory("hours"), active: history === "hours" },
+    { label: "Events you attended", value: attended, note: `In ${org.shortName}`, onClick: () => setHistory("events"), active: history === "events" },
+    { label: "Your certificates", value: data.certificates.length, note: "From events you attended", onClick: () => setHistory("certificates"), active: history === "certificates" },
   ];
 
   return (
@@ -288,6 +291,9 @@ export default function Profile({ data, loading, flash }) {
 
       <StatRow items={stats} loading={loading} className="stat-accent" />
 
+      {history ? (
+        <ProfileHistory tab={history} onTab={setHistory} onClose={() => setHistory(null)} orgName={org.shortName} flash={flash} />
+      ) : (
       <div className="dash-grid">
         <Panel title="Personal details" tour="profile-details" subtitle="Shown to officers on the member roster" className="span-7">
           <DetailsForm user={user} flash={flash} />
@@ -304,6 +310,7 @@ export default function Profile({ data, loading, flash }) {
           <MyOrganizations />
         </Panel>
       </div>
+      )}
       {pickingAvatar && (
         <AvatarPicker user={user} orgName={org.shortName} current={user.avatar} onSave={saveAvatar} onClose={() => setPickingAvatar(false)} />
       )}
