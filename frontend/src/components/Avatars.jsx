@@ -106,7 +106,8 @@ export function AvatarArt({ id, size = 40, className = "" }) {
   );
 }
 
-// A user's avatar: their own photo, their character, or otherwise their initials (as before)
+// A user's avatar: their own photo, their character, or otherwise their initials (as before;
+// also when they chose "initials")
 export function UserAvatar({ user, className = "" }) {
   if (user?.avatar === "photo" && user.avatarUrl) {
     return (
@@ -115,7 +116,7 @@ export function UserAvatar({ user, className = "" }) {
       </span>
     );
   }
-  if (user?.avatar && user.avatar !== "photo") {
+  if (user?.avatar && user.avatar !== "photo" && user.avatar !== "initials") {
     return (
       <span className={`avatar has-art ${className}`}>
         <AvatarArt id={user.avatar} size="100%" />

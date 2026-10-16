@@ -116,12 +116,11 @@ class AnnouncementController extends Controller
         return response()->json($comment->load('user')->toFrontend(), 201);
     }
 
-    // PUT /api/announcements/{announcement}/comments/{comment}  { text }  -> only the comment's author, and only once
+    // PUT /api/announcements/{announcement}/comments/{comment}  { text }  -> only the comment's author (as often as they like; it shows "edited")
     public function updateComment(Request $request, Announcement $announcement, AnnouncementComment $comment)
     {
         abort_unless($comment->announcement_id === $announcement->id, 404);
         abort_unless($comment->user_id === $request->user()->id, 403, 'You can only edit your own comments.');
-        abort_if($comment->edited_at !== null, 422, 'A comment can only be edited once.');
 
         $data = $request->validate(['text' => 'required|string|max:1000']);
         $comment->update(['text' => trim($data['text']), 'edited_at' => now()]);

@@ -196,8 +196,8 @@ export default function FeedPost({ post }) {
                           </span>
                         ) : (
                           <span className="feed-comment-tools">
-                            {/* One edit per comment: no pencil once it has been edited */}
-                            {isMine(c) && !c.edited && (
+                            {/* Your own comments can be edited any number of times; they show "(edited)" */}
+                            {isMine(c) && (
                               <button
                                 type="button"
                                 className="feed-comment-tool"

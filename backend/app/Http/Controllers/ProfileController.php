@@ -29,10 +29,10 @@ class ProfileController extends Controller
         return $user->toFrontend();
     }
 
-    // PUT /api/user/avatar  { avatar }  -> updated user
+    // PUT /api/user/avatar  { avatar }  -> updated user ("initials" = no picture, just their initials)
     public function avatar(Request $request)
     {
-        $data = $request->validate(['avatar' => ['required', Rule::in(User::AVATARS)]]);
+        $data = $request->validate(['avatar' => ['required', Rule::in([...User::AVATARS, 'initials'])]]);
         $user = $request->user();
         $this->deletePhoto($user);
         $user->update(['avatar' => $data['avatar'], 'avatar_path' => null]);

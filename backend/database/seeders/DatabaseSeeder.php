@@ -44,6 +44,19 @@ class DatabaseSeeder extends Seeder
         Organization::setCurrent(null);
 
         $this->platform();
+        $this->sampleAvatars();
+    }
+
+    // Sample members get an avatar character, or (about a third of them) just their initials,
+    // so signing in goes straight to the app (new sign-ups still see the avatar picker).
+    // Never touches accounts that already chose one.
+    private function sampleAvatars(): void
+    {
+        $choices = [...User::AVATARS, 'initials', 'initials', 'initials', 'initials'];
+        User::where('email', 'like', '%@orgconnect.test')
+            ->where('is_admin', false)
+            ->whereNull('avatar')
+            ->each(fn (User $user) => $user->update(['avatar' => $choices[crc32($user->email) % count($choices)]]));
     }
 
     // The platform admin, and one org registration waiting for review

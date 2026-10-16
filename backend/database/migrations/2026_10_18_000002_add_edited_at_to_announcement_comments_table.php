@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-// A comment can be edited once: edited_at is set on that edit, and then no more edits are allowed
+// When a comment was last edited (it then shows "(edited)")
 return new class extends Migration
 {
     public function up(): void

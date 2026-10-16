@@ -3412,3 +3412,6 @@ span.course-chip { cursor: default; }
 .dash-card .review-note { font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .join-sent-note { padding: 0.75rem 0.875rem; border-radius: 0.875rem; background: var(--sky-soft); }
 .join-sent-note p { margin: 0.25rem 0; color: var(--ink-2); font-style: italic; overflow-wrap: anywhere; }
+
+/* Avatar picker: "Use my initials" and "Skip for now" side by side */
+.avatar-picker-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.25rem 1.25rem; }

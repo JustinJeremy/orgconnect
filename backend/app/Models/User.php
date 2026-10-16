@@ -121,7 +121,7 @@ class User extends Authenticatable
             'studentId' => $this->student_id,
             'course' => $this->course,
             'yearLevel' => $this->year_level,
-            'avatar' => $this->avatar,   // a character key, "photo" (their own upload), or null until they pick one
+            'avatar' => $this->avatar,   // a character key, "photo" (their own upload), "initials", or null until they pick one
             // ?v= changes on every upload so browsers don't keep showing the old photo
             'avatarUrl' => $this->avatar_path ? url("/api/users/{$this->id}/avatar").'?v='.$this->updated_at?->timestamp : null,
             'membershipStatus' => $this->membership->status,

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Icon from "./Icon.jsx";
 import { AVATARS, AvatarArt } from "./Avatars.jsx";
+import { initials } from "../utils/format.js";
 
 // Your own picture: PNG, JPG or WebP up to 2 MB (the server checks this too)
 const PHOTO_TYPES = ["image/png", "image/jpeg", "image/webp"];
@@ -65,6 +66,15 @@ export default function AvatarPicker({ user, orgName, current, onSave, onSkip, o
     const result = await onSave(choice);
     setSaving(false);
     if (result && result.ok === false) setError(result.message || "Couldn't save your avatar. Try again.");
+  };
+
+  const keepInitials = async () => {
+    setSaving(true);
+    setError("");
+    const result = await onSave("initials");
+    setSaving(false);
+    if (result && result.ok === false) setError(result.message || "Couldn't save your choice. Try again.");
+    else onClose?.();
   };
 
   const onKeyDown = (e) => {
@@ -140,9 +150,15 @@ export default function AvatarPicker({ user, orgName, current, onSave, onSkip, o
         <button type="button" className="btn btn-accent btn-pill btn-lg avatar-picker-save" onClick={save} disabled={saving}>
           {saving ? "Saving…" : onClose ? "Save avatar" : "Continue"} {!saving && <Icon name="arrowRight" size={18} />}
         </button>
-        {onSkip && (
-          <button type="button" className="avatar-picker-skip" onClick={onSkip}>Skip for now</button>
-        )}
+        <div className="avatar-picker-links">
+          {/* No picture at all: just their initials, as before avatars existed */}
+          <button type="button" className="avatar-picker-skip" onClick={keepInitials} disabled={saving}>
+            Use my initials ({initials(user.name)})
+          </button>
+          {onSkip && (
+            <button type="button" className="avatar-picker-skip" onClick={onSkip}>Skip for now</button>
+          )}
+        </div>
       </div>
     </div>
   );
