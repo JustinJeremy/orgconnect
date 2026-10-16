@@ -60,7 +60,7 @@ class OrganizationController extends Controller
                 'organization_id' => $organization->id,
                 'user_id' => $officerId,
                 'message' => "{$user->name} asked to be reactivated in {$organization->short_name}",
-                'link' => 'hours',
+                'link' => 'applications', // Members & Hours, Applications tab
             ]);
         }
 
@@ -90,7 +90,7 @@ class OrganizationController extends Controller
                 'organization_id' => $organization->id,
                 'user_id' => $officerId,
                 'message' => "{$user->name} applied to join {$organization->short_name}",
-                'link' => 'dashboard', // applications are reviewed on the dashboard
+                'link' => 'applications', // Members & Hours, Applications tab
             ]);
         }
 

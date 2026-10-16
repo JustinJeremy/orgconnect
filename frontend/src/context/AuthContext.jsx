@@ -105,6 +105,17 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Avatar picker: one of the keys in components/Avatars.jsx, or { photo: File } for their own picture
+  const setAvatar = async (avatar) => {
+    try {
+      const updated = avatar?.photo ? await authApi.uploadAvatarPhoto(avatar.photo) : await authApi.setAvatar(avatar);
+      setUser((u) => ({ ...updated, orgSlug: u.orgSlug }));
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, message: errorMessage(error) };
+    }
+  };
+
   const changePassword = async (currentPassword, password, confirmPassword) => {
     try {
       await authApi.changePassword({ currentPassword, password, password_confirmation: confirmPassword });
@@ -171,6 +182,7 @@ export function AuthProvider({ children }) {
         login,
         register,
         updateProfile,
+        setAvatar,
         changePassword,
         joinOrg,
         registeringOrg,

@@ -33,6 +33,8 @@ class UserNotification extends Model
     private function guessLink(): string
     {
         return match (true) {
+            str_contains($this->message, 'applied to join') || str_contains($this->message, 'asked to be reactivated') => 'applications',
+            str_contains($this->message, 'commented on') => 'announcements',
             str_contains($this->message, 'event') || str_contains($this->message, 'certificate') => 'events',
             str_contains($this->message, 'hrs for') => 'hours',
             str_contains($this->message, 'tutoring') => 'tutoring',

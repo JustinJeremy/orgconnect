@@ -2,8 +2,8 @@ import Icon from "./Icon.jsx";
 import Logo from "./Logo.jsx";
 import Rings from "./Rings.jsx";
 import OrgSwitcher from "./OrgSwitcher.jsx";
+import { UserAvatar } from "./Avatars.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import { initials } from "../utils/format.js";
 
 const NAV_ITEMS = [
   { key: "dashboard", label: "Dashboard", icon: "dashboard" },
@@ -72,7 +72,7 @@ export default function Sidebar({ page, onNavigate, open, onClose, collapsed, on
             aria-current={page === "profile" ? "page" : undefined}
             title="Profile & settings"
           >
-            <span className="avatar">{initials(user.name)}</span>
+            <UserAvatar user={user} />
             <span className="sidebar-user-text">
               <span className="sidebar-user-name">{user.name}</span>
               <span className="sidebar-user-role">

@@ -74,7 +74,12 @@ export default function EventCalendar({ events, onOpenEvents }) {
       </div>
 
       <div className="calendar-legend">
-        <span className="calendar-legend-dot" aria-hidden="true" /> Event
+        <span className="calendar-legend-item">
+          <span className="calendar-legend-dot" aria-hidden="true" /> Event
+        </span>
+        <span className="calendar-legend-item">
+          <span className="calendar-legend-dot is-today" aria-hidden="true" /> Today
+        </span>
       </div>
     </div>
   );

@@ -357,15 +357,16 @@ a {
   overflow: hidden;
   display: flex;
   align-items: center;
-  min-height: 640px;
+  /* Fill the screen below the nav (84px); the org picker card peeks up over its bottom edge */
+  min-height: max(640px, calc(100svh - 84px));
   background: radial-gradient(ellipse at center, #f8fbfd 0%, var(--page-from) 60%, var(--tint) 100%);
 }
 .hero-inner {
   position: relative;
   z-index: 1;
   text-align: center;
-  padding-top: 72px;
-  padding-bottom: 96px;
+  padding-top: 84px;
+  padding-bottom: 84px;
 }
 .hero h1 {
   font-size: clamp(42px, 7vw, 104px);
@@ -513,14 +514,14 @@ a {
   padding: 40px 0;
 }
 .auth-tagline { color: var(--ink-2); font-weight: 600; font-size: 14px; }
-/* Big stacked logo on the auth pages (Figma: 101px mark, Tilt Warp wordmark) */
+/* Big stacked logo on the auth pages (101px mark; wordmark matches the landing headline) */
 .auth-side-logo .logo-stacked { gap: 6px; }
 .auth-side-logo .logo-mark { filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.25)); }
 .auth-side-logo .logo-word {
-  font-family: "Tilt Warp", var(--font);
-  font-weight: 400;
+  font-family: var(--font);
+  font-weight: 800;
   font-size: 60px !important;
-  letter-spacing: -0.08em;
+  letter-spacing: -0.02em;
   color: var(--navy);
   text-shadow: 0 4px 4px rgba(0, 0, 0, 0.3);
 }
@@ -575,6 +576,269 @@ a {
 .form-note { font-size: 12px; line-height: 18px; color: var(--muted); text-align: center; }
 .auth-switch { text-align: center; color: var(--muted); }
 .auth-switch .link-btn { color: var(--navy); }
+
+/* Sign up, step 1: "What brings you to OrgConnect?" with two illustrated cards.
+   Hovering (or focusing) a card widens it and narrows the other; its character hops.
+   Both characters bob and blink while idle. */
+.signup-chooser { --choice-ease: cubic-bezier(0.22, 1, 0.36, 1); display: flex; flex-direction: column; gap: 22px; }
+.signup-chooser .auth-heading { text-align: center; }
+.signup-choices { display: flex; gap: 12px; }
+.signup-choice {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 360px;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  font: inherit;
+  text-align: left;
+  color: var(--navy);
+  cursor: pointer;
+  transition: flex-grow 0.55s var(--choice-ease), box-shadow 0.3s ease;
+}
+.signup-choice.is-join { background: #d6e8f7; }
+.signup-choice.is-register { background: #ffe2c2; }
+/* The hovered card grows, the other one gives way */
+.signup-choices:hover .signup-choice,
+.signup-choices:focus-within .signup-choice { flex-grow: 0.7; }
+.signup-choices .signup-choice:hover,
+.signup-choices .signup-choice:focus-visible { flex-grow: 1.5; box-shadow: 0 14px 28px rgba(27, 58, 107, 0.16); }
+.signup-choice:focus-visible { outline: 3px solid var(--navy); outline-offset: 3px; }
+
+.signup-choice-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 18px 18px 0; }
+.signup-choice-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.signup-choice-text strong { font-size: 17px; font-weight: 800; line-height: 1.2; }
+.signup-choice-text span { font-size: 13px; font-weight: 600; opacity: 0.75; }
+.signup-choice-head svg { flex: none; margin-top: 2px; transition: transform 0.35s var(--choice-ease); }
+.signup-choice:hover .signup-choice-head svg,
+.signup-choice:focus-visible .signup-choice-head svg { transform: translateX(5px); }
+
+/* Fixed-size art, centered at the bottom, so it doesn't stretch while the card resizes */
+.signup-choice-art { margin-top: auto; display: flex; justify-content: center; }
+/* PNG characters: same height on both cards (so the same scale), sitting on the card's bottom edge */
+/* Half-body figures, cut off by the card's bottom edge; room under the text above them */
+.signup-choice-art { padding-top: 20px; }
+.art-waver { position: relative; display: block; flex: none; height: 220px; margin-bottom: -1px; }
+.art-waver .art-img { position: relative; z-index: 1; display: block; height: 100%; width: auto; max-width: none; user-select: none; }
+.art-waver img { user-select: none; pointer-events: none; }
+/* The arm, put back exactly where it was cut from. Hover: it swings out at the shoulder (--arm),
+   the forearm comes up at the elbow (--elbow), and the hand waves (--wave).
+   Upper arm: behind the body, so the sleeve covers the shoulder. Forearm: in front, so the waving
+   hand is never hidden; it repeats the shoulder turn, then bends at the elbow. */
+@property --arm { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
+@property --elbow { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
+@property --wave { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+/* How much of the wave shows (0 = none, 1 = full). The wave itself runs all the time; this eases
+   it in once the arm is up and out as it comes down, so the hand never jumps. */
+@property --wave-amount { syntax: "<number>"; inherits: true; initial-value: 0; }
+.art-waver {
+  transition: --arm 0.45s var(--choice-ease), --elbow 0.45s var(--choice-ease), --wave-amount 0.2s ease-out;
+}
+.signup-choice:hover .art-waver,
+.signup-choice:focus-visible .art-waver {
+  --arm: -40deg;     /* upper arm out and down */
+  --elbow: -135deg;  /* forearm straight up */
+  --wave-amount: 1;
+  transition: --arm 0.45s var(--choice-ease), --elbow 0.45s var(--choice-ease), --wave-amount 0.3s ease-in 0.35s;
+}
+.art-upper { position: absolute; z-index: 0; height: auto; transform: rotate(var(--arm)); }
+.art-fore {
+  position: absolute;
+  z-index: 2;
+  display: block;
+  transform: rotate(var(--arm)) translate(var(--ex), var(--ey)) rotate(calc(var(--elbow) + var(--wave) * var(--wave-amount)))
+    translate(calc(var(--ex) * -1), calc(var(--ey) * -1));
+  animation: arm-wave 0.32s ease-in-out infinite alternate;
+}
+.art-fore > img:first-child { display: block; width: 100%; height: auto; }
+/* The hand: as drawn at rest; an open palm facing front (a high five) once the arm is up.
+   The swap is instant and happens while the hand is below the card's edge (out of sight):
+   right away when the arm starts to rise, and only after it is all the way back down. */
+.art-hand,
+.art-palm { position: absolute; inset: 0; width: 100%; height: 100%; transition: opacity 0s linear 0.45s; }
+.art-palm { opacity: 0; overflow: visible; }
+.signup-choice:hover .art-hand,
+.signup-choice:focus-visible .art-hand { opacity: 0; transition-delay: 0s; }
+.signup-choice:hover .art-palm,
+.signup-choice:focus-visible .art-palm { opacity: 1; transition-delay: 0s; }
+/* The hand waves out and back from straight up, never in toward the head */
+@keyframes arm-wave { from { --wave: 0deg; } to { --wave: 24deg; } }
+
+/* Idle: bob and blink, each card on its own beat */
+/* Straight up and down (no tilt), so the neck under the head never shows a gap */
+@keyframes art-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes art-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+.art-head { transform-origin: 50% 90%; animation: art-bob 3s ease-in-out infinite; }
+.art-eyes { transform-origin: center; animation: art-blink 4s ease-in-out infinite; }
+.is-register .art-head { animation-delay: -1.4s; }
+.is-register .art-eyes { animation-delay: -2.2s; }
+
+/* Hover: the character hops up and leans in */
+.art-figure { transform-origin: 50% 100%; transition: transform 0.5s var(--choice-ease); }
+/* A flat image can't blink, so the whole figure floats gently instead (uses "translate",
+   so it adds to the hover hop's "transform") */
+/* Moves down into the card edge (not up), so the half-body cut never lifts off the bottom */
+@keyframes art-float { 0%, 100% { translate: 0 0; } 50% { translate: 0 4px; } }
+.art-waver { animation: art-float 3s ease-in-out infinite; }
+.is-register .art-waver { animation-delay: -1.4s; }
+.signup-choice:hover .art-figure,
+.signup-choice:focus-visible .art-figure { transform: scale(1.05); }   /* grows from its bottom edge */
+.signup-choice:hover .art-head,
+.signup-choice:focus-visible .art-head { animation-duration: 1.2s; }
+
+/* "← Joining an organization · Change" above the sign-up form */
+.auth-step-back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: -6px;
+  padding: 4px 10px 4px 8px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--sky-soft);
+  color: var(--navy);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.auth-step-back:hover { background: var(--sky); }
+
+/* ---------- Sign up, step 2: the form ---------- */
+/* Banner for the chosen path, in that card's color with its (animated) character */
+.signup-path {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+  padding: 0 12px 0 6px;
+  border-radius: 14px;
+  color: var(--navy);
+}
+.signup-path.is-join { background: #d6e8f7; }
+.signup-path.is-register { background: #ffe2c2; }
+/* Banner: the head-and-shoulders crop */
+.signup-path-art { flex: none; width: 56px; height: 56px; align-self: flex-end; margin-top: 8px; }
+.signup-path-art .art-img { display: block; width: 100%; height: 100%; animation: none; }
+.signup-path-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; padding: 10px 0; }
+.signup-path-text strong { font-size: 14px; font-weight: 800; }
+.signup-path-text span { font-size: 12px; font-weight: 600; opacity: 0.75; }
+.signup-path-change {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--navy);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.signup-path-change:hover { background: #fff; }
+
+/* Two numbered sections: About you, Your login */
+.signup-section { display: flex; flex-direction: column; gap: 12px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.signup-section legend { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding: 0; font-size: 13px; font-weight: 800; color: var(--navy); }
+.signup-step {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* Icon at the start of a field; it turns navy while you type in it */
+.input-icon { position: relative; }
+.input-icon > svg:first-child {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  translate: 0 -50%;
+  color: #98a2b3;
+  pointer-events: none;
+  transition: color 0.15s ease;
+}
+.input-icon:focus-within > svg:first-child { color: var(--navy); }
+.input-icon > .input { padding-left: 38px; }
+
+/* Green check in "Confirm password" once both match */
+.signup-match {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  translate: 0 -50%;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--green);
+  color: #fff;
+  animation: signup-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes signup-pop { from { scale: 0.4; opacity: 0; } }
+
+/* Password strength: four bars that fill and change color */
+.signup-strength { display: flex; align-items: center; gap: 8px; margin-top: 2px; font-size: 11px; font-weight: 700; color: var(--muted); }
+.signup-strength-bars { flex: 1; display: flex; gap: 3px; }
+.signup-strength-bars i { flex: 1; height: 4px; border-radius: 999px; background: var(--line); transition: background 0.25s ease; }
+.signup-strength.is-1 i:nth-child(-n + 1) { background: var(--red); }
+.signup-strength.is-2 i:nth-child(-n + 2) { background: var(--accent); }
+.signup-strength.is-3 i:nth-child(-n + 3) { background: #2f80d1; }
+.signup-strength.is-4 i { background: var(--green); }
+.signup-strength.is-1 { color: var(--red); }
+.signup-strength.is-4 { color: var(--green-ink); }
+
+.signup-submit { gap: 8px; }
+.signup-submit svg { transition: transform 0.2s ease; }
+.signup-submit:hover:not(:disabled) svg { transform: translateX(4px); }
+
+/* Entrance: each part rises in, one after another */
+.signup-form > * { animation: auth-swap 0.45s var(--auth-ease, ease-out) backwards; }
+.signup-form > :nth-child(2) { animation-delay: 0.05s; }
+.signup-form > :nth-child(3) { animation-delay: 0.1s; }
+.signup-form > :nth-child(4) { animation-delay: 0.15s; }
+.signup-form > :nth-child(5) { animation-delay: 0.2s; }
+.signup-form > :nth-child(n + 6) { animation-delay: 0.25s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .signup-form > *, .signup-match { animation: none; }
+  .signup-submit svg, .signup-strength-bars i, .input-icon > svg:first-child { transition: none; }
+}
+
+/* Phones: stacked rows, no widening */
+@media (max-width: 420px) {
+  .signup-choices { flex-direction: column; }
+  .signup-choices .signup-choice,
+  .signup-choices:hover .signup-choice,
+  .signup-choices:focus-within .signup-choice { flex: none; min-height: 0; flex-direction: row; align-items: stretch; }
+  .signup-choice-head { flex: 1; padding: 16px; }
+  .signup-choice-art { width: 42%; margin-top: 0; align-self: flex-end; }
+  .signup-choice-art { padding-top: 8px; }
+  .art-waver { height: 130px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .signup-choice, .signup-choice-head svg, .art-figure { transition: none; }
+  .art-waver, .art-fore { animation: none; }
+  .art-waver { transition: none; }
+  .art-head, .art-eyes { animation: none; }
+  .signup-choices .signup-choice, .signup-choices:hover .signup-choice,
+  .signup-choices:focus-within .signup-choice { flex-grow: 1; }
+  .signup-choice:hover .signup-choice-head svg, .signup-choice:hover .art-figure { transform: none; }
+}
 .demo-line {
   display: flex;
   justify-content: center;
@@ -1493,7 +1757,8 @@ select.input {
 
 @media (max-width: 600px) {
   .container { padding-left: 16px; padding-right: 16px; }
-  .hero-inner { padding-top: 48px; padding-bottom: 72px; }
+  .hero-inner { padding-top: 60px; padding-bottom: 60px; }
+  .hero { min-height: calc(100svh - 68px); }
   .hide-sm { display: none; }
   .hero .btn-lg { min-height: 52px; padding: 0 24px; font-size: 16px; }
   .hero-shape { width: 46vw; }
@@ -1534,8 +1799,9 @@ select.input {
 @media (min-width: 961px) {
   .hero-inner {
     max-width: none;
-    padding-top: 5vw;
-    padding-bottom: 7vw;
+    /* Equal top and bottom so the text sits in the true middle of the screen */
+    padding-top: 6vw;
+    padding-bottom: 6vw;
   }
   .hero h1 {
     font-size: min(7vw, 15vh);
@@ -1655,62 +1921,163 @@ select.input {
 
 /* Landing: org cards */
 .hero-inner > p.hero-eyebrow {
-  margin: 0 0 0.75rem;
+  margin: 0 auto 0.75rem;
   color: var(--accent-dark);
   font-size: 0.875rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-.org-picker { padding-top: 1rem; padding-bottom: 4rem; text-align: center; }
-.org-picker h2 { margin: 0 0 0.25rem; font-size: 1.5rem; color: var(--navy); }
+/* ---------- Landing: organization picker ---------- */
+/* The card is pulled up over the hero by --picker-overlap; the hero reserves the same space at its
+   bottom so the headline and buttons stay centered in the part that's still visible */
+.landing { --picker-overlap: 7rem; }
+/* The hero is a full screen plus the overlap, so the card only appears once you scroll */
+.hero.has-overlap {
+  min-height: max(640px, calc(100svh - 84px + var(--picker-overlap)));
+  padding-bottom: var(--picker-overlap);
+}
+@media (max-width: 600px) {
+  .hero.has-overlap { min-height: calc(100svh - 68px + var(--picker-overlap)); }
+}
+/* Bottom shapes sit where they would on a plain full-screen hero: measured from the bottom of
+   the first screen (the hero minus the overlap), not from the hero's real bottom edge */
+.hero.has-overlap .hero-shape.bl,
+.hero.has-overlap .hero-shape.br {
+  bottom: calc(var(--picker-overlap) - 0.3 * (100% - var(--picker-overlap)));
+}
+@media (max-width: 600px) {
+  .hero.has-overlap .hero-shape.bl,
+  .hero.has-overlap .hero-shape.br {
+    bottom: calc(var(--picker-overlap) - 0.1 * (100% - var(--picker-overlap)));
+  }
+}
+.org-picker {
+  position: relative;
+  z-index: 2;
+  margin-top: calc(-1 * var(--picker-overlap));
+  padding-bottom: 4rem;
+  text-align: center;
+}
+.org-picker-card {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 2.5rem clamp(1.25rem, 4vw, 3rem) 2.25rem;
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(24, 38, 74, 0.04), 0 24px 60px rgba(30, 58, 110, 0.14);
+}
+@media (max-width: 600px) {
+  .landing { --picker-overlap: 4rem; }
+}
+
+.landing-footer {
+  margin-top: auto;
+  padding: 1.25rem 1rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+/* The hero fades into the page at the bottom, so the card doesn't sit on a hard edge */
+.hero.has-overlap::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  /* Only the strip behind the card (below the first screen), so the shapes stay fully visible */
+  height: var(--picker-overlap);
+  background: linear-gradient(to bottom, transparent, var(--bg));
+  pointer-events: none;
+  z-index: 0;
+}
+
+.org-picker h2 { margin: 0; font-size: clamp(1.5rem, 2.4vw, 2rem); font-weight: 800; letter-spacing: -0.02em; color: var(--navy); }
+.org-picker-lead { margin: 0.5rem auto 0; max-width: 32rem; color: var(--muted); font-size: 0.9375rem; }
+
+/* Flex (not grid) so the cards stay centered whatever the number of orgs */
 .org-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 22rem));
+  display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 1rem;
-  margin-top: 1.5rem;
+  margin-top: 2rem;
 }
+.org-cards > .org-card { flex: 0 1 22rem; min-width: min(16rem, 100%); }
+
+/* Each org: logo, name, one short line, and a radio marker */
 .org-card {
   --card-navy: var(--navy);       /* each card sets its own org's color (Landing.jsx) */
-  --card-highlight: var(--accent);
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-  padding: 1.5rem 1.25rem 1.25rem;
-  overflow: hidden;
-  border: 2px solid var(--sky);   /* outlines use only the brand palette: sky, navy when hovered or selected */
-  border-radius: var(--radius);
+  display: block;
+  padding: 1rem 1.125rem;
+  border: 1px solid var(--line);
+  border-radius: 0.875rem;
   background: var(--surface);
   color: var(--ink);
   font: inherit;
   text-align: left;
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
-.org-card:hover { border-color: var(--card-navy); }
-.org-card.is-selected { border-color: var(--card-navy); box-shadow: var(--shadow); }
-.org-card-band {
-  position: absolute;
-  inset: 0 0 auto;
-  height: 0.375rem;
-  background: linear-gradient(90deg, var(--card-navy), var(--card-highlight));
+.org-card:hover { border-color: color-mix(in srgb, var(--card-navy) 40%, var(--line)); }
+.org-card:focus-visible { outline: 2px solid var(--card-navy); outline-offset: 2px; }
+.org-card.is-selected {
+  border-color: var(--card-navy);
+  background: color-mix(in srgb, var(--card-navy) 4%, var(--surface));
+  box-shadow: 0 0 0 1px var(--card-navy);
 }
-.org-card-college { color: var(--muted); font-size: 0.75rem; font-weight: 600; }
-.org-card-name { color: var(--card-navy); font-size: 1.125rem; font-weight: 800; }
-.org-card-tagline { color: var(--ink-2); }
-.org-card-meta { display: inline-flex; align-items: center; gap: 0.25rem; color: var(--muted); font-size: 0.8125rem; }
-.org-card-check {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
+
+.org-card-head { display: flex; align-items: center; gap: 0.875rem; }
+.org-card-logo {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  overflow: hidden;
+  border-radius: 0.625rem;
+  background: var(--card-navy);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.org-card-logo img { width: 100%; height: 100%; object-fit: cover; background: #fff; }
+.org-card-title { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.125rem; }
+.org-card-name { color: var(--ink); font-size: 1rem; font-weight: 700; line-height: 1.3; }
+.org-card-sub { color: var(--muted); font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.org-card-radio {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 1.5px solid #c3cbd8;
+  border-radius: 50%;
+  color: #fff;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.org-card.is-selected .org-card-radio { background: var(--card-navy); border-color: var(--card-navy); }
+
+/* "Don't see your organization? Register it →" under the cards */
+.org-register-line { margin: 1.5rem 0 0; color: var(--muted); font-size: 0.875rem; }
+.org-register-link {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  color: var(--card-navy);
-  font-size: 0.75rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--navy);
+  font: inherit;
   font-weight: 700;
+  cursor: pointer;
+}
+.org-register-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .org-card, .org-card-radio { transition: none; }
 }
 
 /* Sign-in page: which org you're signing in to */
@@ -1887,18 +2254,63 @@ select.input {
 .sidebar-user-name { font-size: 0.8125rem; }
 .sidebar-user-role { font-size: 0.75rem; }
 
-/* Collapsed sidebar (desktop): icons only */
+/* Collapsed sidebar (desktop): icons only.
+   The width glides, labels fade and narrow in place, and icons keep their left alignment
+   (padded to sit centered when collapsed) so they don't jump sideways. */
 @media (min-width: 961px) {
+  .layout {
+    --sidebar-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --sidebar-time: 0.3s;
+  }
+  .sidebar { transition: width var(--sidebar-time) var(--sidebar-ease), padding var(--sidebar-time) var(--sidebar-ease); }
+  .nav-item {
+    transition: padding var(--sidebar-time) var(--sidebar-ease), gap var(--sidebar-time) var(--sidebar-ease),
+      background 0.15s ease, color 0.15s ease;
+  }
+  .nav-item.active::before { transition: left var(--sidebar-time) var(--sidebar-ease); }
+  .sidebar-user { transition: padding var(--sidebar-time) var(--sidebar-ease), gap var(--sidebar-time) var(--sidebar-ease); }
+  .sidebar-user-btn { transition: gap var(--sidebar-time) var(--sidebar-ease), background 0.15s ease; }
+
+  /* Text and the sign-out button: fade, then narrow to nothing */
+  .nav-label,
+  .sidebar-user-text,
+  .sidebar-user > .icon-btn {
+    max-width: 12rem;
+    overflow: hidden;
+    transition: opacity 0.2s ease 0.08s, max-width var(--sidebar-time) var(--sidebar-ease), visibility 0s;
+  }
+
   .layout.is-collapsed .sidebar { width: 4.75rem; padding-left: 0.75rem; padding-right: 0.75rem; }
-  .layout.is-collapsed .sidebar-brand { flex-direction: column; align-items: center; padding: 0; }
-  .layout.is-collapsed .sidebar-brand .logo-text,
+  /* 52px-wide item, 16px icon: 18px left padding centers it */
+  .layout.is-collapsed .nav-item { gap: 0; padding: 0 0 0 1.125rem; }
+  .layout.is-collapsed .nav-item.active::before { left: -0.75rem; }
   .layout.is-collapsed .nav-label,
   .layout.is-collapsed .sidebar-user-text,
-  .layout.is-collapsed .sidebar-user > .icon-btn { display: none; }
-  .layout.is-collapsed .nav-item { justify-content: center; padding: 0; }
-  .layout.is-collapsed .nav-item.active::before { left: -0.75rem; }
-  .layout.is-collapsed .sidebar-user { justify-content: center; padding-left: 0; padding-right: 0; }
-  .layout.is-collapsed .sidebar-user-btn { flex: none; margin: 0; }
+  .layout.is-collapsed .sidebar-user > .icon-btn {
+    max-width: 0;
+    opacity: 0;
+    visibility: hidden;   /* keeps the hidden sign-out button out of the tab order */
+    transition: opacity 0.12s ease, max-width var(--sidebar-time) var(--sidebar-ease), visibility 0s var(--sidebar-time);
+  }
+  .layout.is-collapsed .sidebar-user > .icon-btn { padding: 0; }
+  /* 38px avatar in a 52px row: 7px each side */
+  .layout.is-collapsed .sidebar-user { gap: 0; padding-left: 0.4375rem; padding-right: 0; }
+  .layout.is-collapsed .sidebar-user-btn { gap: 0; margin-left: 0; padding-left: 0; }
+
+  /* Brand switches between a row and a stack, which can't be tweened, so it fades into its new layout */
+  .layout.is-collapsed .sidebar-brand { flex-direction: column; align-items: center; padding: 0; }
+  .layout.is-collapsed .sidebar-brand .logo-text { display: none; }
+  @keyframes sidebar-brand-collapse { from { opacity: 0; } }
+  @keyframes sidebar-brand-expand { from { opacity: 0; } }
+  .layout.is-collapsed .sidebar-brand { animation: sidebar-brand-collapse var(--sidebar-time) ease; }
+  .layout:not(.is-collapsed) .sidebar-brand { animation: sidebar-brand-expand var(--sidebar-time) ease; }
+}
+@media (min-width: 961px) and (prefers-reduced-motion: reduce) {
+  .sidebar, .nav-item, .nav-item.active::before, .sidebar-user, .sidebar-user-btn,
+  .nav-label, .sidebar-user-text, .sidebar-user > .icon-btn,
+  .layout.is-collapsed .nav-label, .layout.is-collapsed .sidebar-user-text,
+  .layout.is-collapsed .sidebar-user > .icon-btn { transition: none; }
+  .layout .sidebar-brand { animation: none !important; }
 }
 @media (max-width: 960px) {
   .sidebar-collapse { display: none; }
@@ -2105,8 +2517,10 @@ select.input {
 .calendar-day.has-event > span { background: var(--navy); color: #fff; font-weight: 700; }
 .calendar-day.has-event.is-today > span { color: var(--accent); }
 .calendar-day.has-event:hover > span { background: var(--navy-2); }
-.calendar-legend { display: flex; align-items: center; gap: 0.375rem; padding: 0.5rem 1rem 0; font-size: 0.6875rem; color: var(--soft-ink); }
+.calendar-legend { display: flex; align-items: center; gap: 1rem; padding: 0.5rem 1rem 0; font-size: 0.6875rem; color: var(--soft-ink); }
+.calendar-legend-item { display: inline-flex; align-items: center; gap: 0.375rem; }
 .calendar-legend-dot { width: 0.5rem; height: 0.5rem; border-radius: 999px; background: var(--navy); }
+.calendar-legend-dot.is-today { background: var(--accent); }
 
 /* ---------- Top volunteers ---------- */
 .dash-rail .leaders li { gap: 0.75rem; padding: 0.5rem 0; border-bottom: 0; }
@@ -2238,6 +2652,34 @@ select.input {
 .feed-comments { margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid var(--line-2); display: flex; flex-direction: column; gap: 0.5rem; }
 .feed-comments ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.875rem; }
 .feed-comments strong { color: var(--navy); }
+.feed-comment { display: flex; align-items: flex-start; gap: 0.5rem; }
+.feed-comment-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+/* Edit and delete icons: faint until the comment is hovered or a button is focused */
+.feed-comment-tools { flex: none; display: inline-flex; gap: 0.125rem; }
+.feed-comment-tool {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-top: -0.25rem;
+  border: 0;
+  border-radius: 0.375rem;
+  background: none;
+  color: var(--muted);
+  opacity: 0.45;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.feed-comment:hover .feed-comment-tool,
+.feed-comment-tool:focus-visible { opacity: 1; }
+.feed-comment-tool:hover { background: var(--line-2); color: var(--navy); }
+.feed-comment-tool.is-delete:hover { background: var(--red-soft); color: var(--red); }
+.feed-comment-edit { flex: 1; display: flex; gap: 0.5rem; }
+.feed-comment-edit .input { flex: 1; min-height: 2.375rem !important; }
+.feed-comment-confirm { flex: none; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.8125rem; color: var(--muted); }
+.feed-comment-confirm .link-btn { font-size: 0.8125rem; }
+.feed-comment-confirm .link-btn.is-danger { color: var(--red); font-weight: 700; }
 .feed-comment-form { display: flex; gap: 0.5rem; }
 .feed-comment-form .input { flex: 1; min-height: 2.375rem !important; }
 
@@ -2245,6 +2687,85 @@ select.input {
 .recognition-card { padding: 1.5rem 1.75rem 1.75rem; }
 .recognition-card h3 { font-size: 1.5625rem; font-weight: 700; line-height: 1.15; color: var(--ink); }
 .recognition-card p { margin-top: 1rem; padding-bottom: 1.75rem; border-bottom: 1px solid var(--card-line-strong); font-size: 0.875rem; font-weight: 600; color: var(--meta-ink); line-height: 1.4; }
+
+/* ---------- Member dashboard: featured event and more events ---------- */
+.dash-section { display: flex; flex-direction: column; gap: 0.75rem; }
+.dash-section-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: -0.5rem; }
+.dash-section .dash-section-head { margin-bottom: 0; }
+.dash-section-head h2 { font-size: 1.125rem; font-weight: 700; color: var(--navy); }
+.dash-section-head .link-btn { color: var(--navy); font-weight: 700; font-size: 0.875rem; }
+
+/* Poster, or the date on the org color */
+.dash-event-image { display: block; overflow: hidden; background: var(--navy); }
+.dash-event-image img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.dash-event-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 100%);
+  color: #fff;
+  line-height: 1;
+}
+.dash-event-fallback span { font-size: 0.875rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.8; }
+.dash-event-fallback strong { margin-top: 0.25rem; font-size: 2.5rem; font-weight: 800; }
+
+.dash-featured {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  overflow: hidden;
+  background: var(--surface);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
+}
+.dash-featured-media { display: block; min-height: 13rem; padding: 0; border: 0; cursor: pointer; }
+.dash-featured-media .dash-event-image { width: 100%; height: 100%; transition: transform 0.3s ease; }
+.dash-featured-media:hover .dash-event-image { transform: scale(1.03); }
+.dash-featured-body { display: flex; flex-direction: column; gap: 0.5rem; padding: 1.25rem 1.5rem; min-width: 0; }
+.dash-eyebrow { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-dark); }
+.dash-featured-body h2 { font-size: 1.375rem; font-weight: 800; line-height: 1.2; color: var(--ink); }
+.dash-featured-meta { list-style: none; margin: 0.25rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.875rem; color: var(--meta-ink); }
+.dash-featured-meta li { display: flex; align-items: center; gap: 0.5rem; }
+.dash-featured-meta svg { flex: none; color: var(--navy); }
+.dash-featured-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-top: auto; padding-top: 0.75rem; }
+.dash-featured-actions .btn { gap: 0.375rem; }
+
+.dash-event-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: 1rem; }
+.dash-event-tile {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--surface);
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+.dash-event-tile:hover { transform: translateY(-2px); }
+.dash-event-tile:focus-visible,
+.dash-featured-media:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+.dash-event-tile .dash-event-image { aspect-ratio: 16 / 9; }
+.dash-event-tile .dash-event-fallback strong { font-size: 1.75rem; }
+.dash-event-tile-body { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.75rem 0.875rem 0.875rem; }
+.dash-event-tile-body strong { font-size: 0.9375rem; font-weight: 700; line-height: 1.3; }
+.dash-event-tile-body > span { font-size: 0.75rem; font-weight: 600; color: var(--meta-ink); }
+.dash-event-tile-body .dash-event-going { display: inline-flex; align-items: center; gap: 0.25rem; color: var(--green-ink); }
+
+@media (max-width: 700px) {
+  .dash-featured { grid-template-columns: 1fr; }
+  .dash-featured-media { min-height: 0; aspect-ratio: 16 / 9; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dash-featured-media .dash-event-image, .dash-event-tile { transition: none; }
+  .dash-featured-media:hover .dash-event-image, .dash-event-tile:hover { transform: none; }
+}
 
 /* ---------- Member dashboard: suggestions ---------- */
 .suggest-card { padding: 0.875rem 1rem 1rem; }
@@ -2334,6 +2855,34 @@ select.input {
 }
 .pill:hover { background: var(--sky-soft); }
 .pill.active { background: #dcdfe5; }
+
+/* Events: one highlight slides under the active pill, in step with the list below */
+.pills { position: relative; }
+.pills .pill { position: relative; z-index: 1; transition: color 0.2s ease, background 0.15s ease; }
+.pills .pill.active { background: transparent; }
+.pills .pill:not(.active):hover { background: var(--sky-soft); }
+.pill-mark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 0;
+  border-radius: 0.625rem;
+  background: #dcdfe5;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Switching tab, filter or page: the current list dims at once (so the click registers),
+   then the new cards rise in, one after another */
+.list-swap { transition: opacity 0.15s ease; }
+.list-swap.is-pending { opacity: 0.45; pointer-events: none; }
+.list-item { display: flex; flex-direction: column; min-width: 0; }
+.list-item > * { flex: 1; }
+.list-enter .list-item { animation: list-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards; animation-delay: calc(var(--i) * 45ms); }
+@keyframes list-rise { from { opacity: 0; translate: 0 10px; } }
+@media (prefers-reduced-motion: reduce) {
+  .pill-mark, .list-swap { transition: none; }
+  .list-enter .list-item { animation: none; }
+}
 
 /* ==========================================================
    Sign in / Sign up on computer screens: the Figma frame (1099 x 720),
@@ -2434,12 +2983,73 @@ select.input {
   transform: scale(0.92);
   transform-origin: right center;
 }
-.auth-page.is-staged .is-signin .auth-card { left: 549px; top: 65px; min-height: 588px; }
+.auth-page.is-staged .is-signin .auth-card,
+.auth-page.is-staged .is-choose .auth-card { left: 549px; top: 65px; min-height: 588px; }
 .auth-page.is-staged .is-signup .auth-card { left: 549px; top: 24px; padding-top: 29px; padding-bottom: 30px; }
-.auth-page.is-staged .is-signup .auth-form { gap: 15px; }
-.auth-page.is-staged .is-signup .auth-tabs { margin-bottom: 27px; }
+.auth-page.is-staged .is-signup .auth-form { gap: 12px; }
+.auth-page.is-staged .is-signup .auth-tabs { margin-bottom: 18px; }
 .auth-page.is-staged .auth-card .field > label { font-size: 13px; }
 .auth-page.is-staged .auth-card .input { min-height: 44px; height: 44px; padding-top: 0; padding-bottom: 0; }
+
+/* ---------- Sign in / Sign up motion ----------
+   Same ease-out curve as the landing hero. Uses the `translate` property (not `transform`)
+   so it doesn't fight the card's scale or the logo's centering transform. */
+.auth-page {
+  --auth-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes auth-fade { from { opacity: 0; } }
+@keyframes auth-rise { from { opacity: 0; translate: 0 14px; } }
+@keyframes auth-swap { from { opacity: 0; translate: 0 6px; } }
+
+/* Page entrance: background text settles in, then logo, back button and card in sequence */
+.auth-watermark   { animation: auth-fade 1.2s ease-out backwards; }
+.auth-side-logo   { animation: auth-rise 0.7s var(--auth-ease) 0.08s backwards; }
+.auth-back        { animation: auth-fade 0.5s ease-out 0.3s backwards; transition: background 0.2s ease, color 0.2s ease; }
+.auth-card        { animation: auth-rise 0.7s var(--auth-ease) 0.18s backwards; }
+
+/* The card glides (rather than jumps) between the Sign in and Sign up positions */
+.auth-page.is-staged .auth-card { transition: top 0.4s var(--auth-ease); }
+
+/* Tabs: one white pill that slides under the active tab */
+.auth-tabs { position: relative; }
+.auth-tabs-indicator {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 6px);   /* one column: (width - 2 x 4px padding - 4px gap) / 2 */
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 2px 3px rgba(24, 46, 85, 0.07);
+  transition: translate 0.35s var(--auth-ease);
+}
+.auth-tabs.is-signup .auth-tabs-indicator { translate: calc(100% + 4px) 0; }
+.auth-tabs button { position: relative; z-index: 1; transition: color 0.2s ease; }
+.auth-tabs button.active { background: transparent; box-shadow: none; }
+.auth-tabs button:not(.active):hover { color: var(--ink-2); }
+
+/* New form fades up slightly when switching tabs */
+.auth-form-panel { animation: auth-swap 0.35s var(--auth-ease) backwards; }
+
+/* Inputs: a soft focus ring that fades in */
+.auth-card .input { transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+.auth-card .input:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-watermark,
+  .auth-side-logo,
+  .auth-back,
+  .auth-card,
+  .auth-form-panel { animation: none; }
+  .auth-page.is-staged .auth-card,
+  .auth-tabs-indicator,
+  .auth-tabs button,
+  .auth-card .input { transition: none; }
+}
 
 /* ---------- Profile: organization logo (officers) ---------- */
 .org-logo-form { display: flex; flex-direction: column; gap: 0.75rem; }
@@ -2493,6 +3103,23 @@ select.input {
 }
 @media (prefers-reduced-motion: reduce) {
   .event-card.is-highlighted { animation: none; box-shadow: 0 0 0 3px var(--accent); }
+}
+
+/* Post, hour log or tutoring request opened from a notification: same orange ring, fading out */
+.post.is-focused { animation: focus-ring 3s ease-out; }
+@keyframes focus-ring {
+  0%, 60% { box-shadow: 0 0 0 3px var(--accent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+/* Table rows can't take a ring, so they get an orange tint that fades */
+tr.is-focused > td { animation: focus-row 3s ease-out; }
+@keyframes focus-row {
+  0%, 60% { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+  100% { background: transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .post.is-focused { animation: none; box-shadow: 0 0 0 3px var(--accent); }
+  tr.is-focused > td { animation: none; background: color-mix(in srgb, var(--accent) 16%, transparent); }
 }
 
 /* ==========================================================
@@ -2553,13 +3180,6 @@ select.input {
 .tour-card { border-radius: 1.4375rem; }
 
 /* ---------- Register an organization (Batch 10) ---------- */
-.org-card-register {
-  align-items: center; justify-content: center; text-align: center;
-  border-style: dashed; border-color: var(--card-line-strong); background: transparent; box-shadow: none;
-}
-.org-card-register:hover { border-color: var(--navy); background: var(--surface); }
-.org-card-register .org-card-name { color: var(--ink); }
-.org-card-register .org-card-tagline { color: var(--muted); font-size: 0.875rem; }
 .org-register-icon {
   display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 0.625rem;
   background: var(--sky-soft); color: var(--navy);
@@ -2610,3 +3230,173 @@ span.course-chip { cursor: default; }
 .status-suspended::before { background: var(--red); }
 .proof-link { display: inline-flex; align-items: center; gap: 0.375rem; word-break: break-all; }
 .label { font-weight: 600; font-size: 0.875rem; }
+
+/* ==========================================================
+   Avatars: the character a member picks (components/Avatars.jsx)
+   ========================================================== */
+.avatar.has-art { padding: 0; overflow: hidden; background: none !important; }
+.avatar.has-art .avatar-art { display: block; width: 100%; height: 100%; }
+/* Small avatars stay still; the bob/blink is for the picker */
+.avatar.has-art .art-head,
+.avatar.has-art .art-eyes { animation: none; }
+
+/* Profile: the avatar is a button that opens the picker */
+.profile-avatar-btn { position: relative; flex: none; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; }
+.profile-avatar-btn:focus-visible { outline: 3px solid var(--navy); outline-offset: 3px; }
+.profile-avatar-edit {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  transition: transform 0.15s ease;
+}
+.profile-avatar-btn:hover .profile-avatar-edit { transform: scale(1.12); }
+
+/* Picker: full screen on the org color, a sliding row of avatars and a white ring in the middle */
+.avatar-picker {
+  --pick-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --pick-size: 92px;   /* side avatars */
+  --pick-gap: 112px;   /* center-to-center distance between side avatars */
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding: 2rem 1rem;
+  background: radial-gradient(ellipse at 50% 40%, var(--navy-2) 0%, var(--navy) 70%);
+  color: #fff;
+  animation: auth-fade 0.4s ease-out;
+}
+.avatar-picker-inner { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 44rem; text-align: center; }
+.avatar-picker-eyebrow { margin: 0; font-size: 0.875rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #ffc48a; }
+.avatar-picker h1 { margin: 0.5rem 0 0; font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 800; letter-spacing: -0.02em; color: #fff; }
+.avatar-picker-lead { margin: 0.5rem 0 0; color: rgba(255, 255, 255, 0.75); font-size: 1rem; }
+.avatar-picker-close {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+}
+.avatar-picker-close:hover { background: rgba(255, 255, 255, 0.22); }
+
+.avatar-carousel { position: relative; width: 100%; height: 13rem; margin-top: 2.25rem; overflow: hidden; outline: none; }
+.avatar-carousel:focus-visible .avatar-ring { box-shadow: 0 0 0 4px #ffc48a; }
+.avatar-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 11.5rem;
+  height: 11.5rem;
+  translate: -50% -50%;
+  border: 0.75rem solid #fff;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 2;
+}
+/* Each avatar sits at --offset steps from the middle; the middle one grows into the ring */
+.avatar-option {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--pick-size);
+  height: var(--pick-size);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  translate: calc(-50% + var(--offset) * var(--pick-gap) + var(--side-push, 0px)) -50%;
+  scale: 1;
+  opacity: calc(1 - var(--dist) * 0.18);
+  transition: translate 0.55s var(--pick-ease), scale 0.55s var(--pick-ease), opacity 0.4s ease;
+  z-index: 1;
+}
+/* Side avatars move out a little more so they clear the ring */
+.avatar-option:not(.is-selected) { --side-push: calc(clamp(-1, var(--offset), 1) * 28px); }
+.avatar-option.is-selected { scale: 1.68; opacity: 1; cursor: default; z-index: 1; }
+.avatar-option[aria-hidden="true"] { opacity: 0; pointer-events: none; }
+.avatar-option:not(.is-selected):hover { scale: 1.08; }
+.avatar-option .avatar-art { display: block; width: 100%; height: 100%; }
+/* Your own photo, cropped to the circle */
+.avatar-photo { display: block; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.avatar.has-art .avatar-photo { border-radius: 50%; }
+/* The photo option before one is chosen: a dashed circle with an upload icon */
+.avatar-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  border: 2px dashed rgba(255, 255, 255, 0.55);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+.avatar-option.is-selected .avatar-upload { font-size: 0.5rem; }
+.avatar-option.is-photo.is-selected { cursor: pointer; }
+/* Only the chosen avatar bobs and blinks */
+.avatar-option:not(.is-selected) .art-head,
+.avatar-option:not(.is-selected) .art-eyes { animation: none; }
+.avatar-option.is-selected .avatar-art { animation: avatar-pop 0.5s var(--pick-ease); }
+@keyframes avatar-pop { 0% { scale: 0.9; } 60% { scale: 1.04; } 100% { scale: 1; } }
+
+.avatar-picker-nav { display: flex; align-items: center; gap: 1rem; margin-top: 1.25rem; }
+.avatar-picker-name { min-width: 7rem; font-size: 1.125rem; font-weight: 800; }
+.avatar-arrow {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.avatar-arrow:hover { background: rgba(255, 255, 255, 0.26); }
+.avatar-picker-save { margin-top: 2rem; gap: 0.5rem; }
+.avatar-picker-error { margin: 0.75rem 0 0; padding: 0.5rem 0.875rem; border-radius: 0.5rem; background: rgba(255, 255, 255, 0.95); color: var(--red); font-size: 0.875rem; font-weight: 600; }
+.avatar-picker-skip {
+  margin-top: 0.875rem;
+  padding: 0.25rem 0.5rem;
+  border: 0;
+  background: none;
+  color: rgba(255, 255, 255, 0.7);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.avatar-picker-skip:hover { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+
+@media (max-width: 600px) {
+  .avatar-picker { --pick-size: 64px; --pick-gap: 76px; }
+  .avatar-carousel { height: 10rem; }
+  .avatar-ring { width: 8.25rem; height: 8.25rem; border-width: 0.5rem; }
+  .avatar-option:not(.is-selected) { --side-push: calc(clamp(-1, var(--offset), 1) * 24px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .avatar-picker, .avatar-option.is-selected .avatar-art { animation: none; }
+  .avatar-option, .avatar-arrow, .profile-avatar-edit { transition: none; }
+}

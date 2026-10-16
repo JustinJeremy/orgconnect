@@ -8,11 +8,15 @@ import FeedPost from "../components/FeedPost.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import {
   attendedCount,
+  dateParts,
   formatDate,
+  formatTime,
   initials,
   isCompleted,
+  myRegistration,
   percent,
   plural,
+  todayIso,
 } from "../utils/format.js";
 
 const sumHours = (logs) => logs.reduce((s, h) => s + Number(h.hours), 0);
@@ -272,7 +276,61 @@ function Suggestions({ user, sessions, requests, onNavigate }) {
   );
 }
 
-function MemberDashboard({ header, data, loading, onNavigate }) {
+// Event poster, or the event's date on the org color when there is no poster
+function EventImage({ event, className = "" }) {
+  const { mon, day } = dateParts(event.date);
+  return (
+    <span className={`dash-event-image ${className}`} aria-hidden="true">
+      {event.posterUrl ? (
+        <img src={event.posterUrl} alt="" loading="lazy" />
+      ) : (
+        <span className="dash-event-fallback">
+          <span>{mon}</span>
+          <strong>{day}</strong>
+        </span>
+      )}
+    </span>
+  );
+}
+
+const eventWhen = (e) => `${dateParts(e.date).weekday}, ${formatDate(e.date)} · ${formatTime(e.time)}`;
+
+// The member's next RSVP'd event (or the soonest one), big, with RSVP right there
+function FeaturedEvent({ event, userId, onOpen, onToggleRsvp }) {
+  const mine = myRegistration(event, userId);
+  const going = event.registrations.length;
+  const isFull = going >= event.capacity;
+  return (
+    <article className="dash-featured">
+      <button type="button" className="dash-featured-media" onClick={() => onOpen(event)} aria-label={`View ${event.title}`}>
+        <EventImage event={event} />
+      </button>
+      <div className="dash-featured-body">
+        <span className="dash-eyebrow">{mine ? "Your next event" : "Happening soon"}</span>
+        <h2>{event.title}</h2>
+        <ul className="dash-featured-meta">
+          <li><Icon name="calendar" size={15} /> {eventWhen(event)}</li>
+          {event.location && <li><Icon name="pin" size={15} /> {event.location}</li>}
+          <li><Icon name="users" size={15} /> {going} of {event.capacity} going</li>
+        </ul>
+        <div className="dash-featured-actions">
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => onOpen(event)}>
+            View event <Icon name="arrowRight" size={15} />
+          </button>
+          {mine ? (
+            <span className="going"><Icon name="check" size={15} /> You're going</span>
+          ) : (
+            <button type="button" className="btn btn-outline-navy btn-sm" onClick={() => onToggleRsvp(event, false)} disabled={isFull}>
+              {isFull ? "Full" : "RSVP"}
+            </button>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function MemberDashboard({ header, data, loading, onNavigate, onOpenEvent, events: eventActions }) {
   const { user } = useAuth();
   const { events, announcements, notifications, sessions, requests } = data;
 
@@ -282,11 +340,48 @@ function MemberDashboard({ header, data, loading, onNavigate }) {
   );
   const recognition = latestRecognition(notifications);
 
+  // Upcoming = not completed and not on an earlier day, soonest first
+  const today = todayIso();
+  const upcoming = events
+    .filter((e) => !isCompleted(e) && e.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+  const featured = upcoming.find((e) => myRegistration(e, user.id)) || upcoming[0];
+  const more = upcoming.filter((e) => e !== featured).slice(0, 3);
+
   return (
     <div className="dash-layout">
       <div className="dash-main">
         {header}
 
+        {!loading && featured && (
+          <FeaturedEvent event={featured} userId={user.id} onOpen={onOpenEvent} onToggleRsvp={eventActions.toggleRsvp} />
+        )}
+
+        {!loading && more.length > 0 && (
+          <section className="dash-section" aria-labelledby="dash-more-events">
+            <div className="dash-section-head">
+              <h2 id="dash-more-events">More upcoming events</h2>
+              <ViewAll onClick={() => onNavigate("events")} />
+            </div>
+            <div className="dash-event-row">
+              {more.map((e) => (
+                <button key={e.id} type="button" className="dash-event-tile" onClick={() => onOpenEvent(e)}>
+                  <EventImage event={e} />
+                  <span className="dash-event-tile-body">
+                    <strong>{e.title}</strong>
+                    <span>{formatDate(e.date)} · {formatTime(e.time)}</span>
+                    {myRegistration(e, user.id) && <span className="dash-event-going"><Icon name="check" size={12} /> Going</span>}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <div className="dash-section-head">
+          <h2>Latest from your officers</h2>
+          <ViewAll onClick={() => onNavigate("announcements")} />
+        </div>
         <section className="feed-list" data-tour="feed" aria-label="Feed">
           {loading ? (
             <div className="feed-post"><div className="skeleton-list" aria-hidden="true"><span /><span /><span /></div></div>

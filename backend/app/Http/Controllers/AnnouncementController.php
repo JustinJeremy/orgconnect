@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\ListsOrPages;
 use App\Http\Controllers\Concerns\OfficerOnly;
 use App\Http\Requests\AnnouncementRequest;
 use App\Models\Announcement;
+use App\Models\AnnouncementComment;
 use App\Models\User;
 use App\Models\UserNotification;
 use Illuminate\Http\Request;
@@ -44,7 +45,7 @@ class AnnouncementController extends Controller
         UserNotification::send(
             User::where('id', '!=', $request->user()->id)->withMembershipStatus(['Active', 'Pending'])->pluck('id'),
             "New announcement: {$post->title}",
-            'announcements'
+            "announcements/{$post->id}"
         );
 
         return response()->json($post->toFrontend($request->user()), 201);
@@ -109,10 +110,35 @@ class AnnouncementController extends Controller
         $comment = $announcement->comments()->create(['user_id' => $user->id, 'text' => trim($data['text'])]);
 
         if ($announcement->user_id !== $user->id) {
-            UserNotification::send($announcement->user_id, "{$user->name} commented on {$announcement->title}", 'dashboard');
+            UserNotification::send($announcement->user_id, "{$user->name} commented on {$announcement->title}", "announcements/{$announcement->id}");
         }
 
         return response()->json($comment->load('user')->toFrontend(), 201);
+    }
+
+    // PUT /api/announcements/{announcement}/comments/{comment}  { text }  -> only the comment's author, and only once
+    public function updateComment(Request $request, Announcement $announcement, AnnouncementComment $comment)
+    {
+        abort_unless($comment->announcement_id === $announcement->id, 404);
+        abort_unless($comment->user_id === $request->user()->id, 403, 'You can only edit your own comments.');
+        abort_if($comment->edited_at !== null, 422, 'A comment can only be edited once.');
+
+        $data = $request->validate(['text' => 'required|string|max:1000']);
+        $comment->update(['text' => trim($data['text']), 'edited_at' => now()]);
+
+        return $comment->load('user')->toFrontend();
+    }
+
+    // DELETE /api/announcements/{announcement}/comments/{comment}  -> the comment's author, or an officer
+    public function deleteComment(Request $request, Announcement $announcement, AnnouncementComment $comment)
+    {
+        abort_unless($comment->announcement_id === $announcement->id, 404);
+        $user = $request->user();
+        abort_unless($comment->user_id === $user->id || $user->isOfficer(), 403, 'You can only delete your own comments.');
+
+        $comment->delete();
+
+        return ['ok' => true];
     }
 
     public function markAllRead(Request $request)

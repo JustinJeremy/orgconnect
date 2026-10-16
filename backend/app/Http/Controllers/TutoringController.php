@@ -100,7 +100,7 @@ class TutoringController extends Controller
 
         $tutoringRequest = $session->requests()->create(['user_id' => $user->id, 'status' => 'Pending']);
 
-        UserNotification::send($session->tutor_id, "{$user->name} requested your tutoring session: {$session->subject}", 'tutoring');
+        UserNotification::send($session->tutor_id, "{$user->name} requested your tutoring session: {$session->subject}", "tutoring/received/{$tutoringRequest->id}");
 
         return response()->json($tutoringRequest->load('user')->toFrontend(), 201);
     }
@@ -132,7 +132,7 @@ class TutoringController extends Controller
         $tutoringRequest->update(['status' => $status]);
 
         $word = ['Confirmed' => 'approved', 'Rejected' => 'rejected', 'Completed' => 'marked as completed'][$status];
-        UserNotification::send($tutoringRequest->user_id, "Your tutoring request for {$session->subject} was {$word}", 'tutoring');
+        UserNotification::send($tutoringRequest->user_id, "Your tutoring request for {$session->subject} was {$word}", "tutoring/sent/{$tutoringRequest->id}");
 
         return $tutoringRequest->load('user')->toFrontend();
     }

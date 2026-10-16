@@ -21,7 +21,12 @@ class User extends Authenticatable
         'student_id',
         'course',
         'year_level',
+        'avatar',
+        'avatar_path',
     ];
+
+    // Avatar characters a user can pick (drawn by frontend/src/components/Avatars.jsx)
+    public const AVATARS = ['bun', 'cap', 'headband', 'glasses', 'curly', 'pigtails', 'spiky', 'bow'];
 
     protected $hidden = [
         'password',
@@ -116,6 +121,9 @@ class User extends Authenticatable
             'studentId' => $this->student_id,
             'course' => $this->course,
             'yearLevel' => $this->year_level,
+            'avatar' => $this->avatar,   // a character key, "photo" (their own upload), or null until they pick one
+            // ?v= changes on every upload so browsers don't keep showing the old photo
+            'avatarUrl' => $this->avatar_path ? url("/api/users/{$this->id}/avatar").'?v='.$this->updated_at?->timestamp : null,
             'membershipStatus' => $this->membership->status,
             'isAdmin' => $this->is_admin,   // platform admin: reviews org registrations
             'canManageMembers' => $this->canManageMembers(),
