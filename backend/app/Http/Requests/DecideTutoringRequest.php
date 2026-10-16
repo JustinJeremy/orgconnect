@@ -8,6 +8,10 @@ class DecideTutoringRequest extends FormRequest
 {
     public function rules(): array
     {
-        return ['status' => 'required|in:Confirmed,Rejected,Completed'];
+        return [
+            'status' => 'required|in:Confirmed,Rejected,Completed',
+            // Completed: how long the session was (logged as the tutor's volunteer hours)
+            'hours' => 'nullable|numeric|min:0.5|max:8',
+        ];
     }
 }

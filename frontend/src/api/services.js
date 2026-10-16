@@ -58,6 +58,10 @@ export const orgsApi = {
   withdraw: (slug) => del(`/organizations/${slug}/application`), // cancel a pending application
   requestReactivation: (slug, message) => post(`/organizations/${slug}/reactivation`, { message }), // inactive members
   // Officers of the selected org: PNG/JPG/WebP up to 2 MB -> updated org (with logoUrl)
+  leave: (slug, reason) => api.delete(`/organizations/${slug}/membership`, { data: { reason } }).then(unwrap), // with a reason
+  // Changing the org's details (President): reviewed by the platform admin before they apply
+  changeRequest: () => get("/organization/change-requests"), // -> { request: OrgChange | null }
+  requestChanges: (data) => post("/organization/change-requests", data), // { ...changed fields, reason }
   uploadLogo: (file) => {
     const body = new FormData();
     body.append("logo", file);
@@ -79,6 +83,7 @@ export const adminApi = {
   overview: () => get("/admin/overview"), // -> { stats, requests: [OrgRequest], organizations: [...] }
   decide: (id, decision, extra = {}) => patch(`/admin/org-requests/${id}`, { decision, ...extra }), // Approved | Rejected
   setStatus: (id, status) => patch(`/admin/organizations/${id}`, { status }), // Active | Suspended
+  decideChange: (id, decision, note) => patch(`/admin/change-requests/${id}`, { decision, note }), // org detail changes
 };
 
 export const eventsApi = {
@@ -134,7 +139,8 @@ export const tutoringApi = {
   requests: () => get("/tutoring-requests"),
   requestsPage: getPage("/tutoring-requests"), // { view: received | sent, status, page, perPage }
   request: (sessionId) => post("/tutoring-requests", { sessionId }),
-  decideRequest: (id, status) => patch(`/tutoring-requests/${id}`, { status }),
+  decideRequest: (id, status, hours) => patch(`/tutoring-requests/${id}`, { status, hours }), // hours: when Completed
+  cancelRequest: (id, reason) => api.delete(`/tutoring-requests/${id}`, { data: { reason } }).then(unwrap), // your own
   resources: () => get("/resources"),
   resourcesPage: getPage("/resources"), // { subject, type, search, page, perPage }
   createResource: (data) => post("/resources", data),

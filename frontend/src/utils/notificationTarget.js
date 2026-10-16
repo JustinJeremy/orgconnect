@@ -22,7 +22,7 @@ const firstMatch = (patterns, message) => patterns.map((re) => message.match(re)
 
 export function notificationTarget({ link, message = "" }) {
   const parts = (link || "").split("/");
-  const linked = parts[0] === "applications" || PAGES.includes(parts[0]) ? parts[0] : null;
+  const linked = parts[0] === "applications" || parts[0] === "register-org" || PAGES.includes(parts[0]) ? parts[0] : null;
   // "dashboard" was the catch-all link for older notifications: trust the message if it says more
   const guessed = guessPage(message);
   const page = linked && !(linked === "dashboard" && guessed !== "dashboard") ? linked : guessed;
@@ -45,6 +45,8 @@ export function notificationTarget({ link, message = "" }) {
       };
     case "applications":
       return { page: "hours", kind: "applications" };
+    case "register-org":
+      return { page: "register-org" };
     default:
       return { page };
   }

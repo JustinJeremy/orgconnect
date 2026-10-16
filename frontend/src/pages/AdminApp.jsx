@@ -16,6 +16,11 @@ import useUrlPage, { isPlainClick, pagePath } from "../hooks/useUrlPage.js";
 import { adminApi } from "../api/services.js";
 import { errorMessage } from "../api/client.js";
 import { ADMIN_TOUR } from "../data/tourSteps.js";
+import ReasonDialog from "../components/ReasonDialog.jsx";
+import { FIELD_LABELS } from "../components/OrgDetailsChange.jsx";
+
+// A detail's value for the before/after table
+const show = (v) => (Array.isArray(v) ? v.join(", ") : v || "(empty)");
 import { initials, shortDate } from "../utils/format.js";
 
 // Platform admin: reviews requests to register new orgs, and can suspend or reactivate orgs.
@@ -41,6 +46,7 @@ export default function AdminApp() {
   const [data, setData] = useState(null);
   const [loadError, setLoadError] = useState("");
   const [details, setDetails] = useState(null); // request shown in the details dialog
+  const [rejectingChange, setRejectingChange] = useState(null); // org detail change being rejected
   const [rejecting, setRejecting] = useState(null); // request being rejected (asks for a reason)
   const [confirmState, setConfirmState] = useState(null);
   const [toast, setToast] = useState(null);
@@ -113,6 +119,43 @@ export default function AdminApp() {
   const requestsPanel = (all) => (
     <Panel title="Organization requests" subtitle={all ? "Waiting for review, and ones you rejected" : "New orgs waiting to join OrgConnect"} tour="admin-requests">
       <RequestList requests={all ? data.requests : pending} onDetails={setDetails} onApprove={approve} onReject={setRejecting} />
+    </Panel>
+  );
+
+  // Presidents asking to change their org's details: current vs new, and their reason
+  const changesPanel = data?.changeRequests?.length > 0 && (
+    <Panel title="Organization detail changes" subtitle="Presidents asking to change their org's details" tour="admin-changes">
+      <ul className="change-list">
+        {data.changeRequests.map((c) => (
+          <li key={c.id}>
+            <div className="change-head">
+              <div>
+                <div className="review-name">{c.organization.name}</div>
+                <div className="review-detail">Requested by {c.requestedBy} (President) · {shortDate(c.submittedAt)}</div>
+              </div>
+              <div className="review-actions">
+                <button type="button" className="btn btn-outline btn-sm" onClick={() => setRejectingChange(c)}>Reject</button>
+                <button type="button" className="btn btn-primary btn-sm" onClick={() => run(() => adminApi.decideChange(c.id, "Approved"), `${c.organization.shortName}'s new details are live`)}>
+                  Approve
+                </button>
+              </div>
+            </div>
+            <p className="change-reason"><strong>Reason:</strong> {c.reason}</p>
+            <table className="table change-table">
+              <thead><tr><th>Detail</th><th>Now</th><th>Changes to</th></tr></thead>
+              <tbody>
+                {c.changes.map((ch) => (
+                  <tr key={ch.field}>
+                    <td className="strong">{FIELD_LABELS[ch.field] || ch.field}</td>
+                    <td className="muted">{show(ch.from)}</td>
+                    <td className="change-new">{show(ch.to)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </li>
+        ))}
+      </ul>
     </Panel>
   );
 
@@ -209,10 +252,16 @@ export default function AdminApp() {
                     />
                   </div>
                   {requestsPanel(false)}
+                  {changesPanel}
                   {orgsPanel}
                 </>
               )}
-              {page === "requests" && requestsPanel(true)}
+              {page === "requests" && (
+                <>
+                  {requestsPanel(true)}
+                  {changesPanel}
+                </>
+              )}
               {page === "organizations" && orgsPanel}
             </>
           )}
@@ -228,6 +277,17 @@ export default function AdminApp() {
             setRejecting(details);
             setDetails(null);
           }}
+        />
+      )}
+      {rejectingChange && (
+        <ReasonDialog
+          title={`Reject ${rejectingChange.organization.shortName}'s changes?`}
+          intro="Nothing changes. The President sees your note."
+          label="Note for the President"
+          placeholder="e.g. Please confirm the new name with your adviser first."
+          confirmLabel="Reject changes"
+          onCancel={() => setRejectingChange(null)}
+          onSubmit={(note) => run(() => adminApi.decideChange(rejectingChange.id, "Rejected", note), "Changes rejected")}
         />
       )}
       {rejecting && <RejectDialog request={rejecting} onClose={() => setRejecting(null)} onReject={async (note) => (await reject(rejecting, note)) && setRejecting(null)} />}

@@ -7,6 +7,8 @@ import { StatusBadge } from "../components/Badges.jsx";
 import { UserAvatar } from "../components/Avatars.jsx";
 import AvatarPicker from "../components/AvatarPicker.jsx";
 import ProfileHistory from "../components/ProfileHistory.jsx";
+import ReasonDialog from "../components/ReasonDialog.jsx";
+import OrgDetailsChange from "../components/OrgDetailsChange.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
 import { orgsApi } from "../api/services.js";
@@ -206,9 +208,22 @@ function OrgLogoForm({ flash }) {
 }
 
 // Every org you joined or applied to, with your role there; switch to it from here
-function MyOrganizations() {
-  const { memberships } = useAuth();
+function MyOrganizations({ flash }) {
+  const { memberships, reloadAccount } = useAuth();
   const { organizations, current, switchOrg } = useOrg();
+  const [leaving, setLeaving] = useState(null); // the org being left
+
+  const leave = async (reason) => {
+    try {
+      await orgsApi.leave(leaving.slug, reason);
+      flash?.(`You left ${leaving.name}`);
+      await reloadAccount();
+      return true;
+    } catch (error) {
+      flash?.(errorMessage(error), "error");
+      return false;
+    }
+  };
 
   const mine = organizations
     .map((org) => ({ org, m: memberships.find((m) => m.organizationId === org.id) }))
@@ -233,8 +248,25 @@ function MyOrganizations() {
               </button>
             )
           )}
+          {/* The President hands the role over first */}
+          {["Active", "Inactive"].includes(m.status) && m.position !== "President" && (
+            <button type="button" className="btn btn-outline btn-sm danger-text" onClick={() => setLeaving(org)}>
+              Leave
+            </button>
+          )}
         </li>
       ))}
+      {leaving && (
+        <ReasonDialog
+          title={`Leave ${leaving.name}?`}
+          intro="Your past hours, events and certificates stay on record, and you can apply again later. The officers will see your reason."
+          label="Why are you leaving?"
+          placeholder="e.g. I'm moving to another school next semester."
+          confirmLabel="Leave organization"
+          onCancel={() => setLeaving(null)}
+          onSubmit={leave}
+        />
+      )}
     </ul>
   );
 }
@@ -306,8 +338,13 @@ export default function Profile({ data, loading, flash }) {
             <OrgLogoForm flash={flash} />
           </Panel>
         )}
+        {user.isPresident && (
+          <Panel title="Organization details" subtitle="Name, description, courses and more" className="span-5" tour="profile-org-details">
+            <OrgDetailsChange flash={flash} />
+          </Panel>
+        )}
         <Panel title="My organizations" tour="profile-orgs" subtitle="One account works for every org you join" className="span-7">
-          <MyOrganizations />
+          <MyOrganizations flash={flash} />
         </Panel>
       </div>
       )}

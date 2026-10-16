@@ -95,6 +95,9 @@ class EventController extends Controller
         if ($event->status === 'completed') {
             throw ValidationException::withMessages(['event' => 'This event has already ended.']);
         }
+        if ($event->date->copy()->setTimeFromTimeString($event->time)->isPast()) {
+            throw ValidationException::withMessages(['event' => 'This event has already started.']);
+        }
         if ($event->registrations()->count() >= $event->capacity) {
             throw ValidationException::withMessages(['event' => 'This event is full.']);
         }

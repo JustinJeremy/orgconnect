@@ -29,6 +29,14 @@ class UserNotification extends Model
         }
     }
 
+    // A notification not tied to any org (org request rejected, org suspended): shows in every org
+    public static function platform(int $userId, string $message, ?string $link = null): void
+    {
+        $n = new static(['user_id' => $userId, 'message' => $message, 'link' => $link]);
+        $n->organization_id = null;
+        static::withoutEvents(fn () => $n->save());   // skip BelongsToOrganization, which would add the selected org
+    }
+
     // Older notifications were saved without a link: work it out from the message
     private function guessLink(): string
     {

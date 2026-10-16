@@ -3541,3 +3541,23 @@ a.btn { text-decoration: none; }
 a.nav-item, a.sidebar-user-btn, a.logo-home { text-decoration: none; }
 a.sidebar-user-btn { color: inherit; }
 a.org-option { text-decoration: none; }
+
+/* ---------- Batch 15.1 ---------- */
+.btn.danger-text { color: var(--red); }
+.btn.danger-text:hover:not(:disabled) { border-color: var(--red); background: var(--red-soft); }
+.org-list li { flex-wrap: wrap; }
+.form-grid .span-all { grid-column: 1 / -1; }
+
+/* President: org detail change status */
+.org-change-status { padding: 0.75rem 0.875rem; border-radius: 0.75rem; background: var(--sky-soft); display: flex; flex-direction: column; gap: 0.375rem; }
+.org-change-status.is-rejected { background: #fff8f7; }
+.org-change-head { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.org-change-note { margin: 0; font-size: 0.875rem; color: var(--ink-2); }
+
+/* Admin: detail changes, before and after */
+.change-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1.25rem; }
+.change-list > li + li { border-top: 1px solid var(--line-2); padding-top: 1.25rem; }
+.change-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.change-reason { margin: 0.625rem 0; font-size: 0.875rem; color: var(--ink-2); }
+.change-table td { vertical-align: top; white-space: pre-wrap; }
+.change-table .change-new { color: var(--green-ink); font-weight: 600; }

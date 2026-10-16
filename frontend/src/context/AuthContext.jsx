@@ -229,6 +229,7 @@ export function AuthProvider({ children }) {
         registeringOrg,
         orgRequests,
         reloadOrgRequests,
+        reloadAccount: loadAccount, // after leaving an org, etc.
         startOrgRegistration: () => setRegistering(true),
         endOrgRegistration: () => setRegistering(false),
         withdrawApplication,
