@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Announcement;
+use App\Models\AnnouncementComment;
 use App\Models\Certificate;
 use App\Models\Event;
 use App\Models\MembershipRecord;
@@ -10,12 +12,14 @@ use App\Models\User;
 use App\Models\VolunteerHour;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 // A semester of history for the live demo: past events with attendance and certificates, volunteer
-// hours spread over the months, and events on the demo day itself so something is "today".
+// hours spread over the months, events on the demo day itself so something is "today", and reads,
+// likes and comments on the announcements.
 //   Officers attend every past event but one or two; members register for most and attend most.
 //   Pending and inactive members are left out.
 // Dates count back from DEMO_DAY (default: the presentation, 2026-10-20), so they don't move when
@@ -87,6 +91,7 @@ class DemoSeeder extends Seeder
             }
             Organization::setCurrent($org);
             $this->seedOrg($org, $events, $day);
+            $this->feedActivity($org);
         }
         Organization::setCurrent(null);
 
@@ -151,6 +156,51 @@ class DemoSeeder extends Seeder
                         'reviewed_by' => $m->user_id === $secretary ? $president : $secretary,
                     ]);
                 }
+            }
+        }
+    }
+
+    private const COMMENTS = [
+        'See you there!', 'Thanks for the reminder!', 'Noted, thank you!', 'Count me in.',
+        'Can freshmen join too?', 'Will there be a recording for those who can\'t make it?',
+        'Thank you, officers!', 'Excited for this!', 'Is there a sign-up sheet?', 'Got it, thanks for the update.',
+    ];
+
+    // Most members have read most posts, about half liked them, and a few commented, so the feed
+    // looks alive. Juan (member@orgconnect.test) is left out: he shows "unread" in the demo and the
+    // click-through checks use him.
+    private function feedActivity(Organization $org): void
+    {
+        $people = MembershipRecord::where('organization_id', $org->id)->where('status', 'Active')
+            ->with('user')->get()->pluck('user')
+            ->filter(fn ($u) => $u && str_ends_with($u->email, '@orgconnect.test') && $u->email !== 'member@orgconnect.test');
+
+        foreach (Announcement::all() as $post) {
+            $after = fn (int $minutes) => $post->created_at->copy()->addMinutes($minutes);
+            foreach ($people as $u) {
+                if ($u->id === $post->user_id) {
+                    continue;
+                }
+                $h = $this->hash($u->email, "post{$post->id}");
+                if ($h % 10 < 8) {
+                    DB::table('announcement_reads')->insertOrIgnore([
+                        'announcement_id' => $post->id, 'user_id' => $u->id, 'created_at' => $after(20 + $h % 600), 'updated_at' => $after(20 + $h % 600),
+                    ]);
+                }
+                if ($h % 10 < 5) {
+                    DB::table('announcement_likes')->insertOrIgnore([
+                        'announcement_id' => $post->id, 'user_id' => $u->id, 'created_at' => $after(30 + $h % 600), 'updated_at' => $after(30 + $h % 600),
+                    ]);
+                }
+            }
+            // One to three comments per post
+            foreach ($people->sortBy(fn ($u) => $this->hash($u->email, "c{$post->id}"))->take(1 + $post->id % 3)->values() as $i => $u) {
+                if ($u->id === $post->user_id) {
+                    continue;
+                }
+                $text = self::COMMENTS[$this->hash($u->email, "t{$post->id}") % count(self::COMMENTS)];
+                $comment = AnnouncementComment::firstOrCreate(['announcement_id' => $post->id, 'user_id' => $u->id], ['text' => $text]);
+                $comment->forceFill(['created_at' => $after(45 + $i * 90), 'updated_at' => $after(45 + $i * 90)])->save();
             }
         }
     }

@@ -1347,7 +1347,7 @@ select.input {
 .search .input { padding-left: 2.375rem; }
 .search-icon { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
 .select { padding-right: 2rem; cursor: pointer; }
-.result-count { display: flex; align-items: center; gap: 0.625rem; color: var(--muted); font-size: 0.9375rem; margin-bottom: -0.375rem; }
+.result-count { display: flex; align-items: center; gap: 0.625rem; color: var(--muted); font-size: 0.9375rem; margin: 0 0 0.875rem; }   /* clear of the cards below */
 
 /* Lists */
 .row-list { list-style: none; margin: 0; padding: 0; }
@@ -3443,3 +3443,7 @@ button.stat-link:focus-visible { outline: 2px solid var(--accent); outline-offse
 .history-cert-icon { display: grid; place-items: center; flex: none; width: 2.5rem; height: 2.5rem; border-radius: 0.75rem; background: var(--orange-soft); color: var(--accent-dark); }
 /* Cropped posters keep their left side, where the title usually is */
 .dash-event-image img, .event-thumb-img { object-position: left center; }
+/* Links styled as buttons (e.g. "Open" on a shared resource) aren't underlined */
+a.btn { text-decoration: none; }
+/* List view: with a poster, the date badge goes top-right (over the rings), not over the poster's title */
+.event-thumb:has(.event-thumb-img) { justify-content: flex-end; }
