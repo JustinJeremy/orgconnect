@@ -95,7 +95,7 @@ const EMPTY_DATA = Object.fromEntries(
 );
 
 function MainApp() {
-  const { user } = useAuth();
+  const { user, startOrgRegistration } = useAuth();
   const isOfficer = user.role === "officer";
   // The page is in the address bar (/events, /hours...): refresh, Back and new tabs work
   const [page, setPage] = useUrlPage(APP_PAGES, "dashboard");
@@ -368,14 +368,23 @@ function MainApp() {
         }, "Session deleted");
     },
     request: (session) => run(async () => upsert("requests", await tutoringApi.request(session.id)), "Request sent to the tutor"),
-    decide: (req, status) =>
+    // hours: how long a completed session was (logged as the tutor's volunteer hours)
+    decide: (req, status, hours) =>
       run(
         async () => {
-          upsert("requests", await tutoringApi.decideRequest(req.id, status));
+          upsert("requests", await tutoringApi.decideRequest(req.id, status, hours));
           if (status === "Confirmed") reload("sessions"); // approving uses up a slot
+          if (status === "Completed") reload("hours");
         },
-        { Confirmed: "Tutoring request approved", Rejected: "Tutoring request rejected", Completed: "Session marked as completed" }[status]
+        { Confirmed: "Tutoring request approved", Rejected: "Tutoring request rejected", Completed: "Session completed. The tutor's hours were sent for approval" }[status]
       ),
+    // Your own request, with a reason for the tutor
+    cancel: (req, reason) =>
+      run(async () => {
+        await tutoringApi.cancelRequest(req.id, reason);
+        drop("requests", req.id);
+        reload("sessions"); // an approved one gives its slot back
+      }, "Request cancelled"),
     saveResource: (id, form) =>
       run(async () => upsert("resources", id ? await tutoringApi.updateResource(id, form) : await tutoringApi.createResource(form)), id ? "Resource updated" : "Resource shared"),
     removeResource: async (resource) => {
@@ -423,6 +432,7 @@ function MainApp() {
       notificationsApi.markRead(notification.id).catch(() => reload("notifications"));
     }
     const target = notificationTarget(notification);
+    if (target.page === "register-org") return startOrgRegistration(); // your org request
     setPage(target.page);
     // Show and highlight the item the notification is about (if it has one)
     setFocus(target.page !== "dashboard" ? { ...target, key: Date.now() } : null);

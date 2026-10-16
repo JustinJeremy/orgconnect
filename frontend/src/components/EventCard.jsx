@@ -108,14 +108,18 @@ export default function EventCard({ event, userId, isOfficer, actions, layout = 
             ) : (
               <span className="muted small">{mine ? "Marked absent" : "Ended"}</span>
             )
+          ) : passed && !mine ? (
+            <span className="muted small">Started</span>
           ) : mine ? (
             <div className="rsvp-on">
               <span className="going">
                 <Icon name="check" size={15} /> Going
               </span>
-              <button type="button" className="link-btn" onClick={toggleRsvp} disabled={busy} aria-label={`Cancel RSVP for ${event.title}`}>
-                Cancel
-              </button>
+              {!passed && (
+                <button type="button" className="link-btn" onClick={toggleRsvp} disabled={busy} aria-label={`Cancel RSVP for ${event.title}`}>
+                  Cancel
+                </button>
+              )}
             </div>
           ) : (
             <button type="button" className="btn btn-primary btn-sm" onClick={toggleRsvp} disabled={busy || isFull}>

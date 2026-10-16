@@ -8,10 +8,13 @@ use App\Http\Requests\ResourceRequest;
 use App\Http\Requests\StoreTutoringRequest;
 use App\Http\Requests\TutoringSessionRequest;
 use App\Models\LearningResource;
+use App\Models\MembershipRecord;
+use App\Models\Organization;
 use App\Models\TutoringRequest;
 use App\Models\TutoringSession;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Models\VolunteerHour;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -107,6 +110,25 @@ class TutoringController extends Controller
         return response()->json($tutoringRequest->load('user')->toFrontend(), 201);
     }
 
+    // DELETE /api/tutoring-requests/{tutoringRequest}  { reason }  -> the student cancels their own request
+    // (pending or approved; an approved one gives its slot back). The tutor is told why.
+    public function cancelRequest(Request $request, TutoringRequest $tutoringRequest)
+    {
+        $user = $request->user();
+        abort_unless($tutoringRequest->user_id === $user->id, 403, 'You can only cancel your own requests.');
+        abort_unless(in_array($tutoringRequest->status, ['Pending', 'Confirmed'], true), 422, "A {$tutoringRequest->status} request can't be cancelled.");
+        $reason = trim($request->validate(['reason' => 'required|string|max:500'], ['reason.required' => 'Say why you are cancelling.'])['reason']);
+        $session = $tutoringRequest->session;
+
+        if ($tutoringRequest->status === 'Confirmed') {
+            $session->increment('slots');
+        }
+        $tutoringRequest->delete();
+        UserNotification::send($session->tutor_id, "{$user->name} cancelled their request for {$session->subject}: \"{$reason}\"", 'tutoring/received');
+
+        return ['ok' => true];
+    }
+
     // PATCH /api/tutoring-requests/{tutoringRequest}  (officers or the session's tutor)
     public function decideRequest(DecideTutoringRequest $request, TutoringRequest $tutoringRequest)
     {
@@ -132,6 +154,21 @@ class TutoringController extends Controller
         }
 
         $tutoringRequest->update(['status' => $status]);
+
+        // A finished session counts as volunteer hours for the tutor: a Pending log for an officer to approve
+        if ($status === 'Completed') {
+            $log = VolunteerHour::create([
+                'user_id' => $session->tutor_id,
+                'activity' => "Peer tutoring: {$session->subject} with {$tutoringRequest->user->name}",
+                'date' => now()->toDateString(),
+                'hours' => (float) ($request->validated('hours') ?? 1),
+                'status' => 'Pending',
+            ]);
+            $officers = MembershipRecord::where('organization_id', Organization::current()->id)
+                ->where('role', 'officer')->where('status', 'Active')
+                ->where('user_id', '!=', $session->tutor_id)->pluck('user_id');
+            UserNotification::send($officers, "{$session->tutor->name} logged {$log->hours} hrs for {$log->activity}", "hours/{$log->id}");
+        }
 
         $word = ['Confirmed' => 'approved', 'Rejected' => 'rejected', 'Completed' => 'marked as completed'][$status];
         UserNotification::send($tutoringRequest->user_id, "Your tutoring request for {$session->subject} was {$word}", "tutoring/sent/{$tutoringRequest->id}");

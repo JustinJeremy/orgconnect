@@ -4,6 +4,8 @@ import Tabs from "../components/Tabs.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import Pagination from "../components/Pagination.jsx";
 import SessionCard from "../components/SessionCard.jsx";
+import Modal from "../components/Modal.jsx";
+import ReasonDialog from "../components/ReasonDialog.jsx";
 import SessionForm from "../components/SessionForm.jsx";
 import ResourceForm from "../components/ResourceForm.jsx";
 import { StatusBadge } from "../components/Badges.jsx";
@@ -109,12 +111,52 @@ function SessionsTab({ sessions, requests, loading, actions, onPost, onEdit, foc
 
 /* ---------- Requests ---------- */
 
+// Marking a session completed: how long it was, logged as the tutor's volunteer hours (Pending)
+function SessionLengthDialog({ request, onCancel, onDone }) {
+  const [hours, setHours] = useState("1");
+  const [error, setError] = useState("");
+  const submit = async (e) => {
+    e.preventDefault();
+    const n = Number(hours);
+    if (!(n >= 0.5 && n <= 8)) return setError("Between 0.5 and 8 hours.");
+    await onDone(n);
+    onCancel();
+  };
+  return (
+    <Modal
+      title="Mark session completed"
+      onClose={onCancel}
+      onSubmit={submit}
+      size="sm"
+      footer={
+        <div className="form-actions">
+          <button type="button" className="btn btn-outline" onClick={onCancel}>Cancel</button>
+          <button type="submit" className="btn btn-primary">Mark completed</button>
+        </div>
+      }
+    >
+      <div className="stack">
+        <p className="muted">
+          The tutor gets these as volunteer hours, once an officer approves them. Session with {request.requesterName}.
+        </p>
+        <div className="field">
+          <label htmlFor="session-hours">How long was the session? (hours)</label>
+          <input id="session-hours" type="number" className="input" min="0.5" max="8" step="0.5" value={hours} onChange={(e) => { setHours(e.target.value); setError(""); }} autoFocus />
+          {error && <span className="field-error">{error}</span>}
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 // Officers answer every request. Peer tutors answer the requests sent to their own sessions.
 // focus: { kind: "request", id, view, key } from a clicked notification
 function RequestsTab({ sessions, requests, actions, focus, onFocusDone }) {
   const { user } = useAuth();
   const isOfficer = user.role === "officer";
   const sessionById = (id) => sessions.find((s) => s.id === id);
+  const [cancelling, setCancelling] = useState(null); // your request being cancelled
+  const [completing, setCompleting] = useState(null); // a session being marked completed
   const canAnswer = (r) => r.userId !== user.id && (isOfficer || sessionById(r.sessionId)?.tutorId === user.id);
 
   // A member who has received requests for their own sessions can switch between both lists
@@ -203,6 +245,11 @@ function RequestsTab({ sessions, requests, actions, focus, onFocusDone }) {
                         <StatusBadge status={r.status} />
                       </td>
                       <td className="right">
+                        {r.userId === user.id && ["Pending", "Confirmed"].includes(r.status) && (
+                          <button type="button" className="btn btn-outline btn-sm" onClick={() => setCancelling(r)}>
+                            Cancel request
+                          </button>
+                        )}
                         {canAnswer(r) && (
                           <div className="row-actions">
                             {r.status === "Pending" && (
@@ -216,7 +263,7 @@ function RequestsTab({ sessions, requests, actions, focus, onFocusDone }) {
                               </>
                             )}
                             {r.status === "Confirmed" && (
-                              <button type="button" className="btn btn-outline btn-sm" onClick={() => actions.decide(r, "Completed")}>
+                              <button type="button" className="btn btn-outline btn-sm" onClick={() => setCompleting(r)}>
                                 Mark completed
                               </button>
                             )}
@@ -232,6 +279,18 @@ function RequestsTab({ sessions, requests, actions, focus, onFocusDone }) {
         )}
       </section>
       <Pagination page={list.page} totalPages={list.totalPages} onChange={list.setPage} />
+      {cancelling && (
+        <ReasonDialog
+          title="Cancel this request?"
+          intro={`The tutor${cancelling.status === "Confirmed" ? " gets the slot back and" : ""} will see your reason.`}
+          label="Why are you cancelling?"
+          placeholder="e.g. It clashes with my lab schedule."
+          confirmLabel="Cancel request"
+          onCancel={() => setCancelling(null)}
+          onSubmit={async (reason) => (await actions.cancel(cancelling, reason)) !== false}
+        />
+      )}
+      {completing && <SessionLengthDialog request={completing} onCancel={() => setCompleting(null)} onDone={(hours) => actions.decide(completing, "Completed", hours)} />}
     </>
   );
 }

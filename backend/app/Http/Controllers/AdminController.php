@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Event;
 use App\Models\MembershipRecord;
+use App\Models\OrgChangeRequest;
 use App\Models\Organization;
 use App\Models\UserNotification;
 use App\Models\VolunteerHour;
@@ -29,6 +30,8 @@ class AdminController extends Controller
                 'members' => MembershipRecord::whereIn('organization_id', $activeIds)->where('status', 'Active')->distinct()->count('user_id'),
                 'approvedHours' => (float) VolunteerHour::withoutGlobalScopes()->whereIn('organization_id', $activeIds)->where('status', 'Approved')->sum('hours'),
             ],
+            // Presidents' requests to change their org's details, waiting for review
+            'changeRequests' => OrgChangeRequest::with(['organization', 'requester'])->where('status', 'Pending')->latest()->get()->map->toFrontend(),
             'requests' => $orgs->whereIn('status', ['Pending', 'Rejected'])
                 ->sortByDesc('created_at')->values()->map->toRequest(),
             'organizations' => $live->values()->map(fn (Organization $org) => [
@@ -60,6 +63,10 @@ class AdminController extends Controller
 
         if ($data['decision'] === 'Rejected') {
             $organization->update(['status' => 'Rejected', 'review_note' => trim($data['note']), 'reviewed_at' => now()]);
+            // Not tied to an org (it isn't live), so it shows in whichever org they open
+            if ($organization->requested_by) {
+                UserNotification::platform($organization->requested_by, "Your request to register {$organization->short_name} was not approved: {$organization->review_note}", 'register-org');
+            }
 
             return $organization->fresh()->toRequest();
         }
@@ -90,7 +97,18 @@ class AdminController extends Controller
     public function setStatus(Request $request, Organization $organization)
     {
         abort_unless(in_array($organization->status, ['Active', 'Suspended'], true), 422, 'Only live organizations can be suspended.');
+        $before = $organization->status;
         $organization->update($request->validate(['status' => 'required|in:Active,Suspended']));
+
+        // Tell its officers (not tied to the org: a suspended org can't be opened)
+        if ($before !== $organization->status) {
+            $officers = MembershipRecord::where('organization_id', $organization->id)->where('role', 'officer')->where('status', 'Active')->pluck('user_id');
+            foreach ($officers as $officerId) {
+                UserNotification::platform($officerId, $organization->status === 'Suspended'
+                    ? "{$organization->name} was suspended by an OrgConnect admin"
+                    : "{$organization->name} is active again", 'dashboard');
+            }
+        }
 
         return ['ok' => true, 'status' => $organization->status];
     }

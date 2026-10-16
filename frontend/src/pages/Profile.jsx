@@ -7,6 +7,8 @@ import { StatusBadge } from "../components/Badges.jsx";
 import { UserAvatar } from "../components/Avatars.jsx";
 import AvatarPicker from "../components/AvatarPicker.jsx";
 import ProfileHistory from "../components/ProfileHistory.jsx";
+import ReasonDialog from "../components/ReasonDialog.jsx";
+import OrgDetailsChange from "../components/OrgDetailsChange.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
 import { orgsApi } from "../api/services.js";
@@ -191,14 +193,14 @@ function OrgLogoForm({ flash }) {
         <div className="org-logo-actions">
           <label className={`btn btn-primary btn-sm ${busy ? "is-disabled" : ""}`}>
             <Icon name="upload" size={15} /> {org.logoUrl ? "Change logo" : "Upload logo"}
-            <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleFile} disabled={busy} />
+            <input type="file" accept="image/png,image/jpeg" className="sr-only" onChange={handleFile} disabled={busy} />
           </label>
           {org.logoUrl && (
             <button type="button" className="btn btn-outline btn-sm" disabled={busy} onClick={() => run(orgsApi.removeLogo, "Logo removed")}>
               Remove
             </button>
           )}
-          <p className="muted small">PNG, JPG or WebP, up to 2 MB. A square image works best.</p>
+          <p className="muted small">PNG or JPG, up to 2 MB. A square image works best.</p>
         </div>
       </div>
     </div>
@@ -206,9 +208,22 @@ function OrgLogoForm({ flash }) {
 }
 
 // Every org you joined or applied to, with your role there; switch to it from here
-function MyOrganizations() {
-  const { memberships } = useAuth();
+function MyOrganizations({ flash }) {
+  const { memberships, reloadAccount } = useAuth();
   const { organizations, current, switchOrg } = useOrg();
+  const [leaving, setLeaving] = useState(null); // the org being left
+
+  const leave = async (reason) => {
+    try {
+      await orgsApi.leave(leaving.slug, reason);
+      flash?.(`You left ${leaving.name}`);
+      await reloadAccount();
+      return true;
+    } catch (error) {
+      flash?.(errorMessage(error), "error");
+      return false;
+    }
+  };
 
   const mine = organizations
     .map((org) => ({ org, m: memberships.find((m) => m.organizationId === org.id) }))
@@ -233,8 +248,25 @@ function MyOrganizations() {
               </button>
             )
           )}
+          {/* The President hands the role over first */}
+          {["Active", "Inactive"].includes(m.status) && m.position !== "President" && (
+            <button type="button" className="btn btn-outline btn-sm danger-text" onClick={() => setLeaving(org)}>
+              Leave
+            </button>
+          )}
         </li>
       ))}
+      {leaving && (
+        <ReasonDialog
+          title={`Leave ${leaving.name}?`}
+          intro="Your past hours, events and certificates stay on record, and you can apply again later. The officers will see your reason."
+          label="Why are you leaving?"
+          placeholder="e.g. I'm moving to another school next semester."
+          confirmLabel="Leave organization"
+          onCancel={() => setLeaving(null)}
+          onSubmit={leave}
+        />
+      )}
     </ul>
   );
 }
@@ -294,7 +326,7 @@ export default function Profile({ data, loading, flash }) {
       {history ? (
         <ProfileHistory tab={history} onTab={setHistory} onClose={() => setHistory(null)} orgName={org.shortName} flash={flash} />
       ) : (
-      <div className="dash-grid">
+      <div className="dash-grid profile-grid">
         <Panel title="Personal details" tour="profile-details" subtitle="Shown to officers on the member roster" className="span-7">
           <DetailsForm user={user} flash={flash} />
         </Panel>
@@ -306,8 +338,20 @@ export default function Profile({ data, loading, flash }) {
             <OrgLogoForm flash={flash} />
           </Panel>
         )}
-        <Panel title="My organizations" tour="profile-orgs" subtitle="One account works for every org you join" className="span-7">
-          <MyOrganizations />
+        {user.isPresident && (
+          <Panel title="Organization details" subtitle="Name, description, courses and more" className="span-7" tour="profile-org-details">
+            <OrgDetailsChange flash={flash} />
+          </Panel>
+        )}
+        {/* Rows of 12 columns: an officer's logo (5) sits beside this (7); the President's logo sits beside
+            Organization details, so this takes the whole row (as it does for members) */}
+        <Panel
+          title="My organizations"
+          tour="profile-orgs"
+          subtitle="One account works for every org you join"
+          className={user.role === "officer" && !user.isPresident ? "span-7" : "span-12"}
+        >
+          <MyOrganizations flash={flash} />
         </Panel>
       </div>
       )}

@@ -8,6 +8,7 @@ use App\Http\Controllers\HourController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganizationController;
+use App\Http\Controllers\OrgChangeController;
 use App\Http\Controllers\OrgRequestController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TutoringController;
@@ -37,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/organizations/{organization:slug}/application', [OrganizationController::class, 'updateApplication']);
     Route::delete('/organizations/{organization:slug}/application', [OrganizationController::class, 'withdraw']);
     Route::post('/organizations/{organization:slug}/reactivation', [OrganizationController::class, 'requestReactivation']);
+    Route::delete('/organizations/{organization:slug}/membership', [OrganizationController::class, 'leave']);   // leave, with a reason
     // Ask to register a new org (reviewed by a platform admin)
     Route::get('/org-requests', [OrgRequestController::class, 'index']);
     Route::post('/org-requests', [OrgRequestController::class, 'store'])->middleware('throttle:register');
@@ -47,6 +49,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::get('/overview', [AdminController::class, 'overview']);
     Route::patch('/org-requests/{organization}', [AdminController::class, 'decide']);
     Route::patch('/organizations/{organization}', [AdminController::class, 'setStatus']);
+    Route::patch('/change-requests/{change}', [OrgChangeController::class, 'decide']);
 });
 
 // Signed in AND a member of the selected org
@@ -54,6 +57,9 @@ Route::middleware(['auth:sanctum', 'org.member'])->group(function () {
 
     // Organization logo (officers)
     Route::post('/organization/logo', [OrganizationController::class, 'uploadLogo']);
+    // Changing the org's details: the President asks, the platform admin approves
+    Route::get('/organization/change-requests', [OrgChangeController::class, 'latest']);
+    Route::post('/organization/change-requests', [OrgChangeController::class, 'store']);
     Route::delete('/organization/logo', [OrganizationController::class, 'removeLogo']);
 
     // Events & attendance
@@ -97,6 +103,7 @@ Route::middleware(['auth:sanctum', 'org.member'])->group(function () {
     Route::get('/tutoring-requests', [TutoringController::class, 'requests']);
     Route::post('/tutoring-requests', [TutoringController::class, 'storeRequest']);
     Route::patch('/tutoring-requests/{tutoringRequest}', [TutoringController::class, 'decideRequest']);
+    Route::delete('/tutoring-requests/{tutoringRequest}', [TutoringController::class, 'cancelRequest']);   // your own, with a reason
     Route::get('/resources', [TutoringController::class, 'resources']);
     Route::post('/resources', [TutoringController::class, 'storeResource']);
     Route::put('/resources/{resource}', [TutoringController::class, 'updateResource']);

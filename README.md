@@ -182,3 +182,9 @@ database from scratch (this **deletes** everything in your local database).
 - Sign in, sign up and password changes allow 5 attempts per minute.
 - An officer can't change the email or password of someone who also belongs to another org;
   that person changes their own on the Profile page.
+- **Leaving an org** (Profile → My organizations) asks for a reason, which the officers see.
+  The President hands the role to another officer first.
+- **Org details** (name, description, courses...): the President requests changes with a reason,
+  and they go live only after the platform admin approves.
+- **Finished tutoring** counts as volunteer hours: marking a session completed asks how long it was
+  and logs the hours for the tutor, for an officer to approve.

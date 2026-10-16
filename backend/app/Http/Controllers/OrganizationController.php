@@ -58,6 +58,30 @@ class OrganizationController extends Controller
         return ['ok' => true];
     }
 
+    // DELETE /api/organizations/{organization}/membership  { reason } -> leave the org
+    // The member managers are told why. Past hours, events and certificates stay on record,
+    // and they can apply again later. The President hands the role to someone else first.
+    public function leave(Request $request, Organization $organization)
+    {
+        $reason = trim($request->validate(['reason' => 'required|string|max:500'], ['reason.required' => 'Say why you are leaving.'])['reason']);
+        $user = $request->user();
+        $membership = $user->memberships()->where('organization_id', $organization->id)->whereIn('status', ['Active', 'Inactive'])->first();
+        abort_unless($membership, 404, "You're not a member of this organization.");
+        abort_if($membership->position === 'President', 422, 'Make another officer President before you leave.');
+
+        $membership->delete();
+        foreach (MembershipRecord::managerIds($organization->id) as $officerId) {
+            UserNotification::create([
+                'organization_id' => $organization->id,
+                'user_id' => $officerId,
+                'message' => "{$user->name} left {$organization->short_name}: \"{$reason}\"",
+                'link' => 'hours',
+            ]);
+        }
+
+        return ['ok' => true];
+    }
+
     // POST /api/organizations/{organization}/reactivation  { message } -> an inactive member asks to be active again
     public function requestReactivation(Request $request, Organization $organization)
     {
@@ -132,7 +156,7 @@ class OrganizationController extends Controller
     {
         $this->officerOnly($request);
         // No SVG: it can carry scripts
-        $request->validate(['logo' => ['required', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048']]);
+        $request->validate(['logo' => ['required', 'image', 'mimes:png,jpg,jpeg', 'max:2048']]);
 
         $organization = Organization::current();
         $old = $organization->logo_path;
