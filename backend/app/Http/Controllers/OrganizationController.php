@@ -45,6 +45,19 @@ class OrganizationController extends Controller
         return ['ok' => true];
     }
 
+    // PUT /api/organizations/{organization}/application  { message } -> add or change the note to the officers while pending
+    public function updateApplication(Request $request, Organization $organization)
+    {
+        $message = $request->validate(['message' => 'nullable|string|max:500'])['message'] ?? null;
+        $updated = $request->user()->memberships()
+            ->where('organization_id', $organization->id)
+            ->where('status', 'Pending')
+            ->update(['application_message' => $message ? trim($message) : null]);
+        abort_unless($updated, 404, 'There is no pending application to change.');
+
+        return ['ok' => true];
+    }
+
     // POST /api/organizations/{organization}/reactivation  { message } -> an inactive member asks to be active again
     public function requestReactivation(Request $request, Organization $organization)
     {
@@ -71,6 +84,7 @@ class OrganizationController extends Controller
     public function join(Request $request, Organization $organization)
     {
         abort_unless($organization->status === 'Active', 404);
+        $message = $request->validate(['message' => 'nullable|string|max:500'])['message'] ?? null;
         $user = $request->user();
         $existing = $user->memberships()->where('organization_id', $organization->id)->first();
 
@@ -78,10 +92,15 @@ class OrganizationController extends Controller
             throw ValidationException::withMessages(['organization' => "You already applied to {$organization->name}."]);
         }
 
-        $user->memberships()->updateOrCreate(
-            ['organization_id' => $organization->id],
-            ['role' => 'member', 'position' => 'Member', 'status' => 'Pending', 'join_date' => null]
-        );
+        // Applying again after a rejection starts a fresh application (new date, old reason cleared)
+        $existing?->delete();
+        $user->memberships()->create([
+            'organization_id' => $organization->id,
+            'role' => 'member',
+            'position' => 'Member',
+            'status' => 'Pending',
+            'application_message' => $message ? trim($message) : null,
+        ]);
 
         // Let that org's officers know there is a new application
         $officerIds = $organization->memberships()->where('role', 'officer')->where('status', 'Active')->pluck('user_id');
@@ -90,7 +109,7 @@ class OrganizationController extends Controller
                 'organization_id' => $organization->id,
                 'user_id' => $officerId,
                 'message' => "{$user->name} applied to join {$organization->short_name}",
-                'link' => 'applications', // Members & Hours, Applications tab
+                'link' => 'applications', // Members & Hours -> Requests tab
             ]);
         }
 

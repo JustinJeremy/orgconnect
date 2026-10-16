@@ -9,7 +9,7 @@ import api, { unwrap } from "./client.js";
 // HourLog       { id, userId, memberName, activity, date, hours, status: "Pending"|"Approved"|"Rejected" }
 // Member        { id, name, email, position, joinDate, status: "Active"|"Inactive", approvedHours,
 //                 temporaryPassword (only right after adding a brand-new account) }
-// Application   { id, name, email, studentId, course, yearLevel, appliedAt, status }
+// Application   { id, name, email, studentId, course, yearLevel, appliedAt, message, status }
 // Session       { id, subject, area, tutorId, tutorName, schedule, location, slots, description }
 // Request       { id, sessionId, userId, requesterName, yearLevel, status: "Pending"|"Confirmed"|"Rejected"|"Completed" }
 // Resource      { id, title, subject, type, url, uploadedBy }
@@ -45,7 +45,8 @@ export const authApi = {
 export const orgsApi = {
   list: () => get("/organizations"), // public: every org with its details and color theme
   mine: () => get("/my-organizations"), // -> [{ organizationId, role, position, status }]
-  join: (slug) => post(`/organizations/${slug}/join`), // -> updated user for that org
+  join: (slug, message) => post(`/organizations/${slug}/join`, { message }), // -> updated user for that org
+  updateApplication: (slug, message) => put(`/organizations/${slug}/application`, { message }), // note to the officers while pending
   withdraw: (slug) => del(`/organizations/${slug}/application`), // cancel a pending application
   requestReactivation: (slug, message) => post(`/organizations/${slug}/reactivation`, { message }), // inactive members
   // Officers of the selected org: PNG/JPG/WebP up to 2 MB -> updated org (with logoUrl)
@@ -110,7 +111,7 @@ export const membersApi = {
   update: (id, data) => put(`/members/${id}`, data),
   remove: (id) => del(`/members/${id}`),
   applications: () => get("/applications"),
-  decideApplication: (id, status) => patch(`/applications/${id}`, { status }),
+  decideApplication: (id, status, reason) => patch(`/applications/${id}`, { status, reason }), // reason: when Rejected
   reactivations: () => get("/reactivations"), // inactive members asking to be active again
   decideReactivation: (id, status) => patch(`/reactivations/${id}`, { status }), // Approved | Declined
   resetPassword: (id) => post(`/members/${id}/reset-password`), // -> { temporaryPassword }
