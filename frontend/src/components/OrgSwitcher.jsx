@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import Icon from "./Icon.jsx";
 import OrgSwatch from "./OrgSwatch.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
-import { useAuth } from "../context/AuthContext.jsx";
+import { REGISTER_PATH, useAuth } from "../context/AuthContext.jsx";
 
 // Org name with a dropdown to switch organizations.
 // Orgs you joined switch instantly; picking another org opens its "join" screen.
@@ -82,12 +82,18 @@ export default function OrgSwitcher({ variant = "light" }) {
     return m.role === "officer" ? `${m.position} · Officer` : "Member";
   };
 
+  // Links, so right-click "Open in new tab" and Ctrl/middle-click open that org in a new tab
+  const plain = (e) => e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey;
   const renderItem = (org) => (
     <li key={org.id}>
-      <button
-        type="button"
+      <a
+        href={`/dashboard?org=${org.slug}`}
         className={`org-option ${org.slug === current.slug ? "is-current" : ""}`}
-        onClick={() => choose(org)}
+        onClick={(e) => {
+          if (!plain(e)) return;
+          e.preventDefault();
+          choose(org);
+        }}
         aria-current={org.slug === current.slug ? "true" : undefined}
       >
         <OrgSwatch org={org} />
@@ -96,7 +102,7 @@ export default function OrgSwitcher({ variant = "light" }) {
           <span className="org-option-note">{note(org)}</span>
         </span>
         {org.slug === current.slug && <Icon name="check" size={16} />}
-      </button>
+      </a>
     </li>
   );
 
@@ -134,10 +140,12 @@ export default function OrgSwitcher({ variant = "light" }) {
             </>
           )}
           {user && (
-            <button
-              type="button"
+            <a
+              href={REGISTER_PATH}
               className="org-option org-register"
-              onClick={() => {
+              onClick={(e) => {
+                if (!plain(e)) return;
+                e.preventDefault();
                 setMenuPos(null);
                 startOrgRegistration();
               }}
@@ -147,7 +155,7 @@ export default function OrgSwitcher({ variant = "light" }) {
                 <span className="org-option-name">Register an organization</span>
                 <span className="org-option-note">{requestNote(orgRequests?.[0])}</span>
               </span>
-            </button>
+            </a>
           )}
         </div>,
         document.body

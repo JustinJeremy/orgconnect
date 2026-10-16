@@ -3540,3 +3540,4 @@ a.btn { text-decoration: none; }
 /* ---------- Batch 15: menu items are links (so they can open in a new tab) ---------- */
 a.nav-item, a.sidebar-user-btn, a.logo-home { text-decoration: none; }
 a.sidebar-user-btn { color: inherit; }
+a.org-option { text-decoration: none; }

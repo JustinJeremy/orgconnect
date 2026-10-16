@@ -8,6 +8,7 @@ import { useOrg } from "./OrgContext.jsx";
 // so the user is reloaded whenever the org changes. `user.orgSlug` says which org it was loaded for.
 const AuthContext = createContext(null);
 const REGISTER_KEY = "orgconnect_register_org";
+export const REGISTER_PATH = "/register-org";
 
 export function AuthProvider({ children }) {
   const { current, loading: orgsLoading } = useOrg();
@@ -18,15 +19,18 @@ export function AuthProvider({ children }) {
   // Also while a new tab asks the other tabs for their sign-in (borrowSessionToken)
   const [checking, setChecking] = useState(true);
   const [authView, setAuthView] = useState(null); // which form Landing should open after signing out
-  // Signing up / in to register a new org: shows the registration form instead of the org (kept across reloads)
+  // Registering a new org: the registration form shows instead of the org. It has its own address,
+  // /register-org (Back/Forward and new tabs work); the flag also carries it through signing up/in.
   const [registeringOrg, setRegisteringOrg] = useState(() => {
+    if (window.location.pathname === REGISTER_PATH) return true;
     try {
       return sessionStorage.getItem(REGISTER_KEY) === "1";
     } catch {
       return false;
     }
   });
-  const setRegistering = useCallback((on) => {
+  // remember: keep the flag; address: also change the address bar (push = a new Back step)
+  const setRegistering = useCallback((on, { address = true } = {}) => {
     try {
       if (on) sessionStorage.setItem(REGISTER_KEY, "1");
       else sessionStorage.removeItem(REGISTER_KEY);
@@ -34,7 +38,18 @@ export function AuthProvider({ children }) {
       /* storage blocked: still works for this visit */
     }
     setRegisteringOrg(on);
+    if (!address) return;
+    const here = window.location.pathname === REGISTER_PATH;
+    if (on && !here) window.history.pushState(null, "", REGISTER_PATH);
+    if (!on && here) window.history.pushState(null, "", "/dashboard");
   }, []);
+
+  // Back / Forward into or out of /register-org
+  useEffect(() => {
+    const onPop = () => setRegistering(window.location.pathname === REGISTER_PATH, { address: false });
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [setRegistering]);
 
   const loadAccount = useCallback(async () => {
     const slug = getOrgSlug();
@@ -194,7 +209,8 @@ export function AuthProvider({ children }) {
     setUser(null);
     setMemberships([]);
     setOrgRequests([]);
-    setRegistering(false);
+    setRegistering(false, { address: false });
+    if (window.location.pathname === REGISTER_PATH) window.history.replaceState(null, "", "/");
     setAuthView(nextView);
   };
 
