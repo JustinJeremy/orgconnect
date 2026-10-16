@@ -57,7 +57,7 @@ export const orgsApi = {
   updateApplication: (slug, message) => put(`/organizations/${slug}/application`, { message }), // note to the officers while pending
   withdraw: (slug) => del(`/organizations/${slug}/application`), // cancel a pending application
   requestReactivation: (slug, message) => post(`/organizations/${slug}/reactivation`, { message }), // inactive members
-  // Officers of the selected org: PNG/JPG/WebP up to 2 MB -> updated org (with logoUrl)
+  // Officers of the selected org: PNG/JPG up to 2 MB -> updated org (with logoUrl)
   leave: (slug, reason) => api.delete(`/organizations/${slug}/membership`, { data: { reason } }).then(unwrap), // with a reason
   // Changing the org's details (President): reviewed by the platform admin before they apply
   changeRequest: () => get("/organization/change-requests"), // -> { request: OrgChange | null }

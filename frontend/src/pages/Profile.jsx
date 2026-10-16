@@ -193,14 +193,14 @@ function OrgLogoForm({ flash }) {
         <div className="org-logo-actions">
           <label className={`btn btn-primary btn-sm ${busy ? "is-disabled" : ""}`}>
             <Icon name="upload" size={15} /> {org.logoUrl ? "Change logo" : "Upload logo"}
-            <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleFile} disabled={busy} />
+            <input type="file" accept="image/png,image/jpeg" className="sr-only" onChange={handleFile} disabled={busy} />
           </label>
           {org.logoUrl && (
             <button type="button" className="btn btn-outline btn-sm" disabled={busy} onClick={() => run(orgsApi.removeLogo, "Logo removed")}>
               Remove
             </button>
           )}
-          <p className="muted small">PNG, JPG or WebP, up to 2 MB. A square image works best.</p>
+          <p className="muted small">PNG or JPG, up to 2 MB. A square image works best.</p>
         </div>
       </div>
     </div>

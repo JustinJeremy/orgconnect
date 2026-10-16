@@ -156,7 +156,7 @@ class OrganizationController extends Controller
     {
         $this->officerOnly($request);
         // No SVG: it can carry scripts
-        $request->validate(['logo' => ['required', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048']]);
+        $request->validate(['logo' => ['required', 'image', 'mimes:png,jpg,jpeg', 'max:2048']]);
 
         $organization = Organization::current();
         $old = $organization->logo_path;
