@@ -10,6 +10,7 @@ import Announcements from "./pages/Announcements.jsx";
 import JoinOrg from "./pages/JoinOrg.jsx";
 import RegisterOrg from "./pages/RegisterOrg.jsx";
 import AdminApp from "./pages/AdminApp.jsx";
+import useUrlPage from "./hooks/useUrlPage.js";
 import RejectApplicationDialog from "./components/RejectApplicationDialog.jsx";
 import { ADMIN_THEME, applyTheme } from "./utils/theme.js";
 import Profile from "./pages/Profile.jsx";
@@ -33,6 +34,8 @@ import {
   notificationsApi,
   tutoringApi,
 } from "./api/services.js";
+
+const APP_PAGES = ["dashboard", "events", "hours", "tutoring", "announcements", "profile", "notifications"];
 
 const PAGE_META = {
   notifications: { title: "Notifications" },
@@ -94,7 +97,8 @@ const EMPTY_DATA = Object.fromEntries(
 function MainApp() {
   const { user } = useAuth();
   const isOfficer = user.role === "officer";
-  const [page, setPage] = useState("dashboard");
+  // The page is in the address bar (/events, /hours...): refresh, Back and new tabs work
+  const [page, setPage] = useUrlPage(APP_PAGES, "dashboard");
   // Goes up when you click the menu item of the page you're already on: the page starts over
   // (its first tab, no filters)
   const [pageReset, setPageReset] = useState(0);

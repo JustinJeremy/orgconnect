@@ -1,4 +1,6 @@
 import Icon from "./Icon.jsx";
+import { isPlainClick, pagePath } from "../hooks/useUrlPage.js";
+import { useOrg } from "../context/OrgContext.jsx";
 import Logo from "./Logo.jsx";
 import Rings from "./Rings.jsx";
 import OrgSwitcher from "./OrgSwitcher.jsx";
@@ -20,6 +22,15 @@ export default function Sidebar({ page, onNavigate, open, onClose, collapsed, on
     onNavigate(key);
     onClose();
   };
+  // Opened in a new tab, a link keeps this tab's org
+  const { current } = useOrg();
+  const tabLink = (key) => `${pagePath(key)}?org=${current.slug}`;
+  // A plain click switches page here; Ctrl/middle-click is left to the browser (new tab)
+  const linkClick = (e, key) => {
+    if (!isPlainClick(e)) return;
+    e.preventDefault();
+    handleNavigate(key);
+  };
 
   return (
     <>
@@ -35,7 +46,7 @@ export default function Sidebar({ page, onNavigate, open, onClose, collapsed, on
       <aside className={`sidebar ${open ? "open" : ""}`}>
         <Rings preset="sidebar" />
         <div className="sidebar-brand">
-          <Logo size={35} subtitle={<OrgSwitcher variant="sidebar" />} onHome={() => handleNavigate("dashboard")} />
+          <Logo size={35} subtitle={<OrgSwitcher variant="sidebar" />} homeHref={tabLink("dashboard")} onHome={() => handleNavigate("dashboard")} />
           <button
             type="button"
             className="icon-btn sidebar-collapse"
@@ -50,25 +61,26 @@ export default function Sidebar({ page, onNavigate, open, onClose, collapsed, on
 
         <nav className="nav" aria-label="Main">
           {NAV_ITEMS.map((item) => (
-            <button
+            // Real links: Ctrl/middle-click opens the page in a new tab
+            <a
               key={item.key}
-              type="button"
+              href={tabLink(item.key)}
               className={`nav-item ${page === item.key ? "active" : ""}`}
-              onClick={() => handleNavigate(item.key)}
+              onClick={(e) => linkClick(e, item.key)}
               aria-current={page === item.key ? "page" : undefined}
               title={collapsed ? item.label : undefined}
             >
               <Icon name={item.icon} />
               <span className="nav-label">{item.label}</span>
-            </button>
+            </a>
           ))}
         </nav>
 
         <div className="sidebar-user">
-          <button
-            type="button"
+          <a
+            href={tabLink("profile")}
             className={`sidebar-user-btn ${page === "profile" ? "active" : ""}`}
-            onClick={() => handleNavigate("profile")}
+            onClick={(e) => linkClick(e, "profile")}
             aria-current={page === "profile" ? "page" : undefined}
             title="Profile & settings"
           >
@@ -79,7 +91,7 @@ export default function Sidebar({ page, onNavigate, open, onClose, collapsed, on
                 {user.role === "officer" ? `${user.position} · Officer` : "Member"}
               </span>
             </span>
-          </button>
+          </a>
           <button type="button" className="icon-btn" aria-label="Sign out" onClick={() => logout()}>
             <Icon name="logout" />
           </button>

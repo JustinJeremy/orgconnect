@@ -3536,3 +3536,8 @@ a.btn { text-decoration: none; }
 
 /* Tutoring session: its next actual date */
 .session-next { margin-left: 0.375rem; padding: 0.0625rem 0.5rem; border-radius: 999px; background: var(--sky-soft); color: var(--navy); font-weight: 700; font-size: 0.75rem; }
+
+/* ---------- Batch 15: menu items are links (so they can open in a new tab) ---------- */
+a.nav-item, a.sidebar-user-btn, a.logo-home { text-decoration: none; }
+a.sidebar-user-btn { color: inherit; }
+a.org-option { text-decoration: none; }

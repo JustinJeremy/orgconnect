@@ -23,8 +23,10 @@ function EventPills({ items, value, onChange }) {
       if (el) setMark({ x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight });
     };
     measure();
-    // The pills change size when the web font finishes loading, so measure again then
+    // Measure again when the pills change size (the web font loads) or the row around them does
+    // (sidebar collapsed, a scrollbar appears): the pills are centered, so they move
     const observer = new ResizeObserver(measure);
+    if (wrapRef.current) observer.observe(wrapRef.current.parentElement || wrapRef.current);
     wrapRef.current?.querySelectorAll(".pill").forEach((el) => observer.observe(el));
     document.fonts?.ready.then(measure);
     window.addEventListener("resize", measure);

@@ -32,7 +32,13 @@ export function LogoMark({ size = 38, variant = "color" }) {
 }
 
 // onHome: makes the mark and the word "OrgConnect" a button to the home page (Dashboard / Overview)
-export default function Logo({ size = 36, variant = "color", showText = true, stacked = false, subtitle, onHome }) {
+// homeHref: the home page's address, so Ctrl/middle-click on the logo opens it in a new tab
+export default function Logo({ size = 36, variant = "color", showText = true, stacked = false, subtitle, onHome, homeHref = "/" }) {
+  const goHome = (e) => {
+    if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return; // new tab: the browser's job
+    e.preventDefault();
+    onHome();
+  };
   const classes = ["logo", stacked ? "logo-stacked" : "", variant === "white" ? "logo-white" : ""]
     .filter(Boolean)
     .join(" ");
@@ -40,18 +46,18 @@ export default function Logo({ size = 36, variant = "color", showText = true, st
   return (
     <span className={classes} role={typeof subtitle === "object" ? undefined : "img"} aria-label={typeof subtitle === "object" ? undefined : "OrgConnect"}>
       {onHome ? (
-        <button type="button" className="logo-home" onClick={onHome} aria-label="OrgConnect: go to the home page" title="Home">
+        <a href={homeHref} className="logo-home" onClick={goHome} aria-label="OrgConnect: go to the home page" title="Home">
           <LogoMark size={size} variant={variant} />
-        </button>
+        </a>
       ) : (
         <LogoMark size={size} variant={variant} />
       )}
       {showText && (
         <span className="logo-text">
           {onHome ? (
-            <button type="button" className="logo-home logo-word" style={{ fontSize: size * 0.56 }} onClick={onHome} tabIndex={-1} aria-hidden="true">
+            <a href={homeHref} className="logo-home logo-word" style={{ fontSize: size * 0.56 }} onClick={goHome} tabIndex={-1} aria-hidden="true">
               OrgConnect
-            </button>
+            </a>
           ) : (
             <span className="logo-word" style={{ fontSize: stacked ? size * 0.52 : size * 0.56 }}>
               OrgConnect

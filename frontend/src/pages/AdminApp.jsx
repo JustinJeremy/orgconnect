@@ -12,6 +12,7 @@ import Toast from "../components/Toast.jsx";
 import Tour from "../components/Tour.jsx";
 import { StatusBadge } from "../components/Badges.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import useUrlPage, { isPlainClick, pagePath } from "../hooks/useUrlPage.js";
 import { adminApi } from "../api/services.js";
 import { errorMessage } from "../api/client.js";
 import { ADMIN_TOUR } from "../data/tourSteps.js";
@@ -28,7 +29,14 @@ const TOUR_KEY = (id) => `orgconnect_tour_seen_${id}`;
 
 export default function AdminApp() {
   const { user, logout } = useAuth();
-  const [page, setPage] = useState("overview");
+  // /admin/overview, /admin/requests, /admin/organizations
+  const [page, setPage] = useUrlPage(Object.keys(PAGES), "overview", "/admin");
+  const go = (e, key) => {
+    if (!isPlainClick(e)) return; // Ctrl/middle-click: new tab
+    e.preventDefault();
+    setPage(key);
+    setMenuOpen(false);
+  };
   const [menuOpen, setMenuOpen] = useState(false);
   const [data, setData] = useState(null);
   const [loadError, setLoadError] = useState("");
@@ -123,6 +131,7 @@ export default function AdminApp() {
           <Logo
             size={35}
             subtitle={<span className="admin-subtitle">Platform admin</span>}
+            homeHref={pagePath("overview", "/admin")}
             onHome={() => {
               setPage("overview");
               setMenuOpen(false);
@@ -131,20 +140,17 @@ export default function AdminApp() {
         </div>
         <nav className="nav" aria-label="Main" data-tour="admin-nav">
           {Object.entries(PAGES).map(([key, item]) => (
-            <button
+            <a
               key={key}
-              type="button"
+              href={pagePath(key, "/admin")}
               className={`nav-item ${page === key ? "active" : ""}`}
               aria-current={page === key ? "page" : undefined}
-              onClick={() => {
-                setPage(key);
-                setMenuOpen(false);
-              }}
+              onClick={(e) => go(e, key)}
             >
               <Icon name={item.icon} />
               <span className="nav-label">{item.label}</span>
               {key === "requests" && pending.length > 0 && <span className="nav-count">{pending.length}</span>}
-            </button>
+            </a>
           ))}
         </nav>
         <div className="sidebar-user">

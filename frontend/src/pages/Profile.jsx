@@ -208,7 +208,7 @@ function OrgLogoForm({ flash }) {
 // Every org you joined or applied to, with your role there; switch to it from here
 function MyOrganizations() {
   const { memberships } = useAuth();
-  const { organizations, current, selectOrg } = useOrg();
+  const { organizations, current, switchOrg } = useOrg();
 
   const mine = organizations
     .map((org) => ({ org, m: memberships.find((m) => m.organizationId === org.id) }))
@@ -228,7 +228,7 @@ function MyOrganizations() {
             <span className="muted small">Viewing</span>
           ) : (
             m.status !== "Rejected" && (
-              <button type="button" className="btn btn-outline btn-sm" onClick={() => selectOrg(org.slug)}>
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => switchOrg(org.slug)}>
                 Switch
               </button>
             )
