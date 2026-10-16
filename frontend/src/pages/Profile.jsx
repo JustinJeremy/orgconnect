@@ -245,9 +245,10 @@ export default function Profile({ data, loading, flash }) {
   const attended = data.events.filter((e) => myRegistration(e, user.id)?.status === "attended").length;
 
   const stats = [
-    { label: "Approved hours", value: approved, note: `In ${org.shortName}` },
-    { label: "Events attended", value: attended, note: `In ${org.shortName}` },
-    { label: "Certificates", value: data.certificates.length, note: "From events you attended" },
+    // Your own numbers (the officer dashboard shows the whole org's)
+    { label: "Your approved hours", value: approved, note: `Your logs in ${org.shortName}` },
+    { label: "Events you attended", value: attended, note: `In ${org.shortName}` },
+    { label: "Your certificates", value: data.certificates.length, note: "From events you attended" },
   ];
 
   return (

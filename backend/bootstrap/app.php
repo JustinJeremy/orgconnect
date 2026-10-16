@@ -18,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->api(prepend: [ResolveOrganization::class]);
+        // Behind a hosting proxy (Railway, Render...): use the visitor's real IP for rate limits
+        // and build https:// links (logos, posters) like the page itself
+        $middleware->trustProxies(at: '*');
         $middleware->alias(['org.member' => EnsureOrganizationMember::class, 'admin' => EnsureAdmin::class]);
 
         // Pick the org before route model binding, so /api/events/{id} only finds this org's events

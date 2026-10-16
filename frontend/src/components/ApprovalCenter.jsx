@@ -56,6 +56,7 @@ export default function ApprovalCenter({
         id: `m${a.id}`,
         name: a.name,
         detail: `${a.course} · ${a.yearLevel} · ${a.studentId}`,
+        note: a.message,
         amount: "Applied",
         when: shortDate(a.appliedAt),
         decide: (status) => onDecideApplication(a, status),
@@ -94,6 +95,7 @@ export default function ApprovalCenter({
               <div className="review-text">
                 <div className="review-name">{row.name}</div>
                 <div className="review-detail">{row.detail}</div>
+                {row.note && <div className="review-note">"{row.note}"</div>}
               </div>
               {(row.amount || row.when) && (
                 <div className="review-when">

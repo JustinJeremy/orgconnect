@@ -1665,12 +1665,14 @@ select.input {
 .org-picker { padding-top: 1rem; padding-bottom: 4rem; text-align: center; }
 .org-picker h2 { margin: 0 0 0.25rem; font-size: 1.5rem; color: var(--navy); }
 .org-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 22rem));
+  /* flex (not grid) so a card left alone on the last row is centered */
+  display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 1rem;
   margin-top: 1.5rem;
 }
+.org-cards > .org-card { flex: 0 1 22rem; min-width: min(16rem, 100%); }
 .org-card {
   --card-navy: var(--navy);       /* each card sets its own org's color (Landing.jsx) */
   --card-highlight: var(--accent);
@@ -2610,3 +2612,15 @@ span.course-chip { cursor: default; }
 .status-suspended::before { background: var(--red); }
 .proof-link { display: inline-flex; align-items: center; gap: 0.375rem; word-break: break-all; }
 .label { font-weight: 600; font-size: 0.875rem; }
+
+/* ---------- Batch 11 ---------- */
+/* The OrgConnect logo as a link home */
+.logo-home { padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; display: inline-flex; border-radius: 0.625rem; }
+.logo-home.logo-word { font-weight: 800; line-height: 1.1; text-align: left; }
+.logo-home:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* An applicant's message to the officers */
+.review-note { margin-top: 0.125rem; color: var(--ink-2); font-style: italic; font-size: 0.875rem; overflow-wrap: anywhere; }
+.dash-card .review-note { font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.join-sent-note { padding: 0.75rem 0.875rem; border-radius: 0.875rem; background: var(--sky-soft); }
+.join-sent-note p { margin: 0.25rem 0; color: var(--ink-2); font-style: italic; overflow-wrap: anywhere; }

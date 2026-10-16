@@ -114,10 +114,21 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Apply to the selected org with the account you're signed in with
-  const joinOrg = async () => {
+  // Apply to the selected org with the account you're signed in with (message: optional note to the officers)
+  const joinOrg = async (message) => {
     try {
-      await orgsApi.join(orgSlug);
+      await orgsApi.join(orgSlug, message || null);
+      await loadAccount();
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, message: errorMessage(error) };
+    }
+  };
+
+  // Add or change the note to the officers while the application is pending
+  const updateApplication = async (message) => {
+    try {
+      await orgsApi.updateApplication(orgSlug, message || null);
       await loadAccount();
       return { ok: true };
     } catch (error) {
@@ -179,6 +190,7 @@ export function AuthProvider({ children }) {
         startOrgRegistration: () => setRegistering(true),
         endOrgRegistration: () => setRegistering(false),
         withdrawApplication,
+        updateApplication,
         requestReactivation,
         logout,
         authView,

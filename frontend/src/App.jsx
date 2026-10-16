@@ -10,6 +10,7 @@ import Announcements from "./pages/Announcements.jsx";
 import JoinOrg from "./pages/JoinOrg.jsx";
 import RegisterOrg from "./pages/RegisterOrg.jsx";
 import AdminApp from "./pages/AdminApp.jsx";
+import RejectApplicationDialog from "./components/RejectApplicationDialog.jsx";
 import { ADMIN_THEME, applyTheme } from "./utils/theme.js";
 import Profile from "./pages/Profile.jsx";
 import Sidebar from "./components/Sidebar.jsx";
@@ -116,6 +117,7 @@ function MainApp() {
   const [loadError, setLoadError] = useState("");
   const [attendanceEvent, setAttendanceEvent] = useState(null);
   const [confirmState, setConfirmState] = useState(null);
+  const [reasonState, setReasonState] = useState(null); // { app, resolve }: rejecting an application
   const [tempPassword, setTempPassword] = useState(null); // { name, email, password, isNew }
 
   const [toast, setToast] = useState(null);
@@ -206,6 +208,8 @@ function MainApp() {
 
   const confirm = (options) =>
     new Promise((resolve) => setConfirmState({ ...options, resolve }));
+  // Resolves with the typed reason, or null if cancelled
+  const askReason = (app) => new Promise((resolve) => setReasonState({ app, resolve }));
 
   const closeConfirm = (answer) => {
     confirmState?.resolve(answer);
@@ -311,11 +315,15 @@ function MainApp() {
       });
       if (ok) run(async () => (await membersApi.remove(member.id), drop("members", member.id)), `${member.name} removed`);
     },
-    decideApplication: (app, status) =>
-      run(async () => {
-        upsert("applications", await membersApi.decideApplication(app.id, status));
+    decideApplication: async (app, status) => {
+      // Rejecting asks for a reason, which the applicant sees
+      const reason = status === "Rejected" ? await askReason(app) : null;
+      if (status === "Rejected" && reason === null) return;
+      await run(async () => {
+        upsert("applications", await membersApi.decideApplication(app.id, status, reason));
         if (status === "Approved") reload("members");
-      }, status === "Approved" ? `${app.name} is now a member` : `${app.name}'s application was declined`),
+      }, status === "Approved" ? `${app.name} is now a member` : `${app.name}'s application was declined`);
+    },
     decideReactivation: (request, status) =>
       run(async () => {
         await membersApi.decideReactivation(request.id, status);
@@ -488,6 +496,20 @@ function MainApp() {
           confirmLabel={confirmState.confirmLabel}
           onCancel={() => closeConfirm(false)}
           onConfirm={() => closeConfirm(true)}
+        />
+      )}
+
+      {reasonState && (
+        <RejectApplicationDialog
+          applicant={reasonState.app}
+          onCancel={() => {
+            reasonState.resolve(null);
+            setReasonState(null);
+          }}
+          onReject={(reason) => {
+            reasonState.resolve(reason);
+            setReasonState(null);
+          }}
         />
       )}
 

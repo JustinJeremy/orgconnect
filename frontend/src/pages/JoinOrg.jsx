@@ -107,41 +107,114 @@ export default function JoinOrg() {
 
 function Apply({ org, user }) {
   const { joinOrg } = useAuth();
+  const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const rejection = user.membershipStatus === "Rejected" ? user.rejection || {} : null;
 
   const apply = async () => {
     setBusy(true);
     setError("");
-    const result = await joinOrg();
+    const result = await joinOrg(message.trim());
     setBusy(false);
     if (!result.ok) setError(result.message);
   };
 
-  if (user.membershipStatus === "Rejected") {
-    return (
-      <>
-        <h2>Application not approved</h2>
-        <p className="muted">
-          Your application to {org.shortName} was not approved. Contact the officers at {org.email || "the org office"} if
-          you think this is a mistake.
-        </p>
-      </>
+  return (
+    <>
+      {rejection ? (
+        <>
+          <p className="join-state is-inactive">
+            <Icon name="alert" size={16} /> Not approved
+          </p>
+          <h2>Your application wasn't approved</h2>
+          <div className="join-reason">
+            <div className="muted small">
+              {rejection.by ? `Reason from ${rejection.by}${rejection.byPosition ? ` (${rejection.byPosition})` : ""}` : "Reason"}
+              {rejection.at && ` · ${shortDate(rejection.at)}`}
+            </div>
+            <p>{rejection.reason || `No reason was given. Contact the officers at ${org.email || "the org office"}.`}</p>
+          </div>
+          <p className="muted">If you've sorted it out, you can apply again.</p>
+        </>
+      ) : (
+        <>
+          <h2>Join {org.shortName}</h2>
+          <p className="muted">
+            You're signed in as <strong>{user.email}</strong>. Apply with this account and an officer will review your
+            application. Events, hours and tutoring open up once you're approved.
+          </p>
+        </>
+      )}
+      <MessageField id="apply-message" value={message} onChange={setMessage} />
+      {error && <div className="alert alert-error" role="alert">{error}</div>}
+      <button type="button" className="btn btn-accent btn-block" onClick={apply} disabled={busy}>
+        {busy ? "Sending application…" : rejection ? "Apply again" : `Apply to join ${org.shortName}`}
+      </button>
+    </>
+  );
+}
+
+// Optional note to the officers who review the application
+function MessageField({ id, value, onChange }) {
+  return (
+    <div className="field">
+      <label htmlFor={id}>
+        Message to the officers <span className="muted">(optional)</span>
+      </label>
+      <textarea
+        id={id}
+        className="input"
+        rows="3"
+        maxLength={500}
+        placeholder="e.g. Why you'd like to join, or events you've helped with"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
+  );
+}
+
+// On the "under review" screen: add or change the note to the officers
+function ApplicationMessage({ user }) {
+  const { updateApplication } = useAuth();
+  const [editing, setEditing] = useState(false);
+  const [message, setMessage] = useState(user.applicationMessage || "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const save = async () => {
+    setBusy(true);
+    setError("");
+    const result = await updateApplication(message.trim());
+    setBusy(false);
+    if (result.ok) setEditing(false);
+    else setError(result.message);
+  };
+
+  if (!editing) {
+    return user.applicationMessage ? (
+      <div className="join-sent-note">
+        <div className="muted small">Your message to the officers</div>
+        <p>"{user.applicationMessage}"</p>
+        <button type="button" className="link-btn" onClick={() => setEditing(true)}>Edit message</button>
+      </div>
+    ) : (
+      <button type="button" className="btn btn-outline btn-block" onClick={() => setEditing(true)}>
+        <Icon name="edit" size={16} /> Add a message for the officers
+      </button>
     );
   }
 
   return (
-    <>
-      <h2>Join {org.shortName}</h2>
-      <p className="muted">
-        You're signed in as <strong>{user.email}</strong>. Apply with this account and an officer will review your
-        application. Events, hours and tutoring open up once you're approved.
-      </p>
+    <div className="stack">
+      <MessageField id="pending-message" value={message} onChange={setMessage} />
       {error && <div className="alert alert-error" role="alert">{error}</div>}
-      <button type="button" className="btn btn-accent btn-block" onClick={apply} disabled={busy}>
-        {busy ? "Sending application…" : `Apply to join ${org.shortName}`}
-      </button>
-    </>
+      <div className="form-actions">
+        <button type="button" className="btn btn-outline" onClick={() => setEditing(false)}>Cancel</button>
+        <button type="button" className="btn btn-primary" onClick={save} disabled={busy}>{busy ? "Saving…" : "Save message"}</button>
+      </div>
+    </div>
   );
 }
 
@@ -196,6 +269,7 @@ function UnderReview({ org, user }) {
         <Icon name="alert" size={16} /> Events, hours and tutoring open up once you're approved. Until then you can switch
         to another org you belong to.
       </p>
+      <ApplicationMessage user={user} />
       {error && <div className="alert alert-error" role="alert">{error}</div>}
       <button type="button" className="btn btn-outline btn-block" onClick={withdraw} disabled={busy}>
         {busy ? "Withdrawing…" : "Withdraw application"}

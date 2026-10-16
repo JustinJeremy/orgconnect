@@ -35,7 +35,7 @@ export default function Sidebar({ page, onNavigate, open, onClose, collapsed, on
       <aside className={`sidebar ${open ? "open" : ""}`}>
         <Rings preset="sidebar" />
         <div className="sidebar-brand">
-          <Logo size={35} subtitle={<OrgSwitcher variant="sidebar" />} />
+          <Logo size={35} subtitle={<OrgSwitcher variant="sidebar" />} onHome={() => handleNavigate("dashboard")} />
           <button
             type="button"
             className="icon-btn sidebar-collapse"

@@ -101,12 +101,13 @@ function OfficerDashboard({ header, data, loading, onNavigate, events: eventActi
     {
       label: "Approved Hours",
       value: sumHours(hours.filter((h) => h.status === "Approved")),
-      note: pendingHours ? `${pendingHours} hrs awaiting review` : "Nothing awaiting review",
+      // The whole org's hours (your own are on Profile & settings)
+      note: pendingHours ? `All members · ${pendingHours} hrs awaiting review` : "All members · nothing awaiting review",
     },
     {
       label: "Attendance Rate",
       value: completed.length ? `${percent(attended, registered)}%` : "—",
-      note: completed.length ? `Across ${plural(completed.length, "completed event")}` : "No completed events yet",
+      note: completed.length ? `All members · ${plural(completed.length, "completed event")}` : "No completed events yet",
     },
   ];
 
