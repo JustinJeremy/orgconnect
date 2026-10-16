@@ -18,8 +18,8 @@ import { myRegistration } from "../utils/format.js";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Name, student ID, email, course and year level. Your own details are yours to keep up to date
-// (officers can't change the email of someone who also belongs to another org).
+// Name, student ID, email, course and year level. Locked (read-only) for the school year:
+// the admin opens updates at the start of a new one, and corrects mistakes in the meantime.
 function DetailsForm({ user, flash }) {
   const { updateProfile } = useAuth();
   const [formData, setFormData] = useState({
@@ -40,8 +40,11 @@ function DetailsForm({ user, flash }) {
     setError("");
   };
 
+  const locked = user.detailsLocked;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (locked) return;
     const data = { ...formData, name: formData.name.trim(), studentId: formData.studentId.trim(), email: formData.email.trim() };
     if (!data.name || !data.studentId || !data.email) return setError("Name, student ID and email are required.");
     if (!EMAIL.test(data.email)) return setError("Enter a valid email address.");
@@ -56,7 +59,12 @@ function DetailsForm({ user, flash }) {
   return (
     <form className="profile-form" onSubmit={handleSubmit} noValidate>
       {error && <div className="alert alert-error" role="alert">{error}</div>}
-      <div className="form-grid">
+      {locked && (
+        <div className="alert alert-info details-locked">
+          <Icon name="lock" size={15} /> Your details are locked for this school year. Ask the OrgConnect admin if something is wrong.
+        </div>
+      )}
+      <fieldset className="form-grid details-fields" disabled={locked}>
         <div className="field span-2">
           <label htmlFor="pf-name">Full name</label>
           <input id="pf-name" className="input" name="name" value={formData.name} onChange={handleChange} autoComplete="name" />
@@ -85,12 +93,14 @@ function DetailsForm({ user, flash }) {
             ))}
           </select>
         </div>
-      </div>
-      <div className="form-actions">
-        <button type="submit" className="btn btn-primary" disabled={saving}>
-          {saving ? "Saving…" : "Save changes"}
-        </button>
-      </div>
+      </fieldset>
+      {!locked && (
+        <div className="form-actions">
+          <button type="submit" className="btn btn-primary" disabled={saving}>
+            {saving ? "Saving…" : "Save changes"}
+          </button>
+        </div>
+      )}
     </form>
   );
 }

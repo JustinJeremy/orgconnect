@@ -86,6 +86,9 @@ export const adminApi = {
   decideChange: (id, decision, note) => patch(`/admin/change-requests/${id}`, { decision, note }), // org detail changes
   users: getPage("/admin/users"), // { search, page, perPage } -> every account, with their orgs
   resetPassword: (id) => post(`/admin/users/${id}/reset-password`), // -> { temporaryPassword } (only the admin)
+  updateUser: (id, data) => put(`/admin/users/${id}`, data), // { name, email, studentId, course, yearLevel }
+  settings: () => get("/admin/settings"), // -> { detailsOpen }
+  saveSettings: (data) => put("/admin/settings", data),
 };
 
 export const eventsApi = {

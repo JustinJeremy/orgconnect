@@ -56,7 +56,7 @@ class MembershipStatusTest extends TestCase
         $org = $this->compSoc();
         $president = $this->person($org, 'officer', 'Active', ['name' => 'Maria Santos']);
         $member = $this->person($org);
-        $body = ['name' => $member->name, 'email' => $member->email, 'position' => 'Member', 'status' => 'Inactive'];
+        $body = ['position' => 'Member', 'status' => 'Inactive'];
 
         $this->actingIn($president, $org)->putJson("/api/members/{$member->id}", $body)
             ->assertStatus(422)->assertJsonValidationErrors('inactiveReason');
@@ -79,7 +79,7 @@ class MembershipStatusTest extends TestCase
         $treasurer = $this->person($org, 'officer', 'Active', [], 'Treasurer');
         $member = $this->person($org, 'member', 'Active', ['name' => 'Enzo Villanueva']);
         $this->actingIn($president, $org)->putJson("/api/members/{$member->id}", [
-            'name' => $member->name, 'email' => $member->email, 'position' => 'Member', 'status' => 'Inactive', 'inactiveReason' => 'Fee unpaid',
+            'position' => 'Member', 'status' => 'Inactive', 'inactiveReason' => 'Fee unpaid',
         ])->assertOk();
 
         $this->actingIn($member, $org)->postJson("/api/organizations/{$org->slug}/reactivation", ['message' => 'I paid the fee today.'])->assertOk();
@@ -103,7 +103,7 @@ class MembershipStatusTest extends TestCase
         $president = $this->person($org, 'officer');
         $member = $this->person($org);
         $this->actingIn($president, $org)->putJson("/api/members/{$member->id}", [
-            'name' => $member->name, 'email' => $member->email, 'position' => 'Member', 'status' => 'Inactive', 'inactiveReason' => 'Fee unpaid',
+            'position' => 'Member', 'status' => 'Inactive', 'inactiveReason' => 'Fee unpaid',
         ]);
         $this->actingIn($member, $org)->postJson("/api/organizations/{$org->slug}/reactivation", ['message' => 'Please?']);
 

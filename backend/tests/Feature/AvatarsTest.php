@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Setting;
 use App\Models\VolunteerHour;
 use Tests\TestCase;
 
@@ -50,7 +51,8 @@ class AvatarsTest extends TestCase
         $this->actingIn($admin, $org)->putJson('/api/user', ['name' => 'Platform Admin', 'email' => 'admin@school.edu.ph'])->assertOk();
         $this->assertSame('Platform Admin', $admin->fresh()->name);
 
-        // Students still need theirs
+        // Students still need theirs (when their details are open for updates)
+        Setting::setFlag(Setting::DETAILS_OPEN, true);
         $student = $this->person($org);
         $this->actingIn($student, $org)->putJson('/api/user', ['name' => 'X', 'email' => 'x@school.edu.ph'])->assertStatus(422);
     }

@@ -68,34 +68,21 @@ class DefectFixesTest extends TestCase
         $this->logHours($member, $org, 3, now()->subDay()->toDateString())->assertCreated();   // another day is fine
     }
 
-    // #5: lockout
-    public function test_an_officer_cannot_change_the_email_of_someone_in_another_org(): void
+    // #5 / Batch 16: name and email belong to the person's account; officers change only position and status
+    public function test_officers_change_only_position_and_status(): void
     {
         $org = $this->compSoc();
         $president = $this->person($org, 'officer');
-        $shared = $this->person($this->secondOrg(), 'officer', 'Active', ['email' => 'andrea@school.edu.ph']);
-        $shared->memberships()->create(['organization_id' => $org->id, 'role' => 'member', 'position' => 'Member', 'status' => 'Active']);
-
-        $this->actingIn($president, $org)->putJson("/api/members/{$shared->id}", [
-            'name' => $shared->name, 'email' => 'someone.else@school.edu.ph', 'position' => 'Member', 'status' => 'Active',
-        ])->assertStatus(422);
-        $this->assertDatabaseHas('users', ['id' => $shared->id, 'email' => 'andrea@school.edu.ph']);
-
-        // Their status in this org can still be changed
-        $this->actingIn($president, $org)->putJson("/api/members/{$shared->id}", [
-            'name' => $shared->name, 'email' => 'andrea@school.edu.ph', 'position' => 'Member', 'status' => 'Inactive', 'inactiveReason' => 'Missed three assemblies',
-        ])->assertOk();
-    }
-
-    public function test_an_officer_can_still_manage_someone_only_in_their_org(): void
-    {
-        $org = $this->compSoc();
-        $president = $this->person($org, 'officer');
-        $member = $this->person($org);
+        $member = $this->person($org, 'member', 'Active', ['email' => 'andrea@school.edu.ph']);
 
         $this->actingIn($president, $org)->putJson("/api/members/{$member->id}", [
-            'name' => 'New Name', 'email' => 'new.name@school.edu.ph', 'position' => 'Member', 'status' => 'Active',
-        ])->assertOk();
+            'name' => 'New Name', 'email' => 'someone.else@school.edu.ph', 'position' => 'Member', 'status' => 'Active',
+        ])->assertStatus(422)->assertJsonValidationErrors(['name', 'email']);
+        $this->assertDatabaseHas('users', ['id' => $member->id, 'email' => 'andrea@school.edu.ph']);
+
+        $this->actingIn($president, $org)->putJson("/api/members/{$member->id}", [
+            'position' => 'Member', 'status' => 'Inactive', 'inactiveReason' => 'Missed three assemblies',
+        ])->assertOk()->assertJsonPath('status', 'Inactive');
     }
 
     // #6 and the member-management rules
@@ -109,17 +96,17 @@ class DefectFixesTest extends TestCase
         // A VP can't remove or edit the President, or promote a member
         $this->actingIn($vp, $org)->deleteJson("/api/members/{$president->id}")->assertForbidden();
         $this->actingIn($vp, $org)->putJson("/api/members/{$member->id}", [
-            'name' => $member->name, 'email' => $member->email, 'position' => 'Treasurer', 'status' => 'Active',
+            'position' => 'Treasurer', 'status' => 'Active',
         ])->assertForbidden();
 
         // A VP can manage regular members
         $this->actingIn($vp, $org)->putJson("/api/members/{$member->id}", [
-            'name' => $member->name, 'email' => $member->email, 'position' => 'Member', 'status' => 'Inactive', 'inactiveReason' => 'Missed three assemblies',
+            'position' => 'Member', 'status' => 'Inactive', 'inactiveReason' => 'Missed three assemblies',
         ])->assertOk();
 
         // The President can promote and remove officers
         $this->actingIn($president, $org)->putJson("/api/members/{$member->id}", [
-            'name' => $member->name, 'email' => $member->email, 'position' => 'Treasurer', 'status' => 'Active',
+            'position' => 'Treasurer', 'status' => 'Active',
         ])->assertOk();
         $this->actingIn($president, $org)->deleteJson("/api/members/{$vp->id}")->assertOk();
     }
@@ -130,7 +117,7 @@ class DefectFixesTest extends TestCase
         $president = $this->person($org, 'officer');
 
         $this->actingIn($president, $org)->putJson("/api/members/{$president->id}", [
-            'name' => $president->name, 'email' => $president->email, 'position' => 'Member', 'status' => 'Active',
+            'position' => 'Member', 'status' => 'Active',
         ])->assertStatus(422);
         $this->actingIn($president, $org)->deleteJson("/api/members/{$president->id}")->assertStatus(422);
     }

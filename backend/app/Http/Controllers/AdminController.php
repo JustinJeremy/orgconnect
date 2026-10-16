@@ -6,10 +6,12 @@ use App\Models\Event;
 use App\Models\MembershipRecord;
 use App\Models\OrgChangeRequest;
 use App\Models\Organization;
+use App\Models\Setting;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Models\VolunteerHour;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 // Platform admin (users.is_admin): reviews org registrations and can suspend orgs.
 // Admins don't belong to any org; every route here is behind the EnsureAdmin middleware.
@@ -112,6 +114,7 @@ class AdminController extends Controller
         return [
             'data' => collect($page->items())->map(fn (User $u) => [
                 'id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'studentId' => $u->student_id,
+                'course' => $u->course, 'yearLevel' => $u->year_level,
                 ...$u->avatarData(),
                 'orgs' => $u->memberships->filter(fn ($m) => $m->organization)->map(fn ($m) => [
                     'shortName' => $m->organization->short_name, 'position' => $m->position, 'status' => $m->status,
@@ -131,6 +134,45 @@ class AdminController extends Controller
         $user->tokens()->delete();
 
         return ['temporaryPassword' => $temporary];
+    }
+
+    // PUT /api/admin/users/{user}  { name, email, studentId, course, yearLevel }
+    // Students can't change these themselves while details are locked, so the admin fixes mistakes
+    public function updateUser(Request $request, User $user)
+    {
+        abort_if($user->is_admin, 422, 'Admins change their own details on their profile.');
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'studentId' => ['required', 'string', 'max:50', Rule::unique('users', 'student_id')->ignore($user->id)],
+            'course' => 'required|string|max:50',
+            'yearLevel' => 'required|string|max:50',
+        ], [
+            'email.unique' => 'An account with this email already exists.',
+            'studentId.unique' => 'This student ID is already registered.',
+        ]);
+        $user->update([
+            'name' => $data['name'], 'email' => $data['email'], 'student_id' => $data['studentId'],
+            'course' => $data['course'], 'year_level' => $data['yearLevel'],
+        ]);
+        UserNotification::platform($user->id, 'The OrgConnect admin updated your account details', 'profile');
+
+        return ['ok' => true];
+    }
+
+    // GET /api/admin/settings
+    public function settings()
+    {
+        return ['detailsOpen' => Setting::flag(Setting::DETAILS_OPEN)];
+    }
+
+    // PUT /api/admin/settings  { detailsOpen }  -> e.g. open details updates at the start of a school year, then close them again
+    public function updateSettings(Request $request)
+    {
+        $data = $request->validate(['detailsOpen' => 'required|boolean']);
+        Setting::setFlag(Setting::DETAILS_OPEN, $data['detailsOpen']);
+
+        return $this->settings();
     }
 
     // PATCH /api/admin/organizations/{organization}  { status: Active | Suspended }

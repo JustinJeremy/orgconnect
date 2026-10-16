@@ -31,16 +31,17 @@ function MemberForm({ member, onSave, onCancel, isPresident }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.email.trim()) return setError("Name and email are required.");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return setError("Enter a valid email address.");
+    if (!member) {
+      if (!formData.name.trim() || !formData.email.trim()) return setError("Name and email are required.");
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return setError("Enter a valid email address.");
+    }
     if (formData.status === "Inactive" && !formData.inactiveReason?.trim()) return setError("Give a reason so the member knows why.");
     setSaving(true);
-    await onSave({
-      ...formData,
-      name: formData.name.trim(),
-      email: formData.email.trim(),
-      inactiveReason: formData.status === "Inactive" ? formData.inactiveReason.trim() : null,
-    });
+    const inactiveReason = formData.status === "Inactive" ? formData.inactiveReason.trim() : null;
+    // Editing changes only position and status: name and email stay as the person registered them
+    await onSave(member
+      ? { position: formData.position, status: formData.status, inactiveReason }
+      : { ...formData, name: formData.name.trim(), email: formData.email.trim(), inactiveReason });
     setSaving(false);
   };
 
@@ -62,14 +63,29 @@ function MemberForm({ member, onSave, onCancel, isPresident }) {
       }
     >
       <div className="stack">
-        <div className="field">
-          <label htmlFor="m-name">Full name</label>
-          <input id="m-name" className="input" name="name" value={formData.name} onChange={handleChange} />
-        </div>
-        <div className="field">
-          <label htmlFor="m-email">Email</label>
-          <input id="m-email" type="email" className="input" name="email" value={formData.email} onChange={handleChange} />
-        </div>
+        {member ? (
+          <div className="member-form-who">
+            <div className="person">
+              <UserAvatar user={member} className="sm" />
+              <div>
+                <div className="strong">{member.name}</div>
+                <div className="muted small">{member.email}</div>
+              </div>
+            </div>
+            <p className="muted small">Name and email are locked. Only the OrgConnect admin can correct them.</p>
+          </div>
+        ) : (
+          <>
+            <div className="field">
+              <label htmlFor="m-name">Full name</label>
+              <input id="m-name" className="input" name="name" value={formData.name} onChange={handleChange} />
+            </div>
+            <div className="field">
+              <label htmlFor="m-email">Email</label>
+              <input id="m-email" type="email" className="input" name="email" value={formData.email} onChange={handleChange} />
+            </div>
+          </>
+        )}
         <div className="form-grid">
           <div className="field">
             <label htmlFor="m-position">Position</label>

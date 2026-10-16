@@ -60,7 +60,7 @@ class MemberController extends Controller
         ], 201);
     }
 
-    // PUT /api/members/{member}  (officers)
+    // PUT /api/members/{member}  (officers) -> position and status only; name and email stay as the person registered them
     public function update(MemberRequest $request, User $member)
     {
         $this->membersManagerOnly($request);
@@ -69,12 +69,6 @@ class MemberController extends Controller
         $data = $request->validated();
         $this->presidentForOfficers($request, $member->isOfficer() || $data['position'] !== 'Member');
 
-        // Name and email belong to the whole account; another org's member changes their own on the Profile page
-        $detailsChanged = $data['name'] !== $member->name || strcasecmp($data['email'], $member->email) !== 0;
-        abort_if($detailsChanged && $member->inOtherOrganizations(), 422,
-            "{$member->name} also belongs to another organization, so only they can change their name and email.");
-
-        $member->update(['name' => $data['name'], 'email' => $data['email']]);
         $wasInactive = $member->membership->status === 'Inactive';
         $this->saveMembership($member, $data);
 

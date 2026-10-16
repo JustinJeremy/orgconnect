@@ -6,6 +6,7 @@ use App\Http\Requests\PasswordRequest;
 use App\Http\Requests\ProfileRequest;
 use App\Models\Certificate;
 use App\Models\Event;
+use App\Models\Setting;
 use App\Models\User;
 use App\Models\VolunteerHour;
 use Illuminate\Http\Request;
@@ -18,8 +19,10 @@ class ProfileController extends Controller
     // PUT /api/user  -> updated user
     public function update(ProfileRequest $request)
     {
-        $data = $request->validated();
         $user = $request->user();
+        abort_unless($user->is_admin || Setting::flag(Setting::DETAILS_OPEN), 403,
+            'Your details are locked. They can be updated when the admin opens updates for the new school year.');
+        $data = $request->validated();
 
         $user->update(array_filter([
             'name' => $data['name'],

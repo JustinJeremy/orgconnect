@@ -64,15 +64,6 @@ class User extends Authenticatable
         return $this->isOfficer() && $this->membership->position === 'President';
     }
 
-    // Also a member of (or applicant to) another org: only they can change their own account details
-    public function inOtherOrganizations(): bool
-    {
-        return $this->memberships()
-            ->where('organization_id', '!=', Organization::current()?->id)
-            ->where('status', '!=', 'Rejected')
-            ->exists();
-    }
-
     // Role, position, status and join date in the currently selected organization.
     // Someone who hasn't joined it gets an empty record (status null).
     public function membership(): HasOne
@@ -124,6 +115,8 @@ class User extends Authenticatable
             ...$this->avatarData(),
             'membershipStatus' => $this->membership->status,
             'isAdmin' => $this->is_admin,   // platform admin: reviews org registrations
+            // Name, student ID, email, course and year: read-only until the admin opens updates for a new school year
+            'detailsLocked' => ! $this->is_admin && ! Setting::flag(Setting::DETAILS_OPEN),
             'canManageMembers' => $this->canManageMembers(),
             'isPresident' => $this->isPresident(),
             // For the "under review" and "inactive" screens

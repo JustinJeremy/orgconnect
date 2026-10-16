@@ -32,7 +32,7 @@ const PAGES = {
   overview: { label: "Overview", icon: "dashboard", title: "Platform overview", subtitle: "Every organization on OrgConnect" },
   requests: { label: "Org requests", icon: "file", title: "Org requests", subtitle: "New orgs waiting to join OrgConnect" },
   organizations: { label: "Organizations", icon: "layers", title: "Organizations", subtitle: "Approve, suspend or look up any org" },
-  accounts: { label: "Accounts", icon: "users", title: "Accounts", subtitle: "Look up anyone and reset a forgotten password" },
+  accounts: { label: "Accounts", icon: "users", title: "Accounts", subtitle: "Look up anyone, correct details, reset a forgotten password" },
   // Opened from your name at the bottom of the sidebar, not the menu
   profile: { label: "Profile", icon: "users", title: "Profile & settings", subtitle: "Your admin account", hidden: true },
 };

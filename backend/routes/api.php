@@ -53,6 +53,10 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     // Accounts: look anyone up, reset a forgotten password (only the admin can)
     Route::get('/users', [AdminController::class, 'users']);
     Route::post('/users/{user}/reset-password', [AdminController::class, 'resetPassword']);
+    // Students' details are locked; the admin corrects them, or opens updates for a new school year
+    Route::put('/users/{user}', [AdminController::class, 'updateUser']);
+    Route::get('/settings', [AdminController::class, 'settings']);
+    Route::put('/settings', [AdminController::class, 'updateSettings']);
 });
 
 // Signed in AND a member of the selected org
