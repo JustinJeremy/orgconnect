@@ -45,7 +45,8 @@ function AreaSelect({ id, value, onChange, allLabel = "All areas" }) {
 
 /* ---------- Sessions ---------- */
 
-function SessionsTab({ sessions, requests, loading, actions, onPost, onEdit }) {
+// focus: { kind: "session", id, search, key } from the dashboard calendar: show that session
+function SessionsTab({ sessions, requests, loading, actions, onPost, onEdit, focus, onFocusDone }) {
   const { user } = useAuth();
   const isOfficer = user.role === "officer";
   const [search, setSearch] = useState("");
@@ -53,6 +54,14 @@ function SessionsTab({ sessions, requests, loading, actions, onPost, onEdit }) {
 
   // One page of sessions from the API; reloads when a session changes or a slot is taken
   const list = usePagedList(tutoringApi.sessionsPage, { area, search }, SESSIONS_PER_PAGE, sessions);
+  // From the calendar: search for that session so it is on the first page, then highlight it
+  useEffect(() => {
+    if (focus?.kind !== "session") return;
+    setArea("All");
+    setSearch(focus.search || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus?.key]);
+  const highlightId = useFocusItem({ focus, kind: "session", items: list.items, ready: list.loaded, onDone: onFocusDone });
 
   return (
     <>
@@ -80,6 +89,7 @@ function SessionsTab({ sessions, requests, loading, actions, onPost, onEdit }) {
                 <SessionCard
                   key={s.id}
                   session={s}
+                  highlighted={s.id === highlightId}
                   myRequest={requests.find((r) => r.sessionId === s.id && r.userId === user.id)}
                   canRequest={!isTutor}
                   canManage={isOfficer || isTutor}
@@ -315,7 +325,7 @@ export default function Tutoring({ data, loading, actions, focus, onFocusDone })
   const [tab, setTab] = useState("sessions");
   // A tutoring notification opens the Requests tab
   useEffect(() => {
-    if (focus) setTab("requests");
+    if (focus) setTab(focus.kind === "session" ? "sessions" : "requests");
   }, [focus?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const [sessionForm, setSessionForm] = useState(null); // null | { session? }
   const [resourceForm, setResourceForm] = useState(null); // null | { resource? }
@@ -363,6 +373,8 @@ export default function Tutoring({ data, loading, actions, focus, onFocusDone })
 
       {tab === "sessions" && (
         <SessionsTab
+          focus={focus}
+          onFocusDone={onFocusDone}
           sessions={sessions}
           requests={requests}
           loading={loading}

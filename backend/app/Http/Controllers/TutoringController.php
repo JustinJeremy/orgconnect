@@ -76,6 +76,8 @@ class TutoringController extends Controller
                 ->where('user_id', '!=', $user->id)
                 ->when(! $user->isOfficer(), fn ($q) => $q->whereHas('session', fn ($s) => $s->where('tutor_id', $user->id))))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
+            // Ones still waiting for an answer first, then newest first
+            ->orderByRaw("CASE WHEN status = 'Pending' THEN 0 ELSE 1 END")
             ->latest()
             ->latest('id');
 
@@ -133,6 +135,15 @@ class TutoringController extends Controller
 
         $word = ['Confirmed' => 'approved', 'Rejected' => 'rejected', 'Completed' => 'marked as completed'][$status];
         UserNotification::send($tutoringRequest->user_id, "Your tutoring request for {$session->subject} was {$word}", "tutoring/sent/{$tutoringRequest->id}");
+        // Both sides of the session know: the student (above) and the tutor, when someone else decided
+        $decider = $request->user();
+        if ($decider->id !== $session->tutor_id) {
+            $student = $tutoringRequest->user->name;
+            $message = $status === 'Completed'
+                ? "{$decider->name} marked your session with {$student} as completed: {$session->subject}"
+                : "{$decider->name} {$word} {$student}'s request for your tutoring session: {$session->subject}";
+            UserNotification::send($session->tutor_id, $message, "tutoring/received/{$tutoringRequest->id}");
+        }
 
         return $tutoringRequest->load('user')->toFrontend();
     }

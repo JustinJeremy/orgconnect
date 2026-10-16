@@ -4,7 +4,8 @@ import { relativeDate } from "../utils/format.js";
 
 // tourSections: [{ key, label }] for the help menu; onStartTour(sectionKey | null) starts the guided tour
 // onOpenNotification(notification): marks it read and goes to its page
-export default function Topbar({ title, subtitle, notifications, onMarkAllRead, onOpenNotification, onOpenMenu, tourSections, onStartTour }) {
+// onViewAll: optional "View all notifications" link at the bottom of the bell (the Notifications page)
+export default function Topbar({ title, subtitle, notifications, onMarkAllRead, onOpenNotification, onOpenMenu, tourSections, onStartTour, onViewAll }) {
   const [open, setOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const panelRef = useRef(null);
@@ -125,6 +126,18 @@ export default function Topbar({ title, subtitle, notifications, onMarkAllRead, 
                     </button>
                   ))}
                 </div>
+              )}
+              {onViewAll && (
+                <button
+                  type="button"
+                  className="notif-all"
+                  onClick={() => {
+                    setOpen(false);
+                    onViewAll();
+                  }}
+                >
+                  View all notifications <Icon name="arrowRight" size={14} />
+                </button>
               )}
             </div>
           )}

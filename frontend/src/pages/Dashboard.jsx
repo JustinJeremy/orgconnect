@@ -55,7 +55,7 @@ function Leaderboard({ leaders, loading, currentUserId }) {
 }
 
 // Right-hand column of the dashboard (Figma): event calendar, then a second section
-function DashboardRail({ events, onNavigate, children }) {
+function DashboardRail({ events, sessions, requests, userId, onNavigate, onOpenEvent, onOpenSession, children }) {
   return (
     <aside className="dash-rail">
       <div className="rail-head">
@@ -64,7 +64,15 @@ function DashboardRail({ events, onNavigate, children }) {
           View all <Icon name="arrowRight" size={16} />
         </button>
       </div>
-      <EventCalendar events={events} onOpenEvents={() => onNavigate("events")} />
+      <EventCalendar
+        events={events}
+        sessions={sessions}
+        requests={requests}
+        userId={userId}
+        onOpenEvents={() => onNavigate("events")}
+        onOpenEvent={onOpenEvent}
+        onOpenTutoring={(session) => (onOpenSession ? onOpenSession(session) : onNavigate("tutoring"))}
+      />
       {children}
     </aside>
   );
@@ -84,7 +92,7 @@ function TopVolunteers({ leaders, loading, currentUserId }) {
 
 /* ---------- Officer ---------- */
 
-function OfficerDashboard({ header, data, loading, onNavigate, events: eventActions, hours: hourActions, members: memberActions, tutoring }) {
+function OfficerDashboard({ header, data, loading, onNavigate, onOpenEvent, onOpenSession, events: eventActions, hours: hourActions, members: memberActions, tutoring }) {
   const { user } = useAuth();
   const { events, hours, members, sessions, requests, applications, leaderboard } = data;
 
@@ -191,7 +199,7 @@ function OfficerDashboard({ header, data, loading, onNavigate, events: eventActi
         </Panel>
       </div>
 
-      <DashboardRail events={events} onNavigate={onNavigate}>
+      <DashboardRail events={events} sessions={sessions} requests={requests} userId={user.id} onNavigate={onNavigate} onOpenEvent={onOpenEvent} onOpenSession={onOpenSession}>
         <TopVolunteers leaders={leaderboard} loading={loading} currentUserId={user.id} />
       </DashboardRail>
     </div>
@@ -331,7 +339,7 @@ function FeaturedEvent({ event, userId, onOpen, onToggleRsvp }) {
   );
 }
 
-function MemberDashboard({ header, data, loading, onNavigate, onOpenEvent, events: eventActions }) {
+function MemberDashboard({ header, data, loading, onNavigate, onOpenEvent, onOpenSession, events: eventActions }) {
   const { user } = useAuth();
   const { events, announcements, notifications, sessions, requests } = data;
 
@@ -409,7 +417,7 @@ function MemberDashboard({ header, data, loading, onNavigate, onOpenEvent, event
         </section>
       </div>
 
-      <DashboardRail events={events} onNavigate={onNavigate}>
+      <DashboardRail events={events} sessions={sessions} requests={requests} userId={user.id} onNavigate={onNavigate} onOpenEvent={onOpenEvent} onOpenSession={onOpenSession}>
         <Suggestions user={user} sessions={sessions} requests={requests} onNavigate={onNavigate} />
       </DashboardRail>
     </div>

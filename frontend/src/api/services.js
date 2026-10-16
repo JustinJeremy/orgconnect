@@ -160,7 +160,8 @@ export const announcementsApi = {
 };
 
 export const notificationsApi = {
-  list: () => get("/notifications"),
+  list: () => get("/notifications"), // the latest 30 (the bell)
+  page: getPage("/notifications"), // { view: unread, type: events|hours|tutoring|announcements|membership, page, perPage }
   markAllRead: () => post("/notifications/read-all"),
   markRead: (id) => post(`/notifications/${id}/read`), // -> updated Notification
 };
