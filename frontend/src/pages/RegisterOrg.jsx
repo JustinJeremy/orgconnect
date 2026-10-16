@@ -152,20 +152,20 @@ function RequestForm({ previous, onSent, onCancel }) {
       )}
       {formError && <div className="alert alert-error" role="alert">{formError}</div>}
 
-      {field("name", "Organization name", { placeholder: "Junior Philippine Computer Society – TIP" })}
+      {field("name", "Organization name", { placeholder: "e.g. Junior Philippine Computer Society – TIP" })}
       <div className="form-grid">
-        {field("shortName", "Short name", { placeholder: "JPCS", maxLength: 20 })}
-        {field("college", "College", { placeholder: "College of Computer Studies" })}
+        {field("shortName", "Short name", { placeholder: "e.g. JPCS", maxLength: 20 })}
+        {field("college", "College", { placeholder: "e.g. College of Computer Studies" })}
       </div>
-      {field("tagline", "Tagline", { placeholder: "One line about what your org does", maxLength: 160 })}
+      {field("tagline", "Tagline", { placeholder: "e.g. Building tomorrow's IT leaders, together", maxLength: 160 })}
       <div className="field">
         <label htmlFor="ro-description">About the organization</label>
-        <textarea id="ro-description" className={`input ${errors.description ? "input-error" : ""}`} name="description" rows="3" value={form.description} onChange={change} />
+        <textarea id="ro-description" className={`input ${errors.description ? "input-error" : ""}`} name="description" rows="3" placeholder="e.g. What your org does, who it's for and its regular activities" value={form.description} onChange={change} />
         {errors.description && <span className="field-error">{errors.description}</span>}
       </div>
       <div className="form-grid">
-        {field("adviser", "Adviser", { placeholder: "Engr. Paolo Dizon" })}
-        {field("email", "Contact email", { type: "email", placeholder: "org@school.edu.ph" })}
+        {field("adviser", "Adviser", { placeholder: "e.g. Engr. Paolo Dizon" })}
+        {field("email", "Contact email", { type: "email", placeholder: "e.g. org@school.edu.ph" })}
       </div>
 
       <fieldset className="field course-picker" data-tour="register-courses">
@@ -206,7 +206,7 @@ function RequestForm({ previous, onSent, onCancel }) {
         {errors.courses && <span className="field-error">{errors.courses}</span>}
       </fieldset>
 
-      {field("proofUrl", <>Proof of recognition <span className="muted">Optional</span></>, { placeholder: "Link to your school recognition letter (Google Drive, etc.)" })}
+      {field("proofUrl", <>Proof of recognition <span className="muted">Optional</span></>, { placeholder: "e.g. a Google Drive link to your school recognition letter" })}
 
       <div className="form-actions">
         <button type="button" className="btn btn-outline" onClick={onCancel}>Cancel</button>

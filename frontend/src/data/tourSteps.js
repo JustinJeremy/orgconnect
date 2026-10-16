@@ -191,7 +191,7 @@ const OFFICER = [
         click: '[data-tour="tab-applications"]',
         target: '[data-tour="applications"]',
         title: "Applications and reactivations",
-        body: "Students who signed up wait here until you approve or decline them. Below are inactive members asking to be active again, with their message and the reason they were made inactive.",
+        body: "Students who signed up wait here with any message they wrote; rejecting asks for a reason they will see. Below are inactive members asking to be active again, with their message and the reason they were made inactive.",
       },
     ],
   },

@@ -31,19 +31,32 @@ export function LogoMark({ size = 38, variant = "color" }) {
   );
 }
 
-export default function Logo({ size = 36, variant = "color", showText = true, stacked = false, subtitle }) {
+// onHome: makes the mark and the word "OrgConnect" a button to the home page (Dashboard / Overview)
+export default function Logo({ size = 36, variant = "color", showText = true, stacked = false, subtitle, onHome }) {
   const classes = ["logo", stacked ? "logo-stacked" : "", variant === "white" ? "logo-white" : ""]
     .filter(Boolean)
     .join(" ");
 
   return (
     <span className={classes} role={typeof subtitle === "object" ? undefined : "img"} aria-label={typeof subtitle === "object" ? undefined : "OrgConnect"}>
-      <LogoMark size={size} variant={variant} />
+      {onHome ? (
+        <button type="button" className="logo-home" onClick={onHome} aria-label="OrgConnect: go to the home page" title="Home">
+          <LogoMark size={size} variant={variant} />
+        </button>
+      ) : (
+        <LogoMark size={size} variant={variant} />
+      )}
       {showText && (
         <span className="logo-text">
-          <span className="logo-word" style={{ fontSize: stacked ? size * 0.52 : size * 0.56 }}>
-            OrgConnect
-          </span>
+          {onHome ? (
+            <button type="button" className="logo-home logo-word" style={{ fontSize: size * 0.56 }} onClick={onHome} tabIndex={-1} aria-hidden="true">
+              OrgConnect
+            </button>
+          ) : (
+            <span className="logo-word" style={{ fontSize: stacked ? size * 0.52 : size * 0.56 }}>
+              OrgConnect
+            </span>
+          )}
           {subtitle && <span className="logo-sub">{subtitle}</span>}
         </span>
       )}

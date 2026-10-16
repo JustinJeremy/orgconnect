@@ -122,6 +122,7 @@ class User extends Authenticatable
             'isPresident' => $this->isPresident(),
             // For the "under review" and "inactive" screens
             'appliedAt' => $this->membership->created_at?->format('Y-m-d'),
+            'applicationMessage' => $this->membership->status === 'Pending' ? $this->membership->application_message : null,
             'inactive' => $this->membership->status === 'Inactive' ? [
                 'reason' => $this->membership->inactive_reason,
                 'by' => $this->membership->inactiveBy?->name,
@@ -130,6 +131,14 @@ class User extends Authenticatable
                 'at' => $this->membership->inactive_at?->format('Y-m-d'),
                 'requestedAt' => $this->membership->reactivation_requested_at?->format('Y-m-d'),
                 'message' => $this->membership->reactivation_message,
+            ] : null,
+            // For the "application not approved" screen
+            'rejection' => $this->membership->status === 'Rejected' ? [
+                'reason' => $this->membership->rejection_reason,
+                'by' => $this->membership->rejectedBy?->name,
+                'byPosition' => $this->membership->rejectedBy?->memberships()
+                    ->where('organization_id', $this->membership->organization_id)->value('position'),
+                'at' => $this->membership->rejected_at?->format('Y-m-d'),
             ] : null,
         ];
     }
@@ -173,7 +182,9 @@ class User extends Authenticatable
             'studentId' => $this->student_id,
             'course' => $this->course,
             'yearLevel' => $this->year_level,
-            'appliedAt' => $this->created_at->format('Y-m-d'),
+            // When they applied to this org (not when the account was made: they may have joined another org first)
+            'appliedAt' => ($this->membership->created_at ?? $this->created_at)->format('Y-m-d'),
+            'message' => $this->membership->application_message,
             'status' => match ($this->membership->status) {
                 'Pending' => 'Pending',
                 'Rejected' => 'Rejected',

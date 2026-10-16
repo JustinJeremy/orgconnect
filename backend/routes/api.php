@@ -31,6 +31,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/user/password', [ProfileController::class, 'password'])->middleware('throttle:password');
     Route::get('/my-organizations', [OrganizationController::class, 'mine']);
     Route::post('/organizations/{organization:slug}/join', [OrganizationController::class, 'join']);
+    Route::put('/organizations/{organization:slug}/application', [OrganizationController::class, 'updateApplication']);
     Route::delete('/organizations/{organization:slug}/application', [OrganizationController::class, 'withdraw']);
     Route::post('/organizations/{organization:slug}/reactivation', [OrganizationController::class, 'requestReactivation']);
     // Ask to register a new org (reviewed by a platform admin)

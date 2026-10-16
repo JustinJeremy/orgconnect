@@ -120,7 +120,14 @@ export default function AdminApp() {
       <aside className={`sidebar ${menuOpen ? "open" : ""}`}>
         <Rings preset="sidebar" />
         <div className="sidebar-brand">
-          <Logo size={35} subtitle={<span className="admin-subtitle">Platform admin</span>} />
+          <Logo
+            size={35}
+            subtitle={<span className="admin-subtitle">Platform admin</span>}
+            onHome={() => {
+              setPage("overview");
+              setMenuOpen(false);
+            }}
+          />
         </div>
         <nav className="nav" aria-label="Main" data-tour="admin-nav">
           {Object.entries(PAGES).map(([key, item]) => (

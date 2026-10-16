@@ -123,8 +123,9 @@ class MemberController extends Controller
 
         return User::withMembershipStatus(['Pending'])
             ->with('membership')
-            ->latest()
             ->get()
+            ->sortByDesc(fn (User $u) => $u->membership->created_at)
+            ->values()
             ->map->toApplication();
     }
 
@@ -139,6 +140,9 @@ class MemberController extends Controller
         $applicant->membership()->update([
             'status' => $approved ? 'Active' : 'Rejected',
             'join_date' => $approved ? now() : null,
+            'rejection_reason' => $approved ? null : trim($request->validated('reason')),
+            'rejected_by' => $approved ? null : $request->user()->id,
+            'rejected_at' => $approved ? null : now(),
         ]);
 
         UserNotification::send(
