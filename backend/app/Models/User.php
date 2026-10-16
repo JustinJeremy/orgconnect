@@ -121,9 +121,7 @@ class User extends Authenticatable
             'studentId' => $this->student_id,
             'course' => $this->course,
             'yearLevel' => $this->year_level,
-            'avatar' => $this->avatar,   // a character key, "photo" (their own upload), "initials", or null until they pick one
-            // ?v= changes on every upload so browsers don't keep showing the old photo
-            'avatarUrl' => $this->avatar_path ? url("/api/users/{$this->id}/avatar").'?v='.$this->updated_at?->timestamp : null,
+            ...$this->avatarData(),
             'membershipStatus' => $this->membership->status,
             'isAdmin' => $this->is_admin,   // platform admin: reviews org registrations
             'canManageMembers' => $this->canManageMembers(),
@@ -152,11 +150,23 @@ class User extends Authenticatable
     }
 
     // A row in the officer's member roster
+    // How the app draws this person: { avatar, avatarUrl }
+    //   avatar: a character key, "photo" (their own upload), "initials", or null until they pick one
+    //   avatarUrl: their photo (?v= changes on every upload so browsers don't keep the old one)
+    public function avatarData(): array
+    {
+        return [
+            'avatar' => $this->avatar,
+            'avatarUrl' => $this->avatar_path ? url("/api/users/{$this->id}/avatar").'?v='.$this->updated_at?->timestamp : null,
+        ];
+    }
+
     public function toMember(): array
     {
         return [
             'id' => $this->id,
             'name' => $this->name,
+            ...$this->avatarData(),
             'email' => $this->email,
             'position' => $this->membership->position,
             'joinDate' => optional($this->membership->join_date ?? $this->created_at)->format('Y-m-d'),
@@ -173,6 +183,7 @@ class User extends Authenticatable
         return [
             'id' => $this->id,
             'name' => $this->name,
+            ...$this->avatarData(),
             'email' => $this->email,
             'message' => $this->membership->reactivation_message,
             'requestedAt' => $this->membership->reactivation_requested_at?->format('Y-m-d'),
@@ -186,6 +197,7 @@ class User extends Authenticatable
         return [
             'id' => $this->id,
             'name' => $this->name,
+            ...$this->avatarData(),
             'email' => $this->email,
             'studentId' => $this->student_id,
             'course' => $this->course,

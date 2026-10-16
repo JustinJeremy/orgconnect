@@ -84,6 +84,8 @@ export const adminApi = {
   decide: (id, decision, extra = {}) => patch(`/admin/org-requests/${id}`, { decision, ...extra }), // Approved | Rejected
   setStatus: (id, status) => patch(`/admin/organizations/${id}`, { status }), // Active | Suspended
   decideChange: (id, decision, note) => patch(`/admin/change-requests/${id}`, { decision, note }), // org detail changes
+  users: getPage("/admin/users"), // { search, page, perPage } -> every account, with their orgs
+  resetPassword: (id) => post(`/admin/users/${id}/reset-password`), // -> { temporaryPassword } (only the admin)
 };
 
 export const eventsApi = {
@@ -127,7 +129,6 @@ export const membersApi = {
   decideApplication: (id, status, reason) => patch(`/applications/${id}`, { status, reason }), // reason: when Rejected
   reactivations: () => get("/reactivations"), // inactive members asking to be active again
   decideReactivation: (id, status) => patch(`/reactivations/${id}`, { status }), // Approved | Declined
-  resetPassword: (id) => post(`/members/${id}/reset-password`), // -> { temporaryPassword }
 };
 
 export const tutoringApi = {

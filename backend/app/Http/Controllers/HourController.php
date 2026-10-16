@@ -9,6 +9,7 @@ use App\Http\Requests\StoreHourRequest;
 use App\Models\MembershipRecord;
 use App\Models\Organization;
 use App\Models\UserNotification;
+use App\Models\User;
 use App\Models\VolunteerHour;
 use Illuminate\Http\Request;
 
@@ -97,6 +98,10 @@ class HourController extends Controller
             ->orderByDesc('total')
             ->limit(10)
             ->get()
-            ->map(fn ($row) => ['id' => $row->id, 'name' => $row->name, 'hours' => (float) $row->total]);
+            ->pipe(function ($rows) {
+                $people = User::whereIn('id', $rows->pluck('id'))->get()->keyBy('id');
+
+                return $rows->map(fn ($row) => ['id' => $row->id, 'name' => $row->name, 'hours' => (float) $row->total] + ($people[$row->id]?->avatarData() ?? []));
+            });
     }
 }

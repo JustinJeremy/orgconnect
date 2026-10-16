@@ -97,7 +97,8 @@ function DetailsForm({ user, flash }) {
 
 const EMPTY_PASSWORDS = { current: "", password: "", confirm: "" };
 
-function PasswordForm({ flash }) {
+// Also used on the admin's profile (AdminProfile.jsx)
+export function PasswordForm({ flash }) {
   const { changePassword } = useAuth();
   const [formData, setFormData] = useState(EMPTY_PASSWORDS);
   const [show, setShow] = useState(false);

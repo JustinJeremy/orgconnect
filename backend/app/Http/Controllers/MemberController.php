@@ -57,27 +57,6 @@ class MemberController extends Controller
         ], 201);
     }
 
-    // POST /api/members/{member}/reset-password  (officers) -> { temporaryPassword }
-    // For members who forgot their password. Signs them out everywhere.
-    // Not allowed for someone who is an officer in another org, so one org can't take over another org's officer.
-    public function resetPassword(Request $request, User $member)
-    {
-        $this->membersManagerOnly($request);
-        $this->ensureInThisOrg($member);
-        abort_if($member->id === $request->user()->id, 422, 'Change your own password on your Profile page.');
-        $this->presidentForOfficers($request, $member->isOfficer());
-
-        // One org's officers must not be able to take over an account another org relies on
-        abort_if($member->inOtherOrganizations(), 422,
-            "{$member->name} also belongs to another organization, so only they can change their password.");
-
-        $temporary = self::temporaryPassword();
-        $member->update(['password' => $temporary]);
-        $member->tokens()->delete();
-
-        return ['temporaryPassword' => $temporary];
-    }
-
     // PUT /api/members/{member}  (officers)
     public function update(MemberRequest $request, User $member)
     {

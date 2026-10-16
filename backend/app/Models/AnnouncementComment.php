@@ -26,6 +26,7 @@ class AnnouncementComment extends Model
             'id' => $this->id,
             'userId' => $this->user_id,
             'userName' => $this->user?->name,
+            'userAvatar' => $this->user?->avatarData(),
             'text' => $this->text,
             'createdAt' => $this->created_at->format('Y-m-d\TH:i:s'),
             'edited' => $this->edited_at !== null,   // shown as "(edited)"

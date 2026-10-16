@@ -313,18 +313,6 @@ function MainApp() {
         // A brand-new account: show its temporary password once
         if (temporaryPassword) setTempPassword({ name: member.name, email: member.email, password: temporaryPassword, isNew: true });
       }, id ? "Member updated" : `${form.name} added`),
-    resetPassword: async (member) => {
-      const ok = await confirm({
-        title: "Reset password?",
-        message: `${member.name} will get a new temporary password and be signed out on all devices.`,
-        confirmLabel: "Reset password",
-      });
-      if (ok)
-        run(async () => {
-          const { temporaryPassword } = await membersApi.resetPassword(member.id);
-          setTempPassword({ name: member.name, email: member.email, password: temporaryPassword, isNew: false });
-        });
-    },
     remove: async (member) => {
       const ok = await confirm({
         title: "Remove member?",

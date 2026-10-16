@@ -188,8 +188,8 @@ const OFFICER = [
         managersOnly: true,
         click: '[data-tour="tab-members"]',
         target: [".table tbody tr .row-actions", ".page .empty-state"],
-        title: "Edit, reset or remove",
-        body: "Change a member's status, reset a forgotten password (key icon), or remove them. Only the President promotes, edits or removes officers.",
+        title: "Edit or remove",
+        body: "Change a member's status or remove them. Only the President promotes, edits or removes officers. Forgotten passwords are reset by the OrgConnect admin.",
       },
       {
         page: "hours",
@@ -421,6 +421,12 @@ export const ADMIN_TOUR = [
     target: '[data-tour="admin-orgs"]',
     title: "All organizations",
     body: "Every live org with its President, members and events. Suspend hides an org and stops its members from using it until you reactivate it; nothing is deleted.",
+  },
+  {
+    page: "accounts",
+    target: '[data-tour="admin-accounts"]',
+    title: "Accounts",
+    body: "Look up any account. When someone forgets their password, reset it here: they get a temporary password to pass on, and they change it on their profile. Only you can do this.",
   },
   {
     page: "overview",

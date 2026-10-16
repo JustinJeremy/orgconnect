@@ -8,7 +8,8 @@ import { POSITIONS } from "../data/constants.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { membersApi } from "../api/services.js";
 import usePagedList from "../hooks/usePagedList.js";
-import { formatDate, initials } from "../utils/format.js";
+import { formatDate } from "../utils/format.js";
+import { UserAvatar } from "./Avatars.jsx";
 
 const PER_PAGE = 10;
 const EMPTY = { name: "", email: "", position: "Member", status: "Active" };
@@ -107,7 +108,8 @@ function MemberForm({ member, onSave, onCancel, isPresident }) {
   );
 }
 
-export default function MemberList({ members, onSave, onRemove, onResetPassword }) {
+// Forgotten passwords: only the OrgConnect admin resets them (Admin → Accounts)
+export default function MemberList({ members, onSave, onRemove }) {
   const { user } = useAuth();
   // President, VPs and Secretary manage members; only the President manages officers; nobody edits themselves
   const canManage = (m) => user.canManageMembers && m.id !== user.id && (m.position === "Member" || user.isPresident);
@@ -171,7 +173,7 @@ export default function MemberList({ members, onSave, onRemove, onResetPassword 
                   <tr key={m.id}>
                     <td>
                       <div className="person">
-                        <span className="avatar sm">{initials(m.name)}</span>
+                        <UserAvatar user={m} className="sm" />
                         <div>
                           <div className="strong">{m.name}</div>
                           <div className="muted small">{m.email}</div>
@@ -189,15 +191,6 @@ export default function MemberList({ members, onSave, onRemove, onResetPassword 
                         <div className="row-actions">
                           <button type="button" className="icon-btn sm" aria-label={`Edit ${m.name}`} onClick={() => setForm({ member: m })}>
                             <Icon name="edit" size={16} />
-                          </button>
-                          <button
-                            type="button"
-                            className="icon-btn sm"
-                            aria-label={`Reset password for ${m.name}`}
-                            title="Reset password"
-                            onClick={() => onResetPassword(m)}
-                          >
-                            <Icon name="key" size={16} />
                           </button>
                           <button type="button" className="icon-btn sm danger" aria-label={`Remove ${m.name}`} onClick={() => onRemove(m)}>
                             <Icon name="trash" size={16} />

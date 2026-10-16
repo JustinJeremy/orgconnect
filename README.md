@@ -176,8 +176,9 @@ database from scratch (this **deletes** everything in your local database).
   Signing up from **Register your organization** skips the application and opens the org request form.
 - **Officers adding a member** on Members & Hours → Members: a brand-new account gets a
   temporary password, shown once to the officer to pass on.
-- **Forgot password:** an officer resets it (key icon on the member row) and passes on the new
+- **Forgot password:** only the platform admin resets it (Admin → **Accounts**) and passes on the new
   temporary password. Members then change it on **Profile & settings** (click your name in the sidebar).
+  The admin has a Profile & settings page too (click your name in the admin sidebar).
 - **Remember me** off: you're signed out when the browser closes (and after 12 hours at most).
 - Sign in, sign up and password changes allow 5 attempts per minute.
 - An officer can't change the email or password of someone who also belongs to another org;

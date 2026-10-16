@@ -44,26 +44,29 @@ class MembersTest extends TestCase
         $this->postJson('/api/login', ['email' => 'ana@school.edu.ph', 'password' => 'password'])->assertOk();
     }
 
-    public function test_an_officer_resets_a_members_password(): void
+    // Batch 16: only the platform admin resets passwords
+    public function test_the_admin_resets_a_forgotten_password(): void
     {
         $org = $this->compSoc();
-        $officer = $this->person($org, 'officer');
         $member = $this->person($org, 'member', 'Active', ['email' => 'juan@school.edu.ph']);
+        $admin = $this->person($org);
+        $admin->forceFill(['is_admin' => true])->save();
 
-        $temporary = $this->actingIn($officer, $org)->postJson("/api/members/{$member->id}/reset-password")->assertOk()->json('temporaryPassword');
+        $this->actingIn($admin, $org)->getJson('/api/admin/users?search=juan@school')->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.orgs.0.shortName', 'CompSoc');
+        $temporary = $this->actingIn($admin, $org)->postJson("/api/admin/users/{$member->id}/reset-password")->assertOk()->json('temporaryPassword');
 
         $this->postJson('/api/login', ['email' => 'juan@school.edu.ph', 'password' => 'password'])->assertStatus(422);
         $this->postJson('/api/login', ['email' => 'juan@school.edu.ph', 'password' => $temporary])->assertOk();
     }
 
-    public function test_officers_cannot_reset_an_officer_of_another_org(): void
+    public function test_officers_can_no_longer_reset_passwords(): void
     {
         $org = $this->compSoc();
-        $officer = $this->person($org, 'officer');
-        $otherOfficer = $this->person($this->secondOrg(), 'officer');
-        $otherOfficer->memberships()->create(['organization_id' => $org->id, 'role' => 'member', 'position' => 'Member', 'status' => 'Active']);
+        $president = $this->person($org, 'officer');
+        $member = $this->person($org);
 
-        $this->actingIn($officer, $org)->postJson("/api/members/{$otherOfficer->id}/reset-password")->assertStatus(422);
+        $this->actingIn($president, $org)->postJson("/api/members/{$member->id}/reset-password")->assertNotFound();
+        $this->actingIn($president, $org)->postJson("/api/admin/users/{$member->id}/reset-password")->assertForbidden();
     }
 
     public function test_officers_cannot_remove_themselves(): void

@@ -14,7 +14,8 @@ import usePagedList from "../hooks/usePagedList.js";
 import useFocusItem from "../hooks/useFocusItem.js";
 import { hoursApi, membersApi } from "../api/services.js";
 import { errorMessage } from "../api/client.js";
-import { initials, shortDate } from "../utils/format.js";
+import { shortDate } from "../utils/format.js";
+import { UserAvatar } from "../components/Avatars.jsx";
 
 const STATUSES = ["All", "Pending", "Approved", "Rejected"];
 const PER_PAGE = 10;
@@ -135,7 +136,7 @@ function OfficerView({ data, loading, hours: hourActions, members: memberActions
         </>
       )}
 
-      {tab === "members" && <MemberList members={members} onSave={memberActions.save} onRemove={memberActions.remove} onResetPassword={memberActions.resetPassword} />}
+      {tab === "members" && <MemberList members={members} onSave={memberActions.save} onRemove={memberActions.remove} />}
 
       {tab === "applications" && (
         <Panel title="Membership applications" tour="applications" subtitle="Students who signed up and are waiting to join">
@@ -168,7 +169,7 @@ function ReactivationList({ requests, onDecide }) {
     <ul className="review-list">
       {requests.map((r) => (
         <li key={r.id} className="reactivation-row">
-          <span className="avatar sm">{initials(r.name)}</span>
+          <UserAvatar user={r} className="sm" />
           <div className="review-text">
             <div className="review-name">{r.name}</div>
             <div className="reactivation-message">"{r.message}"</div>

@@ -6,6 +6,7 @@ use App\Models\Event;
 use App\Models\MembershipRecord;
 use App\Models\OrgChangeRequest;
 use App\Models\Organization;
+use App\Models\User;
 use App\Models\UserNotification;
 use App\Models\VolunteerHour;
 use Illuminate\Http\Request;
@@ -91,6 +92,41 @@ class AdminController extends Controller
         }
 
         return $organization->fresh()->toRequest();
+    }
+
+    // GET /api/admin/users?search=&page= -> every account (not admins), with the orgs they're in
+    public function users(Request $request)
+    {
+        $words = trim((string) $request->input('search'));
+        $page = User::where('is_admin', false)
+            ->when($words !== '', fn ($q) => $q->where(fn ($q) => $q
+                ->where('name', 'like', "%{$words}%")->orWhere('email', 'like', "%{$words}%")->orWhere('student_id', 'like', "%{$words}%")))
+            ->with('memberships.organization')
+            ->orderBy('name')
+            ->paginate(min(max((int) $request->input('perPage', 12), 1), 50));
+
+        return [
+            'data' => collect($page->items())->map(fn (User $u) => [
+                'id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'studentId' => $u->student_id,
+                ...$u->avatarData(),
+                'orgs' => $u->memberships->filter(fn ($m) => $m->organization)->map(fn ($m) => [
+                    'shortName' => $m->organization->short_name, 'position' => $m->position, 'status' => $m->status,
+                ])->values(),
+            ]),
+            'meta' => ['page' => $page->currentPage(), 'lastPage' => $page->lastPage(), 'total' => $page->total(), 'perPage' => $page->perPage()],
+        ];
+    }
+
+    // POST /api/admin/users/{user}/reset-password -> { temporaryPassword }
+    // For anyone who forgot their password. Signs them out everywhere. Only the platform admin can.
+    public function resetPassword(User $user)
+    {
+        abort_if($user->is_admin, 422, 'Admins change their own password on their profile.');
+        $temporary = collect(range(1, 10))->map(fn () => 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'[random_int(0, 54)])->implode('');
+        $user->update(['password' => $temporary]);
+        $user->tokens()->delete();
+
+        return ['temporaryPassword' => $temporary];
     }
 
     // PATCH /api/admin/organizations/{organization}  { status: Active | Suspended }

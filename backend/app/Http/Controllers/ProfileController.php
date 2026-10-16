@@ -21,13 +21,13 @@ class ProfileController extends Controller
         $data = $request->validated();
         $user = $request->user();
 
-        $user->update([
+        $user->update(array_filter([
             'name' => $data['name'],
             'email' => $data['email'],
-            'student_id' => $data['studentId'],
-            'course' => $data['course'],
-            'year_level' => $data['yearLevel'],
-        ]);
+            'student_id' => $data['studentId'] ?? null,
+            'course' => $data['course'] ?? null,
+            'year_level' => $data['yearLevel'] ?? null,
+        ], fn ($v) => $v !== null));
 
         return $user->toFrontend();
     }

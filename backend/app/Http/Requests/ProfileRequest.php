@@ -11,13 +11,15 @@ class ProfileRequest extends FormRequest
     public function rules(): array
     {
         $id = $this->user()->id;
+        // The platform admin isn't a student: only name and email
+        $student = $this->user()->is_admin ? 'sometimes' : 'required';
 
         return [
             'name' => 'required|string|max:255',
-            'studentId' => ['required', 'string', 'max:50', Rule::unique('users', 'student_id')->ignore($id)],
+            'studentId' => [$student, 'string', 'max:50', Rule::unique('users', 'student_id')->ignore($id)],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($id)],
-            'course' => 'required|string|max:50',
-            'yearLevel' => 'required|string|max:50',
+            'course' => "{$student}|string|max:50",
+            'yearLevel' => "{$student}|string|max:50",
         ];
     }
 

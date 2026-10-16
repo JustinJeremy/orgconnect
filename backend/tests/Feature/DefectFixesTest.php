@@ -87,17 +87,6 @@ class DefectFixesTest extends TestCase
         ])->assertOk();
     }
 
-    // #5: takeover
-    public function test_an_officer_cannot_reset_the_password_of_someone_in_another_org(): void
-    {
-        $org = $this->compSoc();
-        $president = $this->person($org, 'officer');
-        $shared = $this->person($org);
-        $shared->memberships()->create(['organization_id' => $this->secondOrg()->id, 'role' => 'member', 'position' => 'Member', 'status' => 'Active']);
-
-        $this->actingIn($president, $org)->postJson("/api/members/{$shared->id}/reset-password")->assertStatus(422);
-    }
-
     public function test_an_officer_can_still_manage_someone_only_in_their_org(): void
     {
         $org = $this->compSoc();
@@ -107,7 +96,6 @@ class DefectFixesTest extends TestCase
         $this->actingIn($president, $org)->putJson("/api/members/{$member->id}", [
             'name' => 'New Name', 'email' => 'new.name@school.edu.ph', 'position' => 'Member', 'status' => 'Active',
         ])->assertOk();
-        $this->actingIn($president, $org)->postJson("/api/members/{$member->id}/reset-password")->assertOk();
     }
 
     // #6 and the member-management rules
