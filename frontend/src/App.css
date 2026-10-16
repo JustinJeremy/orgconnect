@@ -3570,3 +3570,5 @@ a.org-option { text-decoration: none; }
 .account-org { padding: 0.125rem 0.5rem; border-radius: 999px; background: var(--sky-soft); color: var(--navy); font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
 .account-org.is-pending, .account-org.is-inactive { background: var(--line-2); color: var(--muted); }
 .feed-comment .comment-avatar, .comment-avatar { flex: none; }
+.account-org-select { width: auto; min-width: 14rem; }
+.account-group td { padding-top: 1rem; padding-bottom: 0.375rem; background: var(--surface-2); color: var(--soft-ink); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }

@@ -40,6 +40,20 @@ class MembershipRecord extends Model
         return $this->belongsTo(User::class, 'rejected_by');
     }
 
+    // Roster order: President, Vice Presidents, Secretary, Treasurer, other officers, members,
+    // then anyone still pending (lower comes first). Used to sort lists of people.
+    public const RANK_SQL = "CASE WHEN status = 'Pending' THEN 9 WHEN position = 'President' THEN 0 WHEN position LIKE 'VP%' THEN 1 "
+        ."WHEN position = 'Secretary' THEN 2 WHEN position = 'Treasurer' THEN 3 WHEN role = 'officer' THEN 4 ELSE 5 END";
+
+    // For orderBy() on a users query: each user's rank in the given org
+    public static function rankIn(int $organizationId)
+    {
+        return static::selectRaw(self::RANK_SQL)
+            ->whereColumn('membership_records.user_id', 'users.id')
+            ->where('organization_id', $organizationId)
+            ->limit(1);
+    }
+
     // Officers of this org who manage members (President, Vice Presidents, Secretary)
     public static function managerIds(int $organizationId)
     {

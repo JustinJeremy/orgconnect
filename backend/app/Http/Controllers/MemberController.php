@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\ListsOrPages;
 use App\Http\Controllers\Concerns\OfficerOnly;
 use App\Http\Requests\DecideApplicationRequest;
 use App\Http\Requests\MemberRequest;
+use App\Models\MembershipRecord;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\UserNotification;
@@ -26,6 +27,8 @@ class MemberController extends Controller
         $query = User::withMembershipStatus(['Active', 'Inactive'])
             ->with('membership')
             ->withSum(['hourLogs as approved_sum' => fn ($q) => $q->where('status', 'Approved')], 'hours')
+            // Officers first (President, VPs, Secretary, Treasurer...), then members; A to Z within each
+            ->orderBy(MembershipRecord::rankIn(Organization::current()->id))
             ->orderBy('name');
         $this->search($request, $query, ['name', 'email'], ['membership' => 'position']);
 

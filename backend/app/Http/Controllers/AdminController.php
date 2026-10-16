@@ -94,11 +94,15 @@ class AdminController extends Controller
         return $organization->fresh()->toRequest();
     }
 
-    // GET /api/admin/users?search=&page= -> every account (not admins), with the orgs they're in
+    // GET /api/admin/users?search=&org=&page= -> every account (not admins), with the orgs they're in
+    //   org (id): only that org's people, officers first then members (like its roster)
     public function users(Request $request)
     {
         $words = trim((string) $request->input('search'));
+        $org = $request->filled('org') ? Organization::find((int) $request->input('org')) : null;
         $page = User::where('is_admin', false)
+            ->when($org, fn ($q) => $q->whereHas('memberships', fn ($m) => $m->where('organization_id', $org->id)->whereIn('status', ['Active', 'Inactive', 'Pending']))
+                ->orderBy(MembershipRecord::rankIn($org->id)))
             ->when($words !== '', fn ($q) => $q->where(fn ($q) => $q
                 ->where('name', 'like', "%{$words}%")->orWhere('email', 'like', "%{$words}%")->orWhere('student_id', 'like', "%{$words}%")))
             ->with('memberships.organization')

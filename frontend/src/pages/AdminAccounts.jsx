@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import Icon from "../components/Icon.jsx";
 import Panel from "../components/Panel.jsx";
 import EmptyState from "../components/EmptyState.jsx";
@@ -7,16 +7,27 @@ import ConfirmDialog from "../components/ConfirmDialog.jsx";
 import TemporaryPasswordDialog from "../components/TemporaryPasswordDialog.jsx";
 import { UserAvatar } from "../components/Avatars.jsx";
 import usePagedList from "../hooks/usePagedList.js";
+import { useOrg } from "../context/OrgContext.jsx";
 import { adminApi } from "../api/services.js";
 import { errorMessage } from "../api/client.js";
 
 // Platform admin: every account, searchable. Forgotten passwords are reset here (only here):
 // a temporary password the admin passes on; the person changes it on their Profile.
 export default function AdminAccounts({ flash }) {
+  const { organizations } = useOrg();
   const [search, setSearch] = useState("");
+  const [orgId, setOrgId] = useState(""); // "" = every account; an org: its people, officers first
+  const org = organizations.find((o) => String(o.id) === orgId);
   const [resetting, setResetting] = useState(null); // account to confirm
   const [temporary, setTemporary] = useState(null); // { name, email, password }
-  const list = usePagedList(adminApi.users, { search }, 12);
+  const list = usePagedList(adminApi.users, { search, org: orgId }, 12);
+  // With an org chosen: which group each person is in there, for the section headings
+  const groupOf = (u) => {
+    const m = u.orgs.find((o) => o.shortName === org?.shortName);
+    if (!m) return null;
+    if (m.status === "Pending") return "Applicants";
+    return m.position === "Member" ? "Members" : "Officers";
+  };
 
   const reset = async () => {
     const account = resetting;
@@ -37,6 +48,13 @@ export default function AdminAccounts({ flash }) {
           <label htmlFor="account-search" className="sr-only">Search accounts</label>
           <input id="account-search" type="search" className="input" placeholder="Search by name, email or student ID" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
+        <label htmlFor="account-org" className="sr-only">Organization</label>
+        <select id="account-org" className="input select account-org-select" value={orgId} onChange={(e) => setOrgId(e.target.value)}>
+          <option value="">All accounts</option>
+          {organizations.map((o) => (
+            <option key={o.id} value={o.id}>{o.name}</option>
+          ))}
+        </select>
       </div>
 
       <Panel title="Accounts" subtitle="Reset a forgotten password: they get a temporary one and are signed out everywhere" className="flush" tour="admin-accounts">
@@ -51,8 +69,17 @@ export default function AdminAccounts({ flash }) {
                 <tr><th>Name</th><th>Student ID</th><th>Organizations</th><th><span className="sr-only">Actions</span></th></tr>
               </thead>
               <tbody>
-                {list.items.map((u) => (
-                  <tr key={u.id}>
+                {list.items.map((u, i) => {
+                  const group = org ? groupOf(u) : null;
+                  const heading = group && group !== (i > 0 ? groupOf(list.items[i - 1]) : null);
+                  return (
+                  <Fragment key={u.id}>
+                  {heading && (
+                    <tr className="account-group">
+                      <td colSpan={4}>{group}</td>
+                    </tr>
+                  )}
+                  <tr>
                     <td>
                       <div className="person">
                         <UserAvatar user={u} className="sm" />
@@ -82,7 +109,9 @@ export default function AdminAccounts({ flash }) {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  </Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>

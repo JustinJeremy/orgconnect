@@ -23,6 +23,24 @@ class AvatarsTest extends TestCase
         $this->actingIn($officer, $org)->getJson('/api/leaderboard')->assertJsonPath('0.avatar', 'cap');
     }
 
+    public function test_rosters_list_officers_first_in_rank_order(): void
+    {
+        $org = $this->compSoc();
+        $this->person($org, 'member', 'Active', ['name' => 'Aaron Member']);
+        $this->person($org, 'officer', 'Active', ['name' => 'Zed Treasurer'], 'Treasurer');
+        $president = $this->person($org, 'officer', 'Active', ['name' => 'Yna President']);
+        $this->person($org, 'officer', 'Active', ['name' => 'Xia Secretary'], 'Secretary');
+        $this->person($org, 'officer', 'Active', ['name' => 'Wes VP'], 'VP Academics');
+
+        $names = collect($this->actingIn($president, $org)->getJson('/api/members')->json())->pluck('name')->all();
+        $this->assertSame(['Yna President', 'Wes VP', 'Xia Secretary', 'Zed Treasurer', 'Aaron Member'], $names);
+
+        $admin = $this->person($this->secondOrg());
+        $admin->forceFill(['is_admin' => true])->save();
+        $page = $this->actingIn($admin, $org)->getJson("/api/admin/users?org={$org->id}")->json('data');
+        $this->assertSame(['Yna President', 'Wes VP', 'Xia Secretary', 'Zed Treasurer', 'Aaron Member'], collect($page)->pluck('name')->all());
+    }
+
     public function test_the_admin_updates_their_profile_without_student_fields(): void
     {
         $org = $this->compSoc();
