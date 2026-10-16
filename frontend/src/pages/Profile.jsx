@@ -339,11 +339,18 @@ export default function Profile({ data, loading, flash }) {
           </Panel>
         )}
         {user.isPresident && (
-          <Panel title="Organization details" subtitle="Name, description, courses and more" className="span-5" tour="profile-org-details">
+          <Panel title="Organization details" subtitle="Name, description, courses and more" className="span-7" tour="profile-org-details">
             <OrgDetailsChange flash={flash} />
           </Panel>
         )}
-        <Panel title="My organizations" tour="profile-orgs" subtitle="One account works for every org you join" className="span-7">
+        {/* Rows of 12 columns: an officer's logo (5) sits beside this (7); the President's logo sits beside
+            Organization details, so this takes the whole row (as it does for members) */}
+        <Panel
+          title="My organizations"
+          tour="profile-orgs"
+          subtitle="One account works for every org you join"
+          className={user.role === "officer" && !user.isPresident ? "span-7" : "span-12"}
+        >
           <MyOrganizations flash={flash} />
         </Panel>
       </div>
