@@ -40,7 +40,7 @@ class DatabaseSeeder extends Seeder
             LearningResource::updateOrCreate(['url' => $resource['url']], $resource + ['user_id' => $officer->id]);
         }
 
-        $this->call([ComputerSocietySeeder::class, DataScienceSocietySeeder::class]);
+        $this->call([ComputerSocietySeeder::class, DataScienceSocietySeeder::class, DemoSeeder::class]);
         Organization::setCurrent(null);
 
         $this->platform();

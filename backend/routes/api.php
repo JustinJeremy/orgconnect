@@ -66,6 +66,7 @@ Route::middleware(['auth:sanctum', 'org.member'])->group(function () {
     Route::put('/events/{event}/attendance', [EventController::class, 'attendance']);
     Route::get('/events/{event}/certificate', [EventController::class, 'certificate']);
     Route::get('/certificates', [EventController::class, 'certificates']);
+    Route::get('/my-history', [ProfileController::class, 'history']);   // Profile: your hours, events and certificates
     Route::post('/events/{event}/poster', [EventController::class, 'uploadPoster']);
     Route::delete('/events/{event}/poster', [EventController::class, 'removePoster']);
 

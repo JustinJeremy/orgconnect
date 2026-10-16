@@ -35,6 +35,12 @@ const PROFILE = {
     },
     {
       page: "profile",
+      target: ".stat-link",
+      title: "Your history",
+      body: "Click any of these numbers to see the full list: every hour log and who reviewed it, every event you attended or missed, and your certificates to download.",
+    },
+    {
+      page: "profile",
       target: '[data-tour="profile-details"]',
       title: "Personal details",
       body: "Keep your name, student ID, email, course and year level up to date. Officers see these on the member roster.",

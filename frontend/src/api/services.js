@@ -26,6 +26,14 @@ const del = (url) => api.delete(url).then(unwrap);
 // One page of a list: { data: [...], meta: { page, lastPage, total, perPage } } (see usePagedList)
 const getPage = (url) => (params) => api.get(url, { params }).then((res) => res.data);
 
+// Your own record in the selected org (Profile history pages)
+// -> { hours: [{ id, activity, date, hours, status, reviewedBy }],
+//      events: [{ id, title, category, date, time, location, result: "attended"|"missed"|"going", hasCertificate }],
+//      certificates: [Certificate] }
+export const profileApi = {
+  history: () => get("/my-history"),
+};
+
 export const authApi = {
   login: (email, password, remember) => post("/login", { email, password, remember }), // -> { token, user }
   register: (data) => post("/register", data), // -> { token, user }
