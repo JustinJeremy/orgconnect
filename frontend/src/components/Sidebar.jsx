@@ -1,5 +1,6 @@
 import Icon from "./Icon.jsx";
 import { isPlainClick, pagePath } from "../hooks/useUrlPage.js";
+import { useOrg } from "../context/OrgContext.jsx";
 import Logo from "./Logo.jsx";
 import Rings from "./Rings.jsx";
 import OrgSwitcher from "./OrgSwitcher.jsx";
@@ -21,6 +22,9 @@ export default function Sidebar({ page, onNavigate, open, onClose, collapsed, on
     onNavigate(key);
     onClose();
   };
+  // Opened in a new tab, a link keeps this tab's org
+  const { current } = useOrg();
+  const tabLink = (key) => `${pagePath(key)}?org=${current.slug}`;
   // A plain click switches page here; Ctrl/middle-click is left to the browser (new tab)
   const linkClick = (e, key) => {
     if (!isPlainClick(e)) return;
@@ -42,7 +46,7 @@ export default function Sidebar({ page, onNavigate, open, onClose, collapsed, on
       <aside className={`sidebar ${open ? "open" : ""}`}>
         <Rings preset="sidebar" />
         <div className="sidebar-brand">
-          <Logo size={35} subtitle={<OrgSwitcher variant="sidebar" />} homeHref={pagePath("dashboard")} onHome={() => handleNavigate("dashboard")} />
+          <Logo size={35} subtitle={<OrgSwitcher variant="sidebar" />} homeHref={tabLink("dashboard")} onHome={() => handleNavigate("dashboard")} />
           <button
             type="button"
             className="icon-btn sidebar-collapse"
@@ -60,7 +64,7 @@ export default function Sidebar({ page, onNavigate, open, onClose, collapsed, on
             // Real links: Ctrl/middle-click opens the page in a new tab
             <a
               key={item.key}
-              href={pagePath(item.key)}
+              href={tabLink(item.key)}
               className={`nav-item ${page === item.key ? "active" : ""}`}
               onClick={(e) => linkClick(e, item.key)}
               aria-current={page === item.key ? "page" : undefined}
@@ -74,7 +78,7 @@ export default function Sidebar({ page, onNavigate, open, onClose, collapsed, on
 
         <div className="sidebar-user">
           <a
-            href={pagePath("profile")}
+            href={tabLink("profile")}
             className={`sidebar-user-btn ${page === "profile" ? "active" : ""}`}
             onClick={(e) => linkClick(e, "profile")}
             aria-current={page === "profile" ? "page" : undefined}

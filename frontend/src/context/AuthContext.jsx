@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { authApi, orgRequestsApi, orgsApi } from "../api/services.js";
-import { errorMessage, getOrgSlug, getToken, setToken } from "../api/client.js";
+import { borrowSessionToken, errorMessage, getOrgSlug, getToken, setToken } from "../api/client.js";
 import { useOrg } from "./OrgContext.jsx";
 
 // Holds the signed-in user (Laravel Sanctum token auth).
@@ -10,12 +10,13 @@ const AuthContext = createContext(null);
 const REGISTER_KEY = "orgconnect_register_org";
 
 export function AuthProvider({ children }) {
-  const { current } = useOrg();
+  const { current, loading: orgsLoading } = useOrg();
   const orgSlug = current?.slug;
   const [user, setUser] = useState(null);
   const [memberships, setMemberships] = useState([]); // [{ organizationId, role, position, status }]
   const [orgRequests, setOrgRequests] = useState([]); // orgs this user asked to register, newest first
-  const [checking, setChecking] = useState(() => Boolean(getToken()));
+  // Also while a new tab asks the other tabs for their sign-in (borrowSessionToken)
+  const [checking, setChecking] = useState(true);
   const [authView, setAuthView] = useState(null); // which form Landing should open after signing out
   // Signing up / in to register a new org: shows the registration form instead of the org (kept across reloads)
   const [registeringOrg, setRegisteringOrg] = useState(() => {
@@ -48,14 +49,27 @@ export function AuthProvider({ children }) {
 
   // Restore the session on page load, and reload the user after switching orgs
   useEffect(() => {
-    if (!orgSlug || !getToken()) return;
-    loadAccount()
-      .catch(() => {
-        setToken(null);
-        setUser(null);
-      })
-      .finally(() => setChecking(false));
-  }, [orgSlug, loadAccount]);
+    if (!orgSlug) {
+      if (!orgsLoading) setChecking(false); // no organizations at all: nothing to sign in to
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      // A new tab with no saved sign-in: another open tab may have one ("Remember me" off)
+      if (!getToken()) await borrowSessionToken();
+      if (cancelled) return;
+      if (!getToken()) return setChecking(false);
+      await loadAccount()
+        .catch(() => {
+          setToken(null);
+          setUser(null);
+        })
+        .finally(() => !cancelled && setChecking(false));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [orgSlug, orgsLoading, loadAccount]);
 
   const startSession = async ({ token }, remember = true) => {
     setToken(token, remember);
