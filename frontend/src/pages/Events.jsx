@@ -23,8 +23,15 @@ function EventPills({ items, value, onChange }) {
       if (el) setMark({ x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight });
     };
     measure();
+    // The pills change size when the web font finishes loading, so measure again then
+    const observer = new ResizeObserver(measure);
+    wrapRef.current?.querySelectorAll(".pill").forEach((el) => observer.observe(el));
+    document.fonts?.ready.then(measure);
     window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
   }, [value]);
 
   return (

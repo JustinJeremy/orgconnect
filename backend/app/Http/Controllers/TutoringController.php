@@ -76,6 +76,8 @@ class TutoringController extends Controller
                 ->where('user_id', '!=', $user->id)
                 ->when(! $user->isOfficer(), fn ($q) => $q->whereHas('session', fn ($s) => $s->where('tutor_id', $user->id))))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
+            // Ones still waiting for an answer first, then newest first
+            ->orderByRaw("CASE WHEN status = 'Pending' THEN 0 ELSE 1 END")
             ->latest()
             ->latest('id');
 

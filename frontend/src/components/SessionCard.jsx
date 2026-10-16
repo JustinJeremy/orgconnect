@@ -2,9 +2,22 @@ import { useState } from "react";
 import Icon from "./Icon.jsx";
 import { StatusBadge } from "./Badges.jsx";
 import { initials } from "../utils/format.js";
+import { parseSchedule, weeklyDates } from "../utils/schedule.js";
 
-export default function SessionCard({ session, myRequest, canManage, canRequest, onRequest, onEdit, onDelete }) {
+// The next date a weekly session meets, e.g. "Fri, Oct 23" (today counts until its start time)
+function nextMeeting(schedule) {
+  const when = parseSchedule(schedule);
+  if (!when) return null;
+  const now = new Date();
+  const soon = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7);
+  const date = weeklyDates(when.weekday, now, soon).find((d) => new Date(`${d}T${when.time}:00`) > now);
+  if (!date) return null;
+  return new Date(`${date}T00:00:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
+
+export default function SessionCard({ session, myRequest, canManage, canRequest, onRequest, onEdit, onDelete, highlighted }) {
   const [busy, setBusy] = useState(false);
+  const next = nextMeeting(session.schedule);
 
   const request = async () => {
     setBusy(true);
@@ -13,7 +26,7 @@ export default function SessionCard({ session, myRequest, canManage, canRequest,
   };
 
   return (
-    <article className="session-card">
+    <article className={`session-card ${highlighted ? "is-highlighted" : ""}`} data-focus={`session-${session.id}`}>
       <div className="event-card-top">
         <div className="event-card-head">
           <span className="event-cat">{session.area}</span>
@@ -39,6 +52,7 @@ export default function SessionCard({ session, myRequest, canManage, canRequest,
       <div className="event-meta">
         <span>
           <Icon name="clock" size={14} /> {session.schedule}
+          {next && <span className="session-next">Next: {next}</span>}
         </span>
         <span>
           <Icon name="pin" size={14} /> {session.location}

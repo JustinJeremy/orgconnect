@@ -8,6 +8,8 @@ use App\Models\Certificate;
 use App\Models\Event;
 use App\Models\MembershipRecord;
 use App\Models\Organization;
+use App\Models\TutoringRequest;
+use App\Models\TutoringSession;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Models\VolunteerHour;
@@ -93,6 +95,7 @@ class DemoSeeder extends Seeder
             Organization::setCurrent($org);
             $this->seedOrg($org, $events, $day);
             $this->feedActivity($org);
+            $this->tutoring($org);
             $this->notifications($org, $day);
         }
         Organization::setCurrent(null);
@@ -207,6 +210,55 @@ class DemoSeeder extends Seeder
             }
         }
     }
+
+    private const SAMPLE_SESSIONS = [
+        'Java OOP: classes and inheritance', 'HTML, CSS and responsive layouts', 'SQL for beginners', 'Subnetting made easy',
+        'Pandas & NumPy basics', 'Statistics for Data Science', 'SQL joins and aggregates', 'Intro to machine learning with scikit-learn',
+    ];
+
+    // Everyone gets one confirmed weekly tutoring session, so their calendar shows tutoring.
+    // Always the same session per person (from their email), never one they teach or already
+    // requested in the sample data, so running this again (or after testing) gives the same result.
+    private function tutoring(Organization $org): void
+    {
+        // Only the sample sessions (not ones made while testing)
+        $sessions = TutoringSession::whereIn('subject', self::SAMPLE_SESSIONS)->orderBy('id')->get();
+        if ($sessions->isEmpty()) {
+            return;
+        }
+        $members = MembershipRecord::where('organization_id', $org->id)->where('status', 'Active')->with('user')->get()
+            ->filter(fn ($m) => $m->user && str_ends_with($m->user->email, '@orgconnect.test'));
+
+        foreach ($members as $m) {
+            $email = $m->user->email;
+            $requested = self::SAMPLE_REQUESTS[$email] ?? [];
+            $options = $sessions->filter(fn ($s) => $s->tutor_id !== $m->user_id && ! in_array($s->subject, $requested, true))->values();
+            if ($options->isEmpty()) {
+                continue;
+            }
+            $booked = $options[$this->hash($email, 'tutoring') % $options->count()];
+            $booked->requests()->updateOrCreate(['user_id' => $m->user_id], ['status' => 'Confirmed']);
+
+            // Anything else this seeder booked them into before is removed
+            TutoringRequest::where('user_id', $m->user_id)
+                ->whereIn('tutoring_session_id', $options->pluck('id'))
+                ->where('tutoring_session_id', '!=', $booked->id)
+                ->delete();
+        }
+    }
+
+    // Requests the org seeders already make (session subjects, by email): left as they are
+    private const SAMPLE_REQUESTS = [
+        'ryan.castillo@orgconnect.test' => ['Java OOP: classes and inheritance'],
+        'bianca.torres@orgconnect.test' => ['Java OOP: classes and inheritance'],
+        'patricia.lim@orgconnect.test' => ['HTML, CSS and responsive layouts'],
+        'member@orgconnect.test' => ['SQL for beginners', 'SQL joins and aggregates'],
+        'joanna.uy@orgconnect.test' => ['Subnetting made easy'],
+        'gabriel.aquino@orgconnect.test' => ['Pandas & NumPy basics'],
+        'isabel.cruz@orgconnect.test' => ['Pandas & NumPy basics'],
+        'denise.tan@orgconnect.test' => ['Statistics for Data Science'],
+        'sofia.garcia@orgconnect.test' => ['Intro to machine learning with scikit-learn'],
+    ];
 
     // A notification history, worded like the app's own so clicking one opens its item:
     //   everyone: certificates ready, hours approved, the demo day's events, the latest announcement

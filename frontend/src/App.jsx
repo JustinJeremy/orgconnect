@@ -95,6 +95,13 @@ function MainApp() {
   const { user } = useAuth();
   const isOfficer = user.role === "officer";
   const [page, setPage] = useState("dashboard");
+  // Goes up when you click the menu item of the page you're already on: the page starts over
+  // (its first tab, no filters)
+  const [pageReset, setPageReset] = useState(0);
+  const navigate = (next) => {
+    if (next === page) setPageReset((n) => n + 1);
+    setPage(next);
+  };
   // An item to show and highlight on its page (from a notification or a dashboard card):
   // { page, key, ...notificationTarget() }, e.g. { page: "events", eventId } or { page: "hours", kind: "hour", id }
   const [focus, setFocus] = useState(null);
@@ -423,6 +430,12 @@ function MainApp() {
     setFocus({ page: "events", eventId: event.id, eventTitle: event.title, key: Date.now() });
   };
 
+  // Dashboard calendar: open Peer Tutoring on that session
+  const openSession = (session) => {
+    setPage("tutoring");
+    setFocus({ page: "tutoring", kind: "session", id: session.id, search: session.subject, key: Date.now() });
+  };
+
   // ---- Page ----
   const meta =
     page === "dashboard"
@@ -462,7 +475,7 @@ function MainApp() {
     <div className={`layout ${collapsed ? "is-collapsed" : ""}`}>
       <Sidebar
         page={page}
-        onNavigate={setPage}
+        onNavigate={navigate}
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         collapsed={collapsed}
@@ -481,17 +494,18 @@ function MainApp() {
             tutoring={tutoring}
             announcements={announcements}
             onOpenEvent={openEvent}
+            onOpenSession={openSession}
           />
         ) : (
           <>
             {topbar}
             {errorBanner}
-            {page === "events" && <Events {...pageProps} actions={events} focus={focusFor("events")} onFocusDone={clearFocus} />}
-            {page === "hours" && <VolunteerHours {...pageProps} hours={hours} members={members} focus={focusFor("hours")} onFocusDone={clearFocus} />}
-            {page === "tutoring" && <Tutoring {...pageProps} actions={tutoring} focus={focusFor("tutoring")} onFocusDone={clearFocus} />}
-            {page === "announcements" && <Announcements {...pageProps} actions={announcements} focus={focusFor("announcements")} onFocusDone={clearFocus} />}
-            {page === "profile" && <Profile {...pageProps} />}
-            {page === "notifications" && <Notifications {...pageProps} onOpen={openNotification} onMarkAllRead={markNotificationsRead} />}
+            {page === "events" && <Events key={pageReset} {...pageProps} actions={events} focus={focusFor("events")} onFocusDone={clearFocus} />}
+            {page === "hours" && <VolunteerHours key={pageReset} {...pageProps} hours={hours} members={members} focus={focusFor("hours")} onFocusDone={clearFocus} />}
+            {page === "tutoring" && <Tutoring key={pageReset} {...pageProps} actions={tutoring} focus={focusFor("tutoring")} onFocusDone={clearFocus} />}
+            {page === "announcements" && <Announcements key={pageReset} {...pageProps} actions={announcements} focus={focusFor("announcements")} onFocusDone={clearFocus} />}
+            {page === "profile" && <Profile key={pageReset} {...pageProps} />}
+            {page === "notifications" && <Notifications key={pageReset} {...pageProps} onOpen={openNotification} onMarkAllRead={markNotificationsRead} />}
           </>
         )}
       </main>

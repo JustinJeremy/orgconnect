@@ -1,12 +1,14 @@
 import { useState } from "react";
 import Icon from "./Icon.jsx";
 import ModeTag from "./ModeTag.jsx";
-import { attendedCount, dateParts, formatTime, isCompleted, myRegistration, percent } from "../utils/format.js";
+import { attendedCount, dateParts, formatTime, isCompleted, isPast, myRegistration, percent } from "../utils/format.js";
 
 // layout "row": thumbnail on the left (members); "box": date badge beside the title (officers)
 export default function EventCard({ event, userId, isOfficer, actions, layout = "row", highlighted = false }) {
   const [busy, setBusy] = useState(false);
   const done = isCompleted(event);
+  // Over, but attendance isn't recorded yet
+  const passed = !done && isPast(event.date, event.time);
   const registered = event.registrations.length;
   const attended = attendedCount(event);
   const mine = myRegistration(event, userId);
@@ -29,7 +31,7 @@ export default function EventCard({ event, userId, isOfficer, actions, layout = 
   };
 
   return (
-    <article className={`event-card ${done ? "is-done" : ""} ${highlighted ? "is-highlighted" : ""}`} data-event-id={event.id}>
+    <article className={`event-card ${done ? "is-done" : ""} ${passed ? "is-passed" : ""} ${highlighted ? "is-highlighted" : ""}`} data-event-id={event.id}>
       {/* Poster, or a grey placeholder when the event has none */}
       {layout === "row" && (
         <div className="event-thumb">
@@ -45,7 +47,11 @@ export default function EventCard({ event, userId, isOfficer, actions, layout = 
         <div className="event-card-top">
           {layout === "box" && dateBlock}
           <div className="event-card-head">
-            <span className="event-cat">{event.category}</span>
+            <span className="event-cat">
+              {event.category}
+              {done && <span className="event-state is-done"><Icon name="check" size={12} /> Completed</span>}
+              {passed && <span className="event-state is-passed"><Icon name="clock" size={12} /> Passed</span>}
+            </span>
             <h3>{event.title}</h3>
           </div>
           {isOfficer && (
