@@ -37,8 +37,17 @@ export function OrgProvider({ children }) {
 
   const current = organizations.find((o) => o.slug === slug) || null;
 
+  // Choosing another org from a menu: open that org on its dashboard (not the page you were on)
+  const switchOrg = useCallback(
+    (next) => {
+      if (window.location.pathname !== "/dashboard") window.history.pushState(null, "", "/dashboard");
+      selectOrg(next);
+    },
+    [selectOrg]
+  );
+
   return (
-    <OrgContext.Provider value={{ organizations, current, loading, error, selectOrg, reload: loadOrganizations }}>
+    <OrgContext.Provider value={{ organizations, current, loading, error, selectOrg, switchOrg, reload: loadOrganizations }}>
       {children}
     </OrgContext.Provider>
   );

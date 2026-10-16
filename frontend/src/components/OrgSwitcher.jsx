@@ -18,7 +18,7 @@ function requestNote(request) {
 }
 
 export default function OrgSwitcher({ variant = "light" }) {
-  const { organizations, current, selectOrg } = useOrg();
+  const { organizations, current, switchOrg } = useOrg();
   const { user, memberships, orgRequests, startOrgRegistration } = useAuth();
   const [menuPos, setMenuPos] = useState(null); // null = closed
   const open = Boolean(menuPos);
@@ -71,7 +71,7 @@ export default function OrgSwitcher({ variant = "light" }) {
 
   const choose = (org) => {
     setMenuPos(null);
-    if (org.slug !== current.slug) selectOrg(org.slug);
+    if (org.slug !== current.slug) switchOrg(org.slug);
   };
 
   const note = (org) => {

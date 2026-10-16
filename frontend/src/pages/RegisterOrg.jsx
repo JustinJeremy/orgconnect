@@ -217,14 +217,14 @@ function RequestForm({ previous, onSent, onCancel }) {
 }
 
 function RequestStatus({ request, onClose }) {
-  const { selectOrg, reload } = useOrg();
+  const { switchOrg, reload } = useOrg();
   const [opening, setOpening] = useState(false);
 
   // Approved: load the org list again (the new org wasn't in it yet) and switch to it
   const openOrg = async () => {
     setOpening(true);
     await reload();
-    selectOrg(request.slug);
+    switchOrg(request.slug);
     onClose();
   };
 
