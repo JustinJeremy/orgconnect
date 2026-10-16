@@ -219,7 +219,7 @@ function MemberView({ data, loading, hours: hourActions, focus, onFocusDone }) {
 
       <div className="dash-grid">
         <Panel title="Log volunteer hours" className="span-4" tour="log-hours">
-          <LogHoursForm onSubmit={hourActions.log} />
+          <LogHoursForm onSubmit={hourActions.log} events={data.events} />
         </Panel>
 
         <Panel title="My hour logs" className="span-8 flush-body" tour="my-logs" action={<StatusSelect value={status} onChange={setStatus} />}>

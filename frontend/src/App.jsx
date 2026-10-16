@@ -13,6 +13,7 @@ import AdminApp from "./pages/AdminApp.jsx";
 import RejectApplicationDialog from "./components/RejectApplicationDialog.jsx";
 import { ADMIN_THEME, applyTheme } from "./utils/theme.js";
 import Profile from "./pages/Profile.jsx";
+import Notifications from "./pages/Notifications.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 import Topbar from "./components/Topbar.jsx";
 import Toast from "./components/Toast.jsx";
@@ -34,6 +35,7 @@ import {
 } from "./api/services.js";
 
 const PAGE_META = {
+  notifications: { title: "Notifications" },
   events: {
     title: "Events",
     officer: "Create events, track RSVPs and record attendance",
@@ -440,6 +442,7 @@ function MainApp() {
       notifications={data.notifications}
       onMarkAllRead={markNotificationsRead}
       onOpenNotification={openNotification}
+      onViewAll={() => setPage("notifications")}
       onOpenMenu={() => setMenuOpen(true)}
       tourSections={tourSections(isOfficer)}
       onStartTour={startTour}
@@ -488,6 +491,7 @@ function MainApp() {
             {page === "tutoring" && <Tutoring {...pageProps} actions={tutoring} focus={focusFor("tutoring")} onFocusDone={clearFocus} />}
             {page === "announcements" && <Announcements {...pageProps} actions={announcements} focus={focusFor("announcements")} onFocusDone={clearFocus} />}
             {page === "profile" && <Profile {...pageProps} />}
+            {page === "notifications" && <Notifications {...pageProps} onOpen={openNotification} onMarkAllRead={markNotificationsRead} />}
           </>
         )}
       </main>

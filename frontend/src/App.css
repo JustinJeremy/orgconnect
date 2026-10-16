@@ -3447,3 +3447,51 @@ button.stat-link:focus-visible { outline: 2px solid var(--accent); outline-offse
 a.btn { text-decoration: none; }
 /* List view: with a poster, the date badge goes top-right (over the rings), not over the poster's title */
 .event-thumb:has(.event-thumb-img) { justify-content: flex-end; }
+
+/* ---------- Batch 14 ---------- */
+/* Calendar: the selected day's events, in a popup under the month */
+.calendar { position: relative; }
+.calendar-day.is-open > span { box-shadow: 0 0 0 3px var(--accent); }
+.calendar-pop {
+  position: absolute; left: 0.5rem; right: 0.5rem; top: calc(100% - 2.25rem); z-index: 20;
+  background: var(--surface); border-radius: 0.875rem; box-shadow: 0 12px 32px rgba(15, 23, 42, 0.22);
+  padding: 0.625rem; animation: calendar-pop-in 0.16s ease-out;
+}
+@keyframes calendar-pop-in { from { opacity: 0; transform: translateY(-4px); } }
+.calendar-pop-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.125rem 0.25rem 0.5rem; color: var(--navy); font-size: 0.875rem; }
+.calendar-pop ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+.calendar-pop-event {
+  display: flex; align-items: center; gap: 0.625rem; width: 100%; padding: 0.5rem; border: 0; border-radius: 0.625rem;
+  background: none; font: inherit; color: var(--ink); text-align: left; cursor: pointer;
+}
+.calendar-pop-event:hover, .calendar-pop-event:focus-visible { background: var(--sky-soft); }
+.calendar-pop-event > svg { flex: none; color: var(--navy); }
+.calendar-pop-time { flex: none; min-width: 4.25rem; padding: 0.125rem 0.375rem; border-radius: 0.375rem; background: var(--navy); color: #fff; font-size: 0.75rem; font-weight: 700; text-align: center; }
+.calendar-pop-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.calendar-pop-title { font-weight: 700; font-size: 0.875rem; }
+.calendar-pop-meta { font-size: 0.75rem; color: var(--soft-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (prefers-reduced-motion: reduce) { .calendar-pop { animation: none; } }
+
+/* Bell: link to the Notifications page */
+.notif-all {
+  display: flex; align-items: center; justify-content: center; gap: 0.375rem; width: 100%; padding: 0.75rem;
+  border: 0; border-top: 1px solid var(--line-2); background: none; font: inherit; font-weight: 700; color: var(--navy); cursor: pointer;
+}
+.notif-all:hover { background: var(--sky-soft); }
+
+/* Notifications page */
+.notif-type { width: auto; min-width: 12rem; }
+.notif-page-list { list-style: none; margin: 0; padding: 0; transition: opacity 0.15s ease; }
+.notif-page-list.is-pending { opacity: 0.45; }
+.notif-page-list li + li { border-top: 1px solid var(--line-2); }
+.notif-page-item {
+  display: flex; align-items: center; gap: 0.875rem; width: 100%; padding: 0.875rem 1.25rem;
+  border: 0; background: none; font: inherit; text-align: left; cursor: pointer;
+}
+.notif-page-item:hover { background: var(--surface-2); }
+.notif-page-item.unread { background: var(--sky-soft); }
+.notif-page-item.unread .notif-msg { font-weight: 700; }
+.notif-page-icon { display: grid; place-items: center; flex: none; width: 2.5rem; height: 2.5rem; border-radius: 0.75rem; background: var(--sky); color: var(--navy); }
+.notif-page-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.125rem; }
+.notif-page-item .notif-dot { margin-top: 0; background: var(--accent); }
+.notif-page-item:hover .notif-go { opacity: 1; }

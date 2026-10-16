@@ -9,6 +9,7 @@ use App\Models\Event;
 use App\Models\MembershipRecord;
 use App\Models\Organization;
 use App\Models\User;
+use App\Models\UserNotification;
 use App\Models\VolunteerHour;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -18,8 +19,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 // A semester of history for the live demo: past events with attendance and certificates, volunteer
-// hours spread over the months, events on the demo day itself so something is "today", and reads,
-// likes and comments on the announcements.
+// hours spread over the months, events on the demo day itself so something is "today", reads,
+// likes and comments on the announcements, and a notification history.
 //   Officers attend every past event but one or two; members register for most and attend most.
 //   Pending and inactive members are left out.
 // Dates count back from DEMO_DAY (default: the presentation, 2026-10-20), so they don't move when
@@ -92,6 +93,7 @@ class DemoSeeder extends Seeder
             Organization::setCurrent($org);
             $this->seedOrg($org, $events, $day);
             $this->feedActivity($org);
+            $this->notifications($org, $day);
         }
         Organization::setCurrent(null);
 
@@ -141,7 +143,8 @@ class DemoSeeder extends Seeder
                     continue;
                 }
 
-                Certificate::firstOrCreate(['user_id' => $m->user_id, 'event_id' => $event->id], [
+                // Issued the morning after (also repairs one re-issued later, e.g. by re-saving attendance)
+                Certificate::updateOrCreate(['user_id' => $m->user_id, 'event_id' => $event->id], [
                     'issued_at' => $date->copy()->addDay()->setTime(9, 0),
                 ]);
 
@@ -201,6 +204,53 @@ class DemoSeeder extends Seeder
                 $text = self::COMMENTS[$this->hash($u->email, "t{$post->id}") % count(self::COMMENTS)];
                 $comment = AnnouncementComment::firstOrCreate(['announcement_id' => $post->id, 'user_id' => $u->id], ['text' => $text]);
                 $comment->forceFill(['created_at' => $after(45 + $i * 90), 'updated_at' => $after(45 + $i * 90)])->save();
+            }
+        }
+    }
+
+    // A notification history, worded like the app's own so clicking one opens its item:
+    //   everyone: certificates ready, hours approved, the demo day's events, the latest announcement
+    //   officers too: members' hour logs waiting for review, and new applications
+    // Older ones are read; the newest few aren't.
+    private function notifications(Organization $org, Carbon $day): void
+    {
+        $members = MembershipRecord::where('organization_id', $org->id)->where('status', 'Active')->with('user')->get()
+            ->filter(fn ($m) => $m->user && str_ends_with($m->user->email, '@orgconnect.test'));
+        $note = function (int $userId, string $message, string $link, $at, bool $read) use ($org) {
+            $n = UserNotification::firstOrCreate(
+                ['organization_id' => $org->id, 'user_id' => $userId, 'message' => $message],
+                ['link' => $link, 'is_read' => $read]
+            );
+            $n->forceFill(['created_at' => $at, 'updated_at' => $at])->save();
+        };
+        $demoEvents = Event::whereDate('date', $day->toDateString())->get();
+        $latestPost = Announcement::latest()->first();
+        $pendingLogs = VolunteerHour::with('user')->where('status', 'Pending')->get();
+        $applicants = MembershipRecord::where('organization_id', $org->id)->where('status', 'Pending')->with('user')->get();
+
+        foreach ($members as $m) {
+            $uid = $m->user_id;
+            foreach (Certificate::with('event')->where('user_id', $uid)->whereHas('event')->get()
+                ->sortByDesc(fn ($c) => $c->event->date)->take(3)->values() as $i => $c) {
+                $note($uid, "Your certificate for {$c->event->title} is ready", "events/{$c->event_id}", $c->issued_at, $i > 0);
+            }
+            foreach (VolunteerHour::where('user_id', $uid)->where('status', 'Approved')->orderByDesc('date')->take(2)->get() as $log) {
+                $note($uid, "Your {$log->hours} hrs for {$log->activity} were approved", "hours/{$log->id}", $log->date->copy()->addDay()->setTime(10, 0), true);
+            }
+            foreach ($demoEvents as $i => $e) {
+                $note($uid, "New event: {$e->title}", "events/{$e->id}", $day->copy()->subDays(6)->setTime(9, $i), $i > 0);
+            }
+            if ($latestPost && $latestPost->user_id !== $uid) {
+                $note($uid, "New announcement: {$latestPost->title}", "announcements/{$latestPost->id}", $latestPost->created_at, false);
+            }
+            if ($m->role !== 'officer') {
+                continue;
+            }
+            foreach ($pendingLogs->where('user_id', '!=', $uid) as $log) {
+                $note($uid, "{$log->user->name} logged {$log->hours} hrs for {$log->activity}", "hours/{$log->id}", $log->date->copy()->setTime(18, 0), false);
+            }
+            foreach ($applicants as $a) {
+                $note($uid, "{$a->user->name} applied to join {$org->short_name}", 'applications', $a->created_at, true);
             }
         }
     }

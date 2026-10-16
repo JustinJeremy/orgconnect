@@ -44,13 +44,16 @@ class DefectFixesTest extends TestCase
     {
         $org = $this->compSoc();
         $officer = $this->person($org, 'officer');
-        $logId = $this->logHours($this->person($org), $org)->json('id');
+        $member = $this->person($org);
+        $logId = $this->logHours($member, $org)->json('id');
 
         $this->actingIn($officer, $org)->patchJson("/api/hours/{$logId}", ['status' => 'Approved'])->assertOk();
         $this->actingIn($officer, $org)->patchJson("/api/hours/{$logId}", ['status' => 'Rejected'])->assertStatus(422);
 
         $this->assertDatabaseHas('volunteer_hours', ['id' => $logId, 'status' => 'Approved']);
-        $this->assertDatabaseCount('user_notifications', 1);
+        // The member was told once (approved), not again by the refused second decision
+        $this->assertDatabaseCount('user_notifications', 2);   // + the officer's "logged hours" notice
+        $this->assertSame(1, \App\Models\UserNotification::where('user_id', $member->id)->count());
     }
 
     // #4

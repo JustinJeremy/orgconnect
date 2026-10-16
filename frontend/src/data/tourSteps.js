@@ -19,7 +19,7 @@ const NAV = [
   {
     target: '[data-tour="notifications"]',
     title: "Notifications",
-    body: "The bell shows updates meant for you, like approved hours, new events and tutoring replies. The number counts unread ones.",
+    body: "The bell shows updates meant for you, like approved hours, new events and tutoring replies. The number counts unread ones; \"View all notifications\" at the bottom opens the full list, with filters.",
   },
 ];
 
@@ -92,7 +92,7 @@ const OFFICER = [
         page: "dashboard",
         target: '[data-tour="upcoming"]',
         title: "Upcoming events",
-        body: "This month's calendar: days with an event are highlighted. Click one, or View all, to open the Events page.",
+        body: "This month's calendar: days with an event are highlighted and today is orange. Click a day to see its events, then click one to open it.",
       },
       {
         page: "dashboard",
@@ -283,7 +283,7 @@ const MEMBER = [
         page: "dashboard",
         target: '[data-tour="upcoming"]',
         title: "Upcoming events",
-        body: "Days with an event are highlighted. Click one to open the Events page and RSVP.",
+        body: "Days with an event are highlighted and today is orange. Click a day to see its events, then click one to open it and RSVP.",
       },
       {
         page: "dashboard",

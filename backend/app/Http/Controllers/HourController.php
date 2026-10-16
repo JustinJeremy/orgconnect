@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\ListsOrPages;
 use App\Http\Controllers\Concerns\OfficerOnly;
 use App\Http\Requests\DecideHourRequest;
 use App\Http\Requests\StoreHourRequest;
+use App\Models\MembershipRecord;
 use App\Models\Organization;
 use App\Models\UserNotification;
 use App\Models\VolunteerHour;
@@ -34,7 +35,14 @@ class HourController extends Controller
     // POST /api/hours
     public function store(StoreHourRequest $request)
     {
-        $log = $request->user()->hourLogs()->create($request->validated() + ['status' => 'Pending']);
+        $user = $request->user();
+        $log = $user->hourLogs()->create($request->validated() + ['status' => 'Pending']);
+
+        // Officers review it: let them know (not the one who logged it, if they're an officer)
+        $officers = MembershipRecord::where('organization_id', Organization::current()->id)
+            ->where('role', 'officer')->where('status', 'Active')
+            ->where('user_id', '!=', $user->id)->pluck('user_id');
+        UserNotification::send($officers, "{$user->name} logged {$log->hours} hrs for {$log->activity}", "hours/{$log->id}");
 
         return response()->json($log->load('user')->toFrontend(), 201);
     }
