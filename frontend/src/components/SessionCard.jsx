@@ -1,8 +1,8 @@
 import { useState } from "react";
 import Icon from "./Icon.jsx";
 import { StatusBadge } from "./Badges.jsx";
-import { initials } from "../utils/format.js";
 import { parseSchedule, weeklyDates } from "../utils/schedule.js";
+import { UserAvatar } from "./Avatars.jsx";
 
 // The next date a weekly session meets, e.g. "Fri, Oct 23" (today counts until its start time)
 function nextMeeting(schedule) {
@@ -45,7 +45,7 @@ export default function SessionCard({ session, myRequest, canManage, canRequest,
       </div>
 
       <div className="tutor">
-        <span className="avatar xs">{initials(session.tutorName)}</span>
+        <UserAvatar user={{ name: session.tutorName, ...session.tutorAvatar }} className="xs" />
         <span>{session.tutorName}</span>
       </div>
 

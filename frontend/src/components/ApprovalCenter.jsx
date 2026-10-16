@@ -3,7 +3,8 @@ import Tabs from "./Tabs.jsx";
 import EmptyState from "./EmptyState.jsx";
 import Pagination from "./Pagination.jsx";
 import usePagination from "../hooks/usePagination.js";
-import { initials, shortDate } from "../utils/format.js";
+import { shortDate } from "../utils/format.js";
+import { UserAvatar } from "./Avatars.jsx";
 
 const TAB_LABELS = {
   hours: "Volunteer hours",
@@ -33,6 +34,7 @@ export default function ApprovalCenter({
       .map((h) => ({
         id: `h${h.id}`,
         name: h.memberName,
+        who: { name: h.memberName, ...h.memberAvatar },
         detail: h.activity,
         amount: `${h.hours} ${Number(h.hours) === 1 ? "hour" : "hours"}`,
         when: shortDate(h.date),
@@ -45,6 +47,7 @@ export default function ApprovalCenter({
         return {
           id: `t${r.id}`,
           name: r.requesterName,
+          who: { name: r.requesterName, ...r.requesterAvatar },
           detail: s ? `${s.subject} · with ${s.tutorName}` : "Tutoring session",
           when: r.yearLevel || "",
           decide: (status) => onDecideRequest(r, status === "Approved" ? "Confirmed" : status),
@@ -55,6 +58,7 @@ export default function ApprovalCenter({
       .map((a) => ({
         id: `m${a.id}`,
         name: a.name,
+        who: a,
         detail: `${a.course} · ${a.yearLevel} · ${a.studentId}`,
         note: a.message,
         amount: "Applied",
@@ -91,7 +95,7 @@ export default function ApprovalCenter({
         <ul className="review-list">
           {shown.map((row) => (
             <li key={row.id}>
-              <span className="avatar sm">{initials(row.name)}</span>
+              <UserAvatar user={row.who} className="sm" />
               <div className="review-text">
                 <div className="review-name">{row.name}</div>
                 <div className="review-detail">{row.detail}</div>

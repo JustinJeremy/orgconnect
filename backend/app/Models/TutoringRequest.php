@@ -32,6 +32,7 @@ class TutoringRequest extends Model
             'sessionId' => $this->tutoring_session_id,
             'userId' => $this->user_id,
             'requesterName' => $this->user?->name,
+            'requesterAvatar' => $this->user?->avatarData(),
             'yearLevel' => $this->user?->year_level,
             'status' => $this->status,
         ];

@@ -3,8 +3,8 @@ import Icon from "./Icon.jsx";
 import { AVATARS, AvatarArt } from "./Avatars.jsx";
 import { initials } from "../utils/format.js";
 
-// Your own picture: PNG, JPG or WebP up to 2 MB (the server checks this too)
-const PHOTO_TYPES = ["image/png", "image/jpeg", "image/webp"];
+// Your own picture: PNG or JPG up to 2 MB (the server checks this too)
+const PHOTO_TYPES = ["image/png", "image/jpeg"];
 const PHOTO_MAX = 2 * 1024 * 1024;
 const OPTIONS = [...AVATARS, { id: "photo", label: "Your photo" }];
 
@@ -48,7 +48,7 @@ export default function AvatarPicker({ user, orgName, current, onSave, onSkip, o
     const picked = e.target.files?.[0];
     e.target.value = ""; // so choosing the same file again still fires
     if (!picked) return;
-    if (!PHOTO_TYPES.includes(picked.type)) return setError("Choose a PNG, JPG or WebP image.");
+    if (!PHOTO_TYPES.includes(picked.type)) return setError("Choose a PNG or JPG image.");
     if (picked.size > PHOTO_MAX) return setError("That image is over 2 MB. Choose a smaller one.");
     setError("");
     setFile(picked);
@@ -143,7 +143,7 @@ export default function AvatarPicker({ user, orgName, current, onSave, onSkip, o
           </button>
         </div>
 
-        <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={onFile} />
+        <input ref={fileRef} type="file" accept="image/png,image/jpeg" hidden onChange={onFile} />
 
         {error && <p className="avatar-picker-error" role="alert">{error}</p>}
 

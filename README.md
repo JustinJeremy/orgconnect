@@ -176,12 +176,15 @@ database from scratch (this **deletes** everything in your local database).
   Signing up from **Register your organization** skips the application and opens the org request form.
 - **Officers adding a member** on Members & Hours → Members: a brand-new account gets a
   temporary password, shown once to the officer to pass on.
-- **Forgot password:** an officer resets it (key icon on the member row) and passes on the new
+- **Forgot password:** only the platform admin resets it (Admin → **Accounts**) and passes on the new
   temporary password. Members then change it on **Profile & settings** (click your name in the sidebar).
+  The admin has a Profile & settings page too (click your name in the admin sidebar).
 - **Remember me** off: you're signed out when the browser closes (and after 12 hours at most).
 - Sign in, sign up and password changes allow 5 attempts per minute.
-- An officer can't change the email or password of someone who also belongs to another org;
-  that person changes their own on the Profile page.
+- **Personal details are locked** (name, student ID, email, course, year). Officers editing a member
+  change only position and status. The admin corrects mistakes (Admin → Accounts → **Edit details**)
+  and, at the start of a new school year, turns on **Let students update their details** so everyone
+  can update their own on Profile, then turns it off again.
 - **Leaving an org** (Profile → My organizations) asks for a reason, which the officers see.
   The President hands the role to another officer first.
 - **Org details** (name, description, courses...): the President requests changes with a reason,

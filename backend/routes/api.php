@@ -50,6 +50,13 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::patch('/org-requests/{organization}', [AdminController::class, 'decide']);
     Route::patch('/organizations/{organization}', [AdminController::class, 'setStatus']);
     Route::patch('/change-requests/{change}', [OrgChangeController::class, 'decide']);
+    // Accounts: look anyone up, reset a forgotten password (only the admin can)
+    Route::get('/users', [AdminController::class, 'users']);
+    Route::post('/users/{user}/reset-password', [AdminController::class, 'resetPassword']);
+    // Students' details are locked; the admin corrects them, or opens updates for a new school year
+    Route::put('/users/{user}', [AdminController::class, 'updateUser']);
+    Route::get('/settings', [AdminController::class, 'settings']);
+    Route::put('/settings', [AdminController::class, 'updateSettings']);
 });
 
 // Signed in AND a member of the selected org
@@ -89,7 +96,6 @@ Route::middleware(['auth:sanctum', 'org.member'])->group(function () {
     Route::post('/members', [MemberController::class, 'store']);
     Route::put('/members/{member}', [MemberController::class, 'update']);
     Route::delete('/members/{member}', [MemberController::class, 'destroy']);
-    Route::post('/members/{member}/reset-password', [MemberController::class, 'resetPassword']);
     Route::get('/applications', [MemberController::class, 'applications']);
     Route::patch('/applications/{applicant}', [MemberController::class, 'decideApplication']);
     Route::get('/reactivations', [MemberController::class, 'reactivations']);

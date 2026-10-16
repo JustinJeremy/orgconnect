@@ -40,7 +40,7 @@ export const authApi = {
   me: () => get("/user"),
   updateProfile: (data) => put("/user", data), // -> updated user
   setAvatar: (avatar) => put("/user/avatar", { avatar }), // -> updated user
-  // Their own photo as avatar: PNG/JPG/WebP up to 2 MB -> updated user (avatar "photo", avatarUrl)
+  // Their own photo as avatar: PNG/JPG up to 2 MB -> updated user (avatar "photo", avatarUrl)
   uploadAvatarPhoto: (file) => {
     const body = new FormData();
     body.append("photo", file);
@@ -84,6 +84,11 @@ export const adminApi = {
   decide: (id, decision, extra = {}) => patch(`/admin/org-requests/${id}`, { decision, ...extra }), // Approved | Rejected
   setStatus: (id, status) => patch(`/admin/organizations/${id}`, { status }), // Active | Suspended
   decideChange: (id, decision, note) => patch(`/admin/change-requests/${id}`, { decision, note }), // org detail changes
+  users: getPage("/admin/users"), // { search, page, perPage } -> every account, with their orgs
+  resetPassword: (id) => post(`/admin/users/${id}/reset-password`), // -> { temporaryPassword } (only the admin)
+  updateUser: (id, data) => put(`/admin/users/${id}`, data), // { name, email, studentId, course, yearLevel }
+  settings: () => get("/admin/settings"), // -> { detailsOpen }
+  saveSettings: (data) => put("/admin/settings", data),
 };
 
 export const eventsApi = {
@@ -92,7 +97,7 @@ export const eventsApi = {
   create: (data) => post("/events", data),
   update: (id, data) => put(`/events/${id}`, data),
   remove: (id) => del(`/events/${id}`),
-  // Officers: PNG/JPG/WebP up to 5 MB -> updated Event (with posterUrl)
+  // Officers: PNG/JPG up to 5 MB -> updated Event (with posterUrl)
   uploadPoster: (id, file) => {
     const body = new FormData();
     body.append("poster", file);
@@ -127,7 +132,6 @@ export const membersApi = {
   decideApplication: (id, status, reason) => patch(`/applications/${id}`, { status, reason }), // reason: when Rejected
   reactivations: () => get("/reactivations"), // inactive members asking to be active again
   decideReactivation: (id, status) => patch(`/reactivations/${id}`, { status }), // Approved | Declined
-  resetPassword: (id) => post(`/members/${id}/reset-password`), // -> { temporaryPassword }
 };
 
 export const tutoringApi = {

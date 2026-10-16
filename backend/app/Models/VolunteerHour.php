@@ -34,6 +34,7 @@ class VolunteerHour extends Model
             'id' => $this->id,
             'userId' => $this->user_id,
             'memberName' => $this->user?->name,
+            'memberAvatar' => $this->user?->avatarData(),
             'activity' => $this->activity,
             'date' => $this->date->format('Y-m-d'),
             'hours' => $this->hours,

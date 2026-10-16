@@ -5,7 +5,8 @@ import Rings from "../components/Rings.jsx";
 import OrgSwitcher from "../components/OrgSwitcher.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
-import { initials, shortDate } from "../utils/format.js";
+import { shortDate } from "../utils/format.js";
+import { UserAvatar } from "../components/Avatars.jsx";
 
 // Shown instead of the app when you can't use the selected org yet:
 //   not a member (or not accepted)  -> apply to join
@@ -31,7 +32,7 @@ export default function JoinOrg() {
       <header className="join-nav">
         <Logo size={36} subtitle={<OrgSwitcher />} />
         <div className="join-user">
-          <span className="avatar sm">{initials(user.name)}</span>
+          <UserAvatar user={user} className="sm" />
           <span className="join-user-name">{user.name}</span>
           <button type="button" className="icon-btn" aria-label="Sign out" onClick={() => logout()}>
             <Icon name="logout" />

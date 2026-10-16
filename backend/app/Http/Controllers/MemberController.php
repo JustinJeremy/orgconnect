@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\ListsOrPages;
 use App\Http\Controllers\Concerns\OfficerOnly;
 use App\Http\Requests\DecideApplicationRequest;
 use App\Http\Requests\MemberRequest;
+use App\Models\MembershipRecord;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\UserNotification;
@@ -26,6 +27,8 @@ class MemberController extends Controller
         $query = User::withMembershipStatus(['Active', 'Inactive'])
             ->with('membership')
             ->withSum(['hourLogs as approved_sum' => fn ($q) => $q->where('status', 'Approved')], 'hours')
+            // Officers first (President, VPs, Secretary, Treasurer...), then members; A to Z within each
+            ->orderBy(MembershipRecord::rankIn(Organization::current()->id))
             ->orderBy('name');
         $this->search($request, $query, ['name', 'email'], ['membership' => 'position']);
 
@@ -57,28 +60,7 @@ class MemberController extends Controller
         ], 201);
     }
 
-    // POST /api/members/{member}/reset-password  (officers) -> { temporaryPassword }
-    // For members who forgot their password. Signs them out everywhere.
-    // Not allowed for someone who is an officer in another org, so one org can't take over another org's officer.
-    public function resetPassword(Request $request, User $member)
-    {
-        $this->membersManagerOnly($request);
-        $this->ensureInThisOrg($member);
-        abort_if($member->id === $request->user()->id, 422, 'Change your own password on your Profile page.');
-        $this->presidentForOfficers($request, $member->isOfficer());
-
-        // One org's officers must not be able to take over an account another org relies on
-        abort_if($member->inOtherOrganizations(), 422,
-            "{$member->name} also belongs to another organization, so only they can change their password.");
-
-        $temporary = self::temporaryPassword();
-        $member->update(['password' => $temporary]);
-        $member->tokens()->delete();
-
-        return ['temporaryPassword' => $temporary];
-    }
-
-    // PUT /api/members/{member}  (officers)
+    // PUT /api/members/{member}  (officers) -> position and status only; name and email stay as the person registered them
     public function update(MemberRequest $request, User $member)
     {
         $this->membersManagerOnly($request);
@@ -87,12 +69,6 @@ class MemberController extends Controller
         $data = $request->validated();
         $this->presidentForOfficers($request, $member->isOfficer() || $data['position'] !== 'Member');
 
-        // Name and email belong to the whole account; another org's member changes their own on the Profile page
-        $detailsChanged = $data['name'] !== $member->name || strcasecmp($data['email'], $member->email) !== 0;
-        abort_if($detailsChanged && $member->inOtherOrganizations(), 422,
-            "{$member->name} also belongs to another organization, so only they can change their name and email.");
-
-        $member->update(['name' => $data['name'], 'email' => $data['email']]);
         $wasInactive = $member->membership->status === 'Inactive';
         $this->saveMembership($member, $data);
 

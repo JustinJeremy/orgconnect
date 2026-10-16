@@ -206,7 +206,7 @@ class EventController extends Controller
     {
         $this->officerOnly($request);
         // No SVG: it can carry scripts
-        $request->validate(['poster' => ['required', 'image', 'mimes:png,jpg,jpeg,webp', 'max:5120']]);
+        $request->validate(['poster' => ['required', 'image', 'mimes:png,jpg,jpeg', 'max:5120']]);
 
         $old = $event->poster_path;
         $event->update(['poster_path' => $request->file('poster')->store('event-posters', 'public')]);

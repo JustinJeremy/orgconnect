@@ -48,6 +48,7 @@ class Organization extends Model
             'courses' => $this->courses ?? [],
             'proofUrl' => $this->proof_url,
             'requestedBy' => $this->requester?->name,
+            'requestedByAvatar' => $this->requester?->avatarData(),
             'requestedByEmail' => $this->requester?->email,
             'submittedAt' => $this->created_at?->format('Y-m-d'),
             'reviewedAt' => $this->reviewed_at?->format('Y-m-d'),

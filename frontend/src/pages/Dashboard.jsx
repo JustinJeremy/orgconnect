@@ -6,12 +6,12 @@ import ApprovalCenter from "../components/ApprovalCenter.jsx";
 import EventCalendar from "../components/EventCalendar.jsx";
 import FeedPost from "../components/FeedPost.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { UserAvatar } from "../components/Avatars.jsx";
 import {
   attendedCount,
   dateParts,
   formatDate,
   formatTime,
-  initials,
   isCompleted,
   myRegistration,
   percent,
@@ -41,7 +41,7 @@ function Leaderboard({ leaders, loading, currentUserId }) {
         return (
           <li key={l.id} className={me ? "is-me" : ""}>
             <span className="leader-rank">{i + 1}</span>
-            <span className="avatar leader-avatar">{initials(l.name)}</span>
+            <UserAvatar user={l} className="leader-avatar" />
             <span className="leader-name">
               {l.name}
               {me && " (you)"}
@@ -226,7 +226,7 @@ function Suggestions({ user, sessions, requests, onNavigate }) {
   // Tutors with open slots (one entry per tutor)
   const tutors = [];
   open.forEach((s) => {
-    if (!tutors.some((t) => t.id === s.tutorId)) tutors.push({ id: s.tutorId, name: s.tutorName, subject: s.subject });
+    if (!tutors.some((t) => t.id === s.tutorId)) tutors.push({ id: s.tutorId, name: s.tutorName, subject: s.subject, ...s.tutorAvatar });
   });
 
   // Sessions in areas this member hasn't requested yet
@@ -249,7 +249,7 @@ function Suggestions({ user, sessions, requests, onNavigate }) {
             {tutors.slice(0, 3).map((t) => (
               <li key={t.id}>
                 <button type="button" className="suggest-item" onClick={() => onNavigate("tutoring")}>
-                  <span className="avatar suggest-avatar">{initials(t.name)}</span>
+                  <UserAvatar user={t} className="suggest-avatar" />
                   <span className="suggest-text">
                     <strong>{t.name}</strong>
                     <span>{t.subject}</span>

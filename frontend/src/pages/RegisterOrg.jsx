@@ -6,7 +6,8 @@ import { useOrg } from "../context/OrgContext.jsx";
 import { orgRequestsApi } from "../api/services.js";
 import { errorMessage } from "../api/client.js";
 import { COURSES } from "../data/constants.js";
-import { initials, shortDate } from "../utils/format.js";
+import { shortDate } from "../utils/format.js";
+import { UserAvatar } from "../components/Avatars.jsx";
 
 // Bring a new org onto OrgConnect: the request form, then its status.
 //   Pending  -> waiting for an OrgConnect admin
@@ -42,7 +43,7 @@ export default function RegisterOrg() {
       <header className="join-nav">
         <Logo size={36} subtitle="Register an organization" />
         <div className="join-user">
-          <span className="avatar sm">{initials(user.name)}</span>
+          <UserAvatar user={user} className="sm" />
           <span className="join-user-name">{user.name}</span>
           <button type="button" className="icon-btn" aria-label="Sign out" onClick={() => logout()}>
             <Icon name="logout" />

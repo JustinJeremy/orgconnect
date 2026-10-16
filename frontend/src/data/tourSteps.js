@@ -43,7 +43,7 @@ const PROFILE = {
       page: "profile",
       target: '[data-tour="profile-details"]',
       title: "Personal details",
-      body: "Keep your name, student ID, email, course and year level up to date. Officers see these on the member roster.",
+      body: "Your name, student ID, email, course and year level, as officers see them on the roster. They're locked during the school year: the OrgConnect admin opens updates at the start of a new one, and fixes mistakes in the meantime.",
     },
     {
       page: "profile",
@@ -188,8 +188,8 @@ const OFFICER = [
         managersOnly: true,
         click: '[data-tour="tab-members"]',
         target: [".table tbody tr .row-actions", ".page .empty-state"],
-        title: "Edit, reset or remove",
-        body: "Change a member's status, reset a forgotten password (key icon), or remove them. Only the President promotes, edits or removes officers.",
+        title: "Edit or remove",
+        body: "Change a member's position or status, or remove them. Names and emails are locked to each person's account. Only the President promotes, edits or removes officers. Forgotten passwords are reset by the OrgConnect admin.",
       },
       {
         page: "hours",
@@ -421,6 +421,18 @@ export const ADMIN_TOUR = [
     target: '[data-tour="admin-orgs"]',
     title: "All organizations",
     body: "Every live org with its President, members and events. Suspend hides an org and stops its members from using it until you reactivate it; nothing is deleted.",
+  },
+  {
+    page: "accounts",
+    target: '[data-tour="admin-accounts"]',
+    title: "Accounts",
+    body: "Look up any account. Correct someone's name, student ID, email, course or year with Edit details. When someone forgets their password, reset it here: they get a temporary password to pass on, and they change it on their profile. Only you can do this.",
+  },
+  {
+    page: "accounts",
+    target: '[data-tour="admin-details-switch"]',
+    title: "New school year",
+    body: "Students' details are locked during the year. Turn this on at the start of a new school year so everyone can update their course, year and details, then turn it off again.",
   },
   {
     page: "overview",

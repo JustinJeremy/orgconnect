@@ -51,6 +51,7 @@ class Announcement extends Model
             'content' => $this->content,
             'pinned' => $this->pinned,
             'authorName' => $this->author?->name,
+            'authorAvatar' => $this->author?->avatarData(),
             'authorPosition' => $this->author?->membership->position,
             'createdAt' => $this->created_at->format('Y-m-d\TH:i:s'),
             'isRead' => $this->user_id === $viewer->id || $this->readers->contains('id', $viewer->id),

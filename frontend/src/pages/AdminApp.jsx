@@ -16,12 +16,15 @@ import useUrlPage, { isPlainClick, pagePath } from "../hooks/useUrlPage.js";
 import { adminApi } from "../api/services.js";
 import { errorMessage } from "../api/client.js";
 import { ADMIN_TOUR } from "../data/tourSteps.js";
+import AdminAccounts from "./AdminAccounts.jsx";
+import AdminProfile from "./AdminProfile.jsx";
 import ReasonDialog from "../components/ReasonDialog.jsx";
 import { FIELD_LABELS } from "../components/OrgDetailsChange.jsx";
 
 // A detail's value for the before/after table
 const show = (v) => (Array.isArray(v) ? v.join(", ") : v || "(empty)");
-import { initials, shortDate } from "../utils/format.js";
+import { shortDate } from "../utils/format.js";
+import { UserAvatar } from "../components/Avatars.jsx";
 
 // Platform admin: reviews requests to register new orgs, and can suspend or reactivate orgs.
 // Admins don't belong to any org, so this replaces the whole org app.
@@ -29,6 +32,9 @@ const PAGES = {
   overview: { label: "Overview", icon: "dashboard", title: "Platform overview", subtitle: "Every organization on OrgConnect" },
   requests: { label: "Org requests", icon: "file", title: "Org requests", subtitle: "New orgs waiting to join OrgConnect" },
   organizations: { label: "Organizations", icon: "layers", title: "Organizations", subtitle: "Approve, suspend or look up any org" },
+  accounts: { label: "Accounts", icon: "users", title: "Accounts", subtitle: "Look up anyone, correct details, reset a forgotten password" },
+  // Opened from your name at the bottom of the sidebar, not the menu
+  profile: { label: "Profile", icon: "users", title: "Profile & settings", subtitle: "Your admin account", hidden: true },
 };
 const TOUR_KEY = (id) => `orgconnect_tour_seen_${id}`;
 
@@ -182,7 +188,7 @@ export default function AdminApp() {
           />
         </div>
         <nav className="nav" aria-label="Main" data-tour="admin-nav">
-          {Object.entries(PAGES).map(([key, item]) => (
+          {Object.entries(PAGES).filter(([, item]) => !item.hidden).map(([key, item]) => (
             <a
               key={key}
               href={pagePath(key, "/admin")}
@@ -197,13 +203,19 @@ export default function AdminApp() {
           ))}
         </nav>
         <div className="sidebar-user">
-          <div className="sidebar-user-btn" title={user.email}>
-            <span className="avatar">{initials(user.name)}</span>
+          <a
+            href={pagePath("profile", "/admin")}
+            className={`sidebar-user-btn ${page === "profile" ? "active" : ""}`}
+            onClick={(e) => go(e, "profile")}
+            aria-current={page === "profile" ? "page" : undefined}
+            title="Profile & settings"
+          >
+            <UserAvatar user={user} />
             <span className="sidebar-user-text">
               <span className="sidebar-user-name">{user.name}</span>
               <span className="sidebar-user-role">Platform admin</span>
             </span>
-          </div>
+          </a>
           <button type="button" className="icon-btn" aria-label="Sign out" onClick={() => logout()}>
             <Icon name="logout" />
           </button>
@@ -230,7 +242,12 @@ export default function AdminApp() {
         )}
 
         <div className="page">
-          {!data ? (
+          {/* These two don't need the overview data */}
+          {page === "accounts" ? (
+            <AdminAccounts flash={flash} />
+          ) : page === "profile" ? (
+            <AdminProfile flash={flash} />
+          ) : !data ? (
             !loadError && <div className="panel"><div className="skeleton-list" aria-hidden="true"><span /><span /><span /></div></div>
           ) : (
             <>
@@ -323,7 +340,7 @@ function RequestList({ requests, onDetails, onApprove, onReject }) {
     <ul className="review-list org-requests">
       {requests.map((r) => (
         <li key={r.id}>
-          <span className="avatar sm">{initials(r.name)}</span>
+          <UserAvatar user={{ name: r.requestedBy || r.name, ...r.requestedByAvatar }} className="sm" />
           <div className="review-text">
             <div className="review-name">
               {r.name} <span className="review-meta">Submitted {shortDate(r.submittedAt)}</span>

@@ -2,7 +2,8 @@ import { useState } from "react";
 import Icon from "./Icon.jsx";
 import { announcementsApi } from "../api/services.js";
 import { useAuth } from "../context/AuthContext.jsx";
-import { initials, relativeDate } from "../utils/format.js";
+import { relativeDate } from "../utils/format.js";
+import { UserAvatar } from "./Avatars.jsx";
 
 const NOT_READY = "Comments aren't available yet.";
 
@@ -119,7 +120,7 @@ export default function FeedPost({ post }) {
   return (
     <article className="feed-post">
       <header className="feed-post-head">
-        <span className="avatar feed-avatar" aria-hidden="true">{initials(post.authorName || "")}</span>
+        <UserAvatar user={{ name: post.authorName || "", ...post.authorAvatar }} className="feed-avatar" />
         <div>
           <div className="feed-author">{post.authorName}</div>
           <time className="feed-time" dateTime={post.createdAt}>
@@ -183,6 +184,7 @@ export default function FeedPost({ post }) {
                       </form>
                     ) : (
                       <>
+                        <UserAvatar user={{ name: c.userName, ...c.userAvatar }} className="xs comment-avatar" />
                         <span className="feed-comment-text">
                           <strong>{c.userName}</strong> <span>{c.text}</span>
                           {c.createdAt && <time className="muted small"> · {relativeDate(c.createdAt)}</time>}

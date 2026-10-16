@@ -6,9 +6,12 @@ use App\Models\Event;
 use App\Models\MembershipRecord;
 use App\Models\OrgChangeRequest;
 use App\Models\Organization;
+use App\Models\Setting;
+use App\Models\User;
 use App\Models\UserNotification;
 use App\Models\VolunteerHour;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 // Platform admin (users.is_admin): reviews org registrations and can suspend orgs.
 // Admins don't belong to any org; every route here is behind the EnsureAdmin middleware.
@@ -91,6 +94,85 @@ class AdminController extends Controller
         }
 
         return $organization->fresh()->toRequest();
+    }
+
+    // GET /api/admin/users?search=&org=&page= -> every account (not admins), with the orgs they're in
+    //   org (id): only that org's people, officers first then members (like its roster)
+    public function users(Request $request)
+    {
+        $words = trim((string) $request->input('search'));
+        $org = $request->filled('org') ? Organization::find((int) $request->input('org')) : null;
+        $page = User::where('is_admin', false)
+            ->when($org, fn ($q) => $q->whereHas('memberships', fn ($m) => $m->where('organization_id', $org->id)->whereIn('status', ['Active', 'Inactive', 'Pending']))
+                ->orderBy(MembershipRecord::rankIn($org->id)))
+            ->when($words !== '', fn ($q) => $q->where(fn ($q) => $q
+                ->where('name', 'like', "%{$words}%")->orWhere('email', 'like', "%{$words}%")->orWhere('student_id', 'like', "%{$words}%")))
+            ->with('memberships.organization')
+            ->orderBy('name')
+            ->paginate(min(max((int) $request->input('perPage', 12), 1), 50));
+
+        return [
+            'data' => collect($page->items())->map(fn (User $u) => [
+                'id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'studentId' => $u->student_id,
+                'course' => $u->course, 'yearLevel' => $u->year_level,
+                ...$u->avatarData(),
+                'orgs' => $u->memberships->filter(fn ($m) => $m->organization)->map(fn ($m) => [
+                    'shortName' => $m->organization->short_name, 'position' => $m->position, 'status' => $m->status,
+                ])->values(),
+            ]),
+            'meta' => ['page' => $page->currentPage(), 'lastPage' => $page->lastPage(), 'total' => $page->total(), 'perPage' => $page->perPage()],
+        ];
+    }
+
+    // POST /api/admin/users/{user}/reset-password -> { temporaryPassword }
+    // For anyone who forgot their password. Signs them out everywhere. Only the platform admin can.
+    public function resetPassword(User $user)
+    {
+        abort_if($user->is_admin, 422, 'Admins change their own password on their profile.');
+        $temporary = collect(range(1, 10))->map(fn () => 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'[random_int(0, 54)])->implode('');
+        $user->update(['password' => $temporary]);
+        $user->tokens()->delete();
+
+        return ['temporaryPassword' => $temporary];
+    }
+
+    // PUT /api/admin/users/{user}  { name, email, studentId, course, yearLevel }
+    // Students can't change these themselves while details are locked, so the admin fixes mistakes
+    public function updateUser(Request $request, User $user)
+    {
+        abort_if($user->is_admin, 422, 'Admins change their own details on their profile.');
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'studentId' => ['required', 'string', 'max:50', Rule::unique('users', 'student_id')->ignore($user->id)],
+            'course' => 'required|string|max:50',
+            'yearLevel' => 'required|string|max:50',
+        ], [
+            'email.unique' => 'An account with this email already exists.',
+            'studentId.unique' => 'This student ID is already registered.',
+        ]);
+        $user->update([
+            'name' => $data['name'], 'email' => $data['email'], 'student_id' => $data['studentId'],
+            'course' => $data['course'], 'year_level' => $data['yearLevel'],
+        ]);
+        UserNotification::platform($user->id, 'The OrgConnect admin updated your account details', 'profile');
+
+        return ['ok' => true];
+    }
+
+    // GET /api/admin/settings
+    public function settings()
+    {
+        return ['detailsOpen' => Setting::flag(Setting::DETAILS_OPEN)];
+    }
+
+    // PUT /api/admin/settings  { detailsOpen }  -> e.g. open details updates at the start of a school year, then close them again
+    public function updateSettings(Request $request)
+    {
+        $data = $request->validate(['detailsOpen' => 'required|boolean']);
+        Setting::setFlag(Setting::DETAILS_OPEN, $data['detailsOpen']);
+
+        return $this->settings();
     }
 
     // PATCH /api/admin/organizations/{organization}  { status: Active | Suspended }

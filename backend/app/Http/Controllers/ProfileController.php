@@ -6,6 +6,7 @@ use App\Http\Requests\PasswordRequest;
 use App\Http\Requests\ProfileRequest;
 use App\Models\Certificate;
 use App\Models\Event;
+use App\Models\Setting;
 use App\Models\User;
 use App\Models\VolunteerHour;
 use Illuminate\Http\Request;
@@ -18,16 +19,18 @@ class ProfileController extends Controller
     // PUT /api/user  -> updated user
     public function update(ProfileRequest $request)
     {
-        $data = $request->validated();
         $user = $request->user();
+        abort_unless($user->is_admin || Setting::flag(Setting::DETAILS_OPEN), 403,
+            'Your details are locked. They can be updated when the admin opens updates for the new school year.');
+        $data = $request->validated();
 
-        $user->update([
+        $user->update(array_filter([
             'name' => $data['name'],
             'email' => $data['email'],
-            'student_id' => $data['studentId'],
-            'course' => $data['course'],
-            'year_level' => $data['yearLevel'],
-        ]);
+            'student_id' => $data['studentId'] ?? null,
+            'course' => $data['course'] ?? null,
+            'year_level' => $data['yearLevel'] ?? null,
+        ], fn ($v) => $v !== null));
 
         return $user->toFrontend();
     }
@@ -47,7 +50,7 @@ class ProfileController extends Controller
     public function avatarPhoto(Request $request)
     {
         // No SVG: it can carry scripts
-        $request->validate(['photo' => ['required', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048']]);
+        $request->validate(['photo' => ['required', 'image', 'mimes:png,jpg,jpeg', 'max:2048']]);
         $user = $request->user();
         $this->deletePhoto($user);
         $user->update(['avatar' => 'photo', 'avatar_path' => $request->file('photo')->store('avatars', 'public')]);

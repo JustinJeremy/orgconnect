@@ -8,7 +8,8 @@ import { POSITIONS } from "../data/constants.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { membersApi } from "../api/services.js";
 import usePagedList from "../hooks/usePagedList.js";
-import { formatDate, initials } from "../utils/format.js";
+import { formatDate } from "../utils/format.js";
+import { UserAvatar } from "./Avatars.jsx";
 
 const PER_PAGE = 10;
 const EMPTY = { name: "", email: "", position: "Member", status: "Active" };
@@ -30,16 +31,17 @@ function MemberForm({ member, onSave, onCancel, isPresident }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.email.trim()) return setError("Name and email are required.");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return setError("Enter a valid email address.");
+    if (!member) {
+      if (!formData.name.trim() || !formData.email.trim()) return setError("Name and email are required.");
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return setError("Enter a valid email address.");
+    }
     if (formData.status === "Inactive" && !formData.inactiveReason?.trim()) return setError("Give a reason so the member knows why.");
     setSaving(true);
-    await onSave({
-      ...formData,
-      name: formData.name.trim(),
-      email: formData.email.trim(),
-      inactiveReason: formData.status === "Inactive" ? formData.inactiveReason.trim() : null,
-    });
+    const inactiveReason = formData.status === "Inactive" ? formData.inactiveReason.trim() : null;
+    // Editing changes only position and status: name and email stay as the person registered them
+    await onSave(member
+      ? { position: formData.position, status: formData.status, inactiveReason }
+      : { ...formData, name: formData.name.trim(), email: formData.email.trim(), inactiveReason });
     setSaving(false);
   };
 
@@ -61,14 +63,29 @@ function MemberForm({ member, onSave, onCancel, isPresident }) {
       }
     >
       <div className="stack">
-        <div className="field">
-          <label htmlFor="m-name">Full name</label>
-          <input id="m-name" className="input" name="name" value={formData.name} onChange={handleChange} />
-        </div>
-        <div className="field">
-          <label htmlFor="m-email">Email</label>
-          <input id="m-email" type="email" className="input" name="email" value={formData.email} onChange={handleChange} />
-        </div>
+        {member ? (
+          <div className="member-form-who">
+            <div className="person">
+              <UserAvatar user={member} className="sm" />
+              <div>
+                <div className="strong">{member.name}</div>
+                <div className="muted small">{member.email}</div>
+              </div>
+            </div>
+            <p className="muted small">Name and email are locked. Only the OrgConnect admin can correct them.</p>
+          </div>
+        ) : (
+          <>
+            <div className="field">
+              <label htmlFor="m-name">Full name</label>
+              <input id="m-name" className="input" name="name" value={formData.name} onChange={handleChange} />
+            </div>
+            <div className="field">
+              <label htmlFor="m-email">Email</label>
+              <input id="m-email" type="email" className="input" name="email" value={formData.email} onChange={handleChange} />
+            </div>
+          </>
+        )}
         <div className="form-grid">
           <div className="field">
             <label htmlFor="m-position">Position</label>
@@ -107,7 +124,8 @@ function MemberForm({ member, onSave, onCancel, isPresident }) {
   );
 }
 
-export default function MemberList({ members, onSave, onRemove, onResetPassword }) {
+// Forgotten passwords: only the OrgConnect admin resets them (Admin → Accounts)
+export default function MemberList({ members, onSave, onRemove }) {
   const { user } = useAuth();
   // President, VPs and Secretary manage members; only the President manages officers; nobody edits themselves
   const canManage = (m) => user.canManageMembers && m.id !== user.id && (m.position === "Member" || user.isPresident);
@@ -171,7 +189,7 @@ export default function MemberList({ members, onSave, onRemove, onResetPassword 
                   <tr key={m.id}>
                     <td>
                       <div className="person">
-                        <span className="avatar sm">{initials(m.name)}</span>
+                        <UserAvatar user={m} className="sm" />
                         <div>
                           <div className="strong">{m.name}</div>
                           <div className="muted small">{m.email}</div>
@@ -189,15 +207,6 @@ export default function MemberList({ members, onSave, onRemove, onResetPassword 
                         <div className="row-actions">
                           <button type="button" className="icon-btn sm" aria-label={`Edit ${m.name}`} onClick={() => setForm({ member: m })}>
                             <Icon name="edit" size={16} />
-                          </button>
-                          <button
-                            type="button"
-                            className="icon-btn sm"
-                            aria-label={`Reset password for ${m.name}`}
-                            title="Reset password"
-                            onClick={() => onResetPassword(m)}
-                          >
-                            <Icon name="key" size={16} />
                           </button>
                           <button type="button" className="icon-btn sm danger" aria-label={`Remove ${m.name}`} onClick={() => onRemove(m)}>
                             <Icon name="trash" size={16} />

@@ -36,6 +36,7 @@ class TutoringSession extends Model
             'area' => $this->area,
             'tutorId' => $this->tutor_id,
             'tutorName' => $this->tutor?->name,
+            'tutorAvatar' => $this->tutor?->avatarData(),
             'schedule' => $this->schedule,
             'location' => $this->location,
             'slots' => $this->slots,
