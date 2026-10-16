@@ -50,7 +50,7 @@ class ProfileController extends Controller
     public function avatarPhoto(Request $request)
     {
         // No SVG: it can carry scripts
-        $request->validate(['photo' => ['required', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048']]);
+        $request->validate(['photo' => ['required', 'image', 'mimes:png,jpg,jpeg', 'max:2048']]);
         $user = $request->user();
         $this->deletePhoto($user);
         $user->update(['avatar' => 'photo', 'avatar_path' => $request->file('photo')->store('avatars', 'public')]);

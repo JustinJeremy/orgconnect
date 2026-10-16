@@ -15,7 +15,7 @@ const EMPTY = {
   description: "",
 };
 
-const POSTER_TYPES = ["image/png", "image/jpeg", "image/webp"];
+const POSTER_TYPES = ["image/png", "image/jpeg"];
 const POSTER_MAX_MB = 5;
 
 // Create / edit an event
@@ -52,7 +52,7 @@ export default function EventForm({ initial, onSave, onCancel }) {
     const file = e.target.files[0];
     e.target.value = ""; // lets the same file be picked again
     if (!file) return;
-    if (!POSTER_TYPES.includes(file.type)) return setErrors({ ...errors, poster: "Use a PNG, JPG or WebP image." });
+    if (!POSTER_TYPES.includes(file.type)) return setErrors({ ...errors, poster: "Use a PNG or JPG image." });
     if (file.size > POSTER_MAX_MB * 1024 * 1024) return setErrors({ ...errors, poster: `The poster must be ${POSTER_MAX_MB} MB or smaller.` });
     setErrors({ ...errors, poster: undefined });
     setPoster(file);
@@ -204,7 +204,7 @@ export default function EventForm({ initial, onSave, onCancel }) {
             <label className="poster-drop">
               <Icon name="image" size={24} />
               <strong>Add a poster</strong>
-              <span>PNG, JPG or WebP, up to {POSTER_MAX_MB} MB</span>
+              <span>PNG or JPG, up to {POSTER_MAX_MB} MB</span>
               <input type="file" accept={POSTER_TYPES.join(",")} className="sr-only" onChange={handlePoster} aria-labelledby="ev-poster-label" />
             </label>
           )}
