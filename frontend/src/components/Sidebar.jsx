@@ -12,11 +12,13 @@ const NAV_ITEMS = [
   { key: "events", label: "Events", icon: "calendar" },
   { key: "tutoring", label: "Peer Tutoring", icon: "book" },
   { key: "people", label: "People", icon: "users" },
+  { key: "messages", label: "Messages", icon: "mail" },
   { key: "hours", label: "Members & Hours", icon: "clock" },
   { key: "announcements", label: "Announcements", icon: "megaphone" },
 ];
 
-export default function Sidebar({ page, onNavigate, open, onClose, collapsed, onToggleCollapse }) {
+// badges: { [page]: count } shown beside a menu item (e.g. unread messages)
+export default function Sidebar({ page, onNavigate, open, onClose, collapsed, onToggleCollapse, badges = {} }) {
   const { user, logout } = useAuth();
 
   const handleNavigate = (key) => {
@@ -73,6 +75,7 @@ export default function Sidebar({ page, onNavigate, open, onClose, collapsed, on
             >
               <Icon name={item.icon} />
               <span className="nav-label">{item.label}</span>
+              {badges[item.key] > 0 && <span className="nav-count" aria-label={`${badges[item.key]} unread`}>{badges[item.key] > 9 ? "9+" : badges[item.key]}</span>}
             </a>
           ))}
         </nav>

@@ -14,7 +14,7 @@ const NAV = [
   {
     target: ".nav",
     title: "Main menu",
-    body: "Dashboard, Events, Peer Tutoring, People, Members & Hours and Announcements. The tour visits each of them next.",
+    body: "Dashboard, Events, Peer Tutoring, People, Messages, Members & Hours and Announcements. The tour visits each of them next.",
   },
   {
     target: '[data-tour="notifications"]',
@@ -91,6 +91,26 @@ const PEOPLE = {
       target: ['[data-tour="people-helpful"]', ".page .empty-state"],
       title: "Most helpful",
       body: "Tutors ranked by completed peer tutoring sessions. Beside it: your own tutoring and rank, and the subjects students ask for most (click one to open that session).",
+    },
+  ],
+};
+
+// Same for officers and members
+const MESSAGES = {
+  key: "messages",
+  label: "Messages",
+  steps: [
+    {
+      page: "messages",
+      target: '[data-tour="messages"]',
+      title: "Messages",
+      body: "Chat with your friends. Officers also have a conversation with the OrgConnect admin: the President, VPs and Secretary write in it and the other officers can read along. New messages show a number beside Messages in the menu.",
+    },
+    {
+      page: "messages",
+      target: '[data-tour="messages-new"]',
+      title: "Start a conversation",
+      body: "Pick a friend (or, for officers, the OrgConnect admin). You can also press Message on a friend's profile or on the Friends tab.",
     },
   ],
 };
@@ -227,6 +247,7 @@ const OFFICER = [
     ],
   },
   PEOPLE,
+  MESSAGES,
   {
     key: "hours",
     label: "Members & Hours",
@@ -398,6 +419,7 @@ const MEMBER = [
     ],
   },
   PEOPLE,
+  MESSAGES,
   {
     key: "hours",
     label: "Volunteer hours",
@@ -488,6 +510,12 @@ export const ADMIN_TOUR = [
     target: '[data-tour="admin-announce-list"]',
     title: "Replies",
     body: "Each org's President, VPs and Secretary can write back. Every org has its own private thread with you. Open an announcement to read and answer them; the menu shows how many are waiting.",
+  },
+  {
+    page: "messages",
+    target: '[data-tour="messages"]',
+    title: "Messages",
+    body: "Talk with an org's officers (start from Organizations → View → Message officers, or New here) and with people registering an org. On an org request, Ask for changes sends them a message and lets them edit their request.",
   },
   {
     page: "overview",

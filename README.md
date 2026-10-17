@@ -16,6 +16,8 @@ by connecting students, officers and orgs).
 - Use one account for every org they join, and switch orgs from the menu
 - *People:* browse everyone in the org (officers first), open anyone's profile (hours, events
   attended, what they tutor, students helped), add friends, and see the most helpful tutors
+- *Messages:* chat with friends; officers also have a conversation with the OrgConnect admin
+  (the President, VPs and Secretary write in it, the other officers read along)
 
 *Officers*
 - Create events (with posters), record attendance and mark events completed
@@ -29,6 +31,8 @@ by connecting students, officers and orgs).
 - View any org's details, officers and numbers; suspend it (with a reason its officers see) or reactivate it
 - Send announcements to presidents, all officers, all members or every account, in every org or chosen
   ones. Each org's President, VPs and Secretary can reply in a private thread with the admin
+- Message an org's officers, and ask someone registering an org for changes (they answer and edit
+  their request before the admin decides)
 - Look up accounts, correct details and reset forgotten passwords
 
 Each org has its own colors (Data Science Society ocean blue, Computer Society navy). A new org picks one
@@ -47,6 +51,7 @@ no two orgs share a color. A guided tour
 | Hours counting on the leaderboard | An officer approves your log |
 | Being friends | You send a request (People page or their profile) and they accept it; friends see each other's email |
 | A place on "Most helpful" | You tutor a session and mark the request completed |
+| Messaging someone | You're friends (or, for the OrgConnect admin, an officer of your org) |
 | A suspended org working again | The admin reactivates it |
 
 ## Folders

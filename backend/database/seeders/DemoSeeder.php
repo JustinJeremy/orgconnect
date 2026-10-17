@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Announcement;
 use App\Models\AnnouncementComment;
 use App\Models\Certificate;
+use App\Models\Conversation;
 use App\Models\Event;
 use App\Models\Friendship;
 use App\Models\MembershipRecord;
@@ -106,7 +107,61 @@ class DemoSeeder extends Seeder
         $this->topics();
         $this->rejectionReasons();
         $this->platformAnnouncement($day);
+        $this->messages($day);
         $this->attachPosters();
+    }
+
+    // Sample conversations: friends chatting (Juan has an unread one from Isabel), and CompSoc's officers
+    // with the OrgConnect admin. Each is only written once, so running this again changes nothing.
+    private const CONVERSATIONS = [
+        // [first person, second person (or 'admin' with the org's slug)], then [who, message, days before the demo day, hour]
+        [['member@orgconnect.test', 'joanna.uy@orgconnect.test'], [
+            ['joanna.uy@orgconnect.test', 'Are you going to the Tech Talk on Tuesday?', 6, 19],
+            ['member@orgconnect.test', 'Yes! I already RSVPd. Want to sit together?', 6, 20],
+            ['joanna.uy@orgconnect.test', 'Sure, see you at the AVR 15 minutes early', 5, 8],
+        ]],
+        [['member@orgconnect.test', 'isabel.cruz@orgconnect.test'], [
+            ['member@orgconnect.test', 'Thanks for the pandas notes last week, they helped a lot', 5, 21],
+            ['isabel.cruz@orgconnect.test', 'Glad they did! Are you joining the SQL Speedrun on the 20th?', 4, 9],
+            ['isabel.cruz@orgconnect.test', "We need one more person for our pair-up team", 4, 9],
+        ]],
+        [['officer@orgconnect.test', 'leo.manalo@orgconnect.test'], [
+            ['officer@orgconnect.test', 'Can you check the hackathon venue booking for the 22nd?', 3, 10],
+            ['leo.manalo@orgconnect.test', 'Booked Room 304 and the AVR. I will send the confirmation to Angela', 3, 13],
+        ]],
+        [['admin', 'computer-society'], [
+            ['officer@orgconnect.test', 'Good day! Can we use the CCS Lobby for our Org Day booth on Oct 20?', 7, 9],
+            ['admin', 'Yes, the lobby is reserved for CompSoc from 3 to 5 PM. Please keep the walkway clear.', 6, 14],
+        ]],
+    ];
+
+    private function messages(Carbon $day): void
+    {
+        $user = fn ($email) => $email === 'admin' ? User::where('is_admin', true)->orderBy('id')->first() : User::where('email', $email)->first();
+        foreach (self::CONVERSATIONS as [[$a, $b], $lines]) {
+            if ($a === 'admin') {
+                $org = Organization::where('slug', $b)->first();
+                $conversation = $org ? Conversation::forOrg('org', $org->id) : null;
+            } else {
+                [$one, $two] = [$user($a), $user($b)];
+                $conversation = $one && $two ? Conversation::direct($one->id, $two->id) : null;
+            }
+            if (! $conversation || $conversation->messages()->exists()) {
+                continue;
+            }
+            foreach ($lines as [$from, $body, $daysBefore, $hour]) {
+                $sender = $user($from);
+                if (! $sender) {
+                    continue;
+                }
+                $at = $day->copy()->subDays($daysBefore)->setTime($hour, 0);
+                $message = $conversation->messages()->create(['user_id' => $sender->id, 'body' => $body]);
+                $message->timestamps = false;
+                $message->forceFill(['created_at' => $at, 'updated_at' => $at])->save();
+                $conversation->update(['last_message_at' => $at]);
+                $conversation->markRead($sender);   // senders have read up to their own message
+            }
+        }
     }
 
     // Why the sample rejected hour logs were rejected

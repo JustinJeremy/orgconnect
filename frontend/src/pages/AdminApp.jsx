@@ -13,12 +13,13 @@ import Tour from "../components/Tour.jsx";
 import { StatusBadge } from "../components/Badges.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import useUrlPage, { isPlainClick, pagePath } from "../hooks/useUrlPage.js";
-import { adminApi } from "../api/services.js";
+import { adminApi, messagesApi } from "../api/services.js";
 import { errorMessage } from "../api/client.js";
 import { ADMIN_TOUR } from "../data/tourSteps.js";
 import AdminAccounts from "./AdminAccounts.jsx";
 import AdminProfile from "./AdminProfile.jsx";
 import AdminAnnouncements from "./AdminAnnouncements.jsx";
+import Messages from "../components/Messages.jsx";
 import { ColorTag } from "../components/OrgColors.jsx";
 import { UserAvatar } from "../components/Avatars.jsx";
 import { shortDate } from "../utils/format.js";
@@ -38,6 +39,7 @@ const PAGES = {
   organizations: { label: "Organizations", icon: "layers", title: "Organizations", subtitle: "Approve, suspend or look up any org" },
   accounts: { label: "Accounts", icon: "users", title: "Accounts", subtitle: "Look up anyone, correct details, reset a forgotten password" },
   announcements: { label: "Announcements", icon: "megaphone", title: "Announcements", subtitle: "Send updates to presidents, officers, members or everyone" },
+  messages: { label: "Messages", icon: "mail", title: "Messages", subtitle: "Talk with org officers and people registering an org" },
   // Opened from your name at the bottom of the sidebar, not the menu
   profile: { label: "Profile", icon: "users", title: "Profile & settings", subtitle: "Your admin account", hidden: true },
 };
@@ -62,6 +64,9 @@ export default function AdminApp() {
   const [approving, setApproving] = useState(null); // { request, courses } being approved (optional message)
   const [statusChange, setStatusChange] = useState(null); // { org, status }: suspending (reason) or reactivating (note)
   const [viewing, setViewing] = useState(null); // org shown in the "View" pop-up
+  const [askingChanges, setAskingChanges] = useState(null); // org request the admin is sending back for changes
+  const [openConversation, setOpenConversation] = useState(null); // conversation to open on the Messages page
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const [confirmState, setConfirmState] = useState(null);
   const [toast, setToast] = useState(null);
   const [tourOn, setTourOn] = useState(false);
@@ -85,6 +90,29 @@ export default function AdminApp() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Unread messages, for the menu badge (checked every 30 seconds)
+  const loadUnread = useCallback(() => {
+    messagesApi.unread().then((r) => setUnreadMessages(r.count)).catch(() => {});
+  }, []);
+  useEffect(() => {
+    loadUnread();
+    const timer = setInterval(loadUnread, 30000);
+    return () => clearInterval(timer);
+  }, [loadUnread]);
+
+  // Open (or start) a conversation and go to Messages
+  const openMessages = async (start) => {
+    try {
+      const conversation = await start();
+      setOpenConversation(conversation.id);
+      setPage("messages");
+      setViewing(null);
+      setDetails(null);
+    } catch (error) {
+      flash(errorMessage(error), "error");
+    }
+  };
 
   // First visit: start the admin tour once
   useEffect(() => {
@@ -131,7 +159,7 @@ export default function AdminApp() {
 
   const requestsPanel = (all) => (
     <Panel title="Organization requests" subtitle={all ? "Waiting for review, and ones you rejected" : "New orgs waiting to join OrgConnect"} tour="admin-requests">
-      <RequestList requests={all ? data.requests : pending} onDetails={setDetails} onApprove={(r) => setApproving({ request: r })} onReject={setRejecting} />
+      <RequestList requests={all ? data.requests : pending} onDetails={setDetails} onApprove={(r) => setApproving({ request: r })} onReject={setRejecting} onAskChanges={setAskingChanges} />
     </Panel>
   );
 
@@ -207,6 +235,7 @@ export default function AdminApp() {
               <span className="nav-label">{item.label}</span>
               {key === "requests" && pending.length > 0 && <span className="nav-count">{pending.length}</span>}
               {key === "announcements" && waiting > 0 && <span className="nav-count">{waiting}</span>}
+              {key === "messages" && unreadMessages > 0 && <span className="nav-count">{unreadMessages > 9 ? "9+" : unreadMessages}</span>}
             </a>
           ))}
         </nav>
@@ -255,6 +284,18 @@ export default function AdminApp() {
             <AdminAccounts flash={flash} />
           ) : page === "profile" ? (
             <AdminProfile flash={flash} />
+          ) : page === "messages" ? (
+            <Messages
+              openId={openConversation}
+              onOpenedId={() => setOpenConversation(null)}
+              onUnread={loadUnread}
+              newOptions={async () =>
+                (data?.organizations || [])
+                  .filter((o) => o.status === "Active")
+                  .map((o) => ({ key: `o${o.id}`, label: o.name, sub: "Its officers", who: { name: o.name }, open: () => messagesApi.org(o.id) }))
+              }
+              emptyText="Message an org's officers, or ask someone registering an org for changes."
+            />
           ) : page === "announcements" ? (
             <AdminAnnouncements flash={flash} organizations={data?.organizations || []} onChanged={load} />
           ) : !data ? (
@@ -307,6 +348,23 @@ export default function AdminApp() {
             setRejecting(details);
             setDetails(null);
           }}
+          onAskChanges={() => {
+            setAskingChanges(details);
+            setDetails(null);
+          }}
+          onOpenConversation={() => openMessages(() => messagesApi.request(details.id))}
+        />
+      )}
+      {askingChanges && (
+        <ReasonDialog
+          title={`Ask ${askingChanges.requestedBy} for changes?`}
+          intro={`The ${askingChanges.shortName} request stays waiting for review. They see your message, can answer it and edit their request.`}
+          label="What should they change?"
+          placeholder="e.g. Please attach the OSA recognition letter and add BSEMC to the courses."
+          confirmLabel="Send"
+          danger={false}
+          onCancel={() => setAskingChanges(null)}
+          onSubmit={(message) => run(() => adminApi.askChanges(askingChanges.id, message), `Sent to ${askingChanges.requestedBy}`)}
         />
       )}
       {rejectingChange && (
@@ -355,7 +413,14 @@ export default function AdminApp() {
           }
         />
       )}
-      {viewing && <OrgView org={viewing} onClose={() => setViewing(null)} onSetStatus={(s) => { setViewing(null); setStatus(viewing, s); }} />}
+      {viewing && (
+        <OrgView
+          org={viewing}
+          onClose={() => setViewing(null)}
+          onSetStatus={(s) => { setViewing(null); setStatus(viewing, s); }}
+          onMessage={() => openMessages(() => messagesApi.org(viewing.id))}
+        />
+      )}
       {rejecting && <RejectDialog request={rejecting} onClose={() => setRejecting(null)} onReject={async (note) => (await reject(rejecting, note)) && setRejecting(null)} />}
       {confirmState && (
         <ConfirmDialog
@@ -375,7 +440,7 @@ export default function AdminApp() {
   );
 }
 
-function RequestList({ requests, onDetails, onApprove, onReject }) {
+function RequestList({ requests, onDetails, onApprove, onReject, onAskChanges }) {
   const [busy, setBusy] = useState(null);
   if (!requests.length) return <EmptyState compact title="No org requests" text="New registration requests will show up here." />;
 
@@ -398,11 +463,13 @@ function RequestList({ requests, onDetails, onApprove, onReject }) {
               {r.college} · Adviser {r.adviser} · Requested by {r.requestedBy}
             </div>
             {r.status === "Rejected" && <div className="review-detail">Rejected {shortDate(r.reviewedAt)}: {r.reviewNote}</div>}
+            {r.status === "Pending" && r.changesRequested && <span className="changes-chip"><Icon name="clock" size={12} /> Changes requested</span>}
           </div>
           <div className="review-actions">
             <button type="button" className="btn btn-outline btn-sm" onClick={() => onDetails(r)}>View details</button>
             {r.status === "Pending" ? (
               <>
+                <button type="button" className="btn btn-outline btn-sm" disabled={busy === r.id} onClick={() => onAskChanges(r)}>Ask for changes</button>
                 <button type="button" className="btn btn-outline btn-sm" disabled={busy === r.id} onClick={() => onReject(r)}>Reject</button>
                 <button type="button" className="btn btn-primary btn-sm" disabled={busy === r.id} onClick={() => act(r, () => onApprove(r))}>Approve</button>
               </>
@@ -461,7 +528,7 @@ function OrgTable({ orgs, onSetStatus, onView }) {
 }
 
 // Everything the requester sent; the admin can fix the course list before approving
-function RequestDetails({ request, onClose, onApprove, onReject }) {
+function RequestDetails({ request, onClose, onApprove, onReject, onAskChanges, onOpenConversation }) {
   const [courses, setCourses] = useState(request.courses);
   const [newCourse, setNewCourse] = useState("");
   const [busy, setBusy] = useState(false);
@@ -480,8 +547,12 @@ function RequestDetails({ request, onClose, onApprove, onReject }) {
       footer={
         <div className="form-actions">
           <button type="button" className="btn btn-outline" onClick={onClose}>Close</button>
+          <button type="button" className="btn btn-outline" onClick={onOpenConversation}>
+            <Icon name="mail" size={15} /> Conversation
+          </button>
           {pending && (
             <>
+              <button type="button" className="btn btn-outline" onClick={onAskChanges}>Ask for changes</button>
               <button type="button" className="btn btn-outline" onClick={onReject}>Reject</button>
               <button
                 type="button"
@@ -609,7 +680,7 @@ function RejectDialog({ request, onClose, onReject }) {
 }
 
 // Everything about one org: details, color, officers and numbers. Suspend or reactivate from here too.
-function OrgView({ org, onClose, onSetStatus }) {
+function OrgView({ org, onClose, onSetStatus, onMessage }) {
   const [info, setInfo] = useState(null);
   const [error, setError] = useState("");
 
@@ -628,6 +699,9 @@ function OrgView({ org, onClose, onSetStatus }) {
       footer={
         <div className="form-actions">
           <button type="button" className="btn btn-outline" onClick={onClose}>Close</button>
+          <button type="button" className="btn btn-outline" onClick={onMessage}>
+            <Icon name="mail" size={15} /> Message officers
+          </button>
           <button type="button" className={`btn ${org.status === "Suspended" ? "btn-primary" : "btn-danger"}`} onClick={() => onSetStatus(org.status === "Suspended" ? "Active" : "Suspended")}>
             {org.status === "Suspended" ? "Reactivate" : "Suspend"}
           </button>

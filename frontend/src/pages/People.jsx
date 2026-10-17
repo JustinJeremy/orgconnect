@@ -70,7 +70,7 @@ function Directory({ flash }) {
 
 // Your friends, and friend requests waiting on either side
 function Friends({ flash }) {
-  const { friendsVersion, friendsChanged } = usePeople();
+  const { friendsVersion, friendsChanged, messagePerson } = usePeople();
   const [data, setData] = useState(null);
 
   useEffect(() => {
@@ -118,6 +118,11 @@ function Friends({ flash }) {
             {data.friends.map((f) => (
               <li key={f.id} className="friend-row">
                 <PersonLink person={f} sub={where(f)} />
+                {messagePerson && (
+                  <button type="button" className="icon-btn sm" aria-label={`Message ${f.name}`} title="Message" onClick={() => messagePerson(f.id)}>
+                    <Icon name="mail" size={16} />
+                  </button>
+                )}
               </li>
             ))}
           </ul>

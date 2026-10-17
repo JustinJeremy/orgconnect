@@ -17,6 +17,7 @@ import { ADMIN_THEME, applyTheme } from "./utils/theme.js";
 import Profile from "./pages/Profile.jsx";
 import Notifications from "./pages/Notifications.jsx";
 import People from "./pages/People.jsx";
+import MessagesPage from "./pages/MessagesPage.jsx";
 import { PeopleProvider } from "./context/PeopleContext.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 import Topbar from "./components/Topbar.jsx";
@@ -34,11 +35,12 @@ import {
   eventsApi,
   hoursApi,
   membersApi,
+  messagesApi,
   notificationsApi,
   tutoringApi,
 } from "./api/services.js";
 
-const APP_PAGES = ["dashboard", "events", "hours", "tutoring", "people", "announcements", "profile", "notifications"];
+const APP_PAGES = ["dashboard", "events", "hours", "tutoring", "people", "messages", "announcements", "profile", "notifications"];
 
 const PAGE_META = {
   notifications: { title: "Notifications" },
@@ -63,6 +65,7 @@ const PAGE_META = {
     member: "Updates from your officers",
   },
   people: { title: "People" },
+  messages: { title: "Messages" },
   profile: {
     title: "Profile & settings",
     officer: "Your account details, password and organizations",
@@ -210,6 +213,29 @@ function MainApp() {
     const timer = setInterval(() => reload("notifications"), 60000);
     return () => clearInterval(timer);
   }, [reload]);
+
+  // Unread messages, for the menu badge (checked every 30 seconds)
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const loadUnread = useCallback(() => {
+    messagesApi.unread().then((r) => setUnreadMessages(r.count)).catch(() => {});
+  }, []);
+  useEffect(() => {
+    loadUnread();
+    const timer = setInterval(loadUnread, 30000);
+    return () => clearInterval(timer);
+  }, [loadUnread]);
+
+  // "Message" on a friend's profile or the Friends tab: open (or start) that conversation
+  const messageFriend = useCallback(async (userId) => {
+    try {
+      const conversation = await messagesApi.direct(userId);
+      setPage("messages");
+      setFocus({ page: "messages", id: conversation.id, key: Date.now() });
+    } catch (error) {
+      flash(errorMessage(error), "error");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ---- Helpers for actions ----
   const set = (key, fn) => setData((d) => ({ ...d, [key]: fn(d[key]) }));
@@ -508,7 +534,7 @@ function MainApp() {
   );
 
   return (
-    <PeopleProvider flash={flash}>
+    <PeopleProvider flash={flash} onMessage={messageFriend}>
     <div className={`layout ${collapsed ? "is-collapsed" : ""}`}>
       <Sidebar
         page={page}
@@ -517,6 +543,7 @@ function MainApp() {
         onClose={() => setMenuOpen(false)}
         collapsed={collapsed}
         onToggleCollapse={toggleCollapsed}
+        badges={{ messages: unreadMessages }}
       />
 
       <main className={`main ${page === "dashboard" ? "main-dashboard" : ""}`}>
@@ -542,6 +569,7 @@ function MainApp() {
             {page === "hours" && <VolunteerHours key={pageReset} {...pageProps} hours={hours} members={members} focus={focusFor("hours")} onFocusDone={clearFocus} />}
             {page === "tutoring" && <Tutoring key={pageReset} {...pageProps} actions={tutoring} focus={focusFor("tutoring")} onFocusDone={clearFocus} />}
             {page === "announcements" && <Announcements key={pageReset} {...pageProps} actions={announcements} focus={focusFor("announcements")} onFocusDone={clearFocus} />}
+            {page === "messages" && <MessagesPage key={pageReset} focus={focusFor("messages")} onFocusDone={clearFocus} onUnread={loadUnread} />}
             {page === "people" && <People key={pageReset} {...pageProps} focus={focusFor("people")} onFocusDone={clearFocus} onOpenSession={openSession} />}
             {page === "profile" && <Profile key={pageReset} {...pageProps} />}
             {page === "notifications" && <Notifications key={pageReset} {...pageProps} onOpen={openNotification} onMarkAllRead={markNotificationsRead} />}

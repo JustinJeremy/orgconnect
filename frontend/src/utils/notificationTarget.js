@@ -2,7 +2,7 @@
 // The API sends links like "events/12", "announcements/4", "hours/31", "tutoring/received/7",
 // "applications". Older notifications (or ones without a link) are worked out from the message,
 // and the item is then found by its title instead of its id.
-const PAGES = ["dashboard", "events", "hours", "tutoring", "people", "announcements", "profile"];
+const PAGES = ["dashboard", "events", "hours", "tutoring", "people", "messages", "announcements", "profile"];
 
 const EVENT_TITLE = [/^New event: (.+)$/, /^Your certificate for (.+) is ready$/];
 const POST_TITLE = [/^New announcement: (.+)$/, / commented on (.+)$/];
@@ -11,6 +11,7 @@ const HOURS_ACTIVITY = /^Your [\d.]+ hrs for (.+) were \w+$/;
 function guessPage(message) {
   const text = message.toLowerCase();
   if (text.includes("friend request")) return "people";
+  if (text.startsWith("new message")) return "messages";
   if (text.includes("applied to join") || text.includes("asked to be reactivated")) return "applications";
   if (text.includes("event") || text.includes("certificate")) return "events";
   if (text.includes("hrs for")) return "hours";
@@ -48,6 +49,8 @@ export function notificationTarget({ link, message = "" }) {
       };
     case "people":
       return { page, tab: parts[1] || "friends" };
+    case "messages":
+      return { page, id: lastId };
     case "applications":
       return { page: "hours", kind: "applications" };
     case "register-org":

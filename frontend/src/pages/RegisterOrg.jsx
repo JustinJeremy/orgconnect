@@ -3,7 +3,8 @@ import Icon from "../components/Icon.jsx";
 import Logo from "../components/Logo.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
-import { orgRequestsApi } from "../api/services.js";
+import { messagesApi, orgRequestsApi } from "../api/services.js";
+import { ConversationView } from "../components/Messages.jsx";
 import { errorMessage } from "../api/client.js";
 import { COURSES } from "../data/constants.js";
 import { shortDate } from "../utils/format.js";
@@ -11,7 +12,8 @@ import { UserAvatar } from "../components/Avatars.jsx";
 import { ColorPicker } from "../components/OrgColors.jsx";
 
 // Bring a new org onto OrgConnect: the request form, then its status.
-//   Pending  -> waiting for an OrgConnect admin
+//   Pending  -> waiting for an OrgConnect admin; the admin may ask for changes: their message, a
+//               conversation with them, and "Edit request" (the form, filled in)
 //   Active   -> approved: you're its President, open it
 //   Rejected -> the admin's reason, and the form again (filled in) to send a new request
 const COMMON_COURSES = COURSES.filter((c) => c !== "Other");
@@ -37,7 +39,8 @@ export default function RegisterOrg() {
   }, [load]);
 
   const latest = requests?.[0];
-  const showForm = requests && (!latest || latest.status === "Rejected");
+  const [editing, setEditing] = useState(false); // editing the pending request
+  const showForm = requests && (!latest || latest.status === "Rejected" || editing);
 
   return (
     <div className="join-page register-page">
@@ -70,9 +73,17 @@ export default function RegisterOrg() {
         {requests && (
           <div className="register-grid">
             {showForm ? (
-              <RequestForm previous={latest} onSent={load} onCancel={endOrgRegistration} />
+              <RequestForm
+                previous={latest}
+                editing={editing}
+                onSent={async () => {
+                  setEditing(false);
+                  await load();
+                }}
+                onCancel={editing ? () => setEditing(false) : endOrgRegistration}
+              />
             ) : (
-              <RequestStatus request={latest} onClose={endOrgRegistration} />
+              <RequestStatus request={latest} onClose={endOrgRegistration} onEdit={() => setEditing(true)} />
             )}
             <HowItWorks request={showForm ? null : latest} email={user.email} />
           </div>
@@ -82,7 +93,8 @@ export default function RegisterOrg() {
   );
 }
 
-function RequestForm({ previous, onSent, onCancel }) {
+// editing: changing the pending request (saves it) instead of sending a new one
+function RequestForm({ previous, editing = false, onSent, onCancel }) {
   // After a rejection, start from what was sent last time
   const [form, setForm] = useState(() =>
     previous ? Object.fromEntries(Object.keys(EMPTY).map((k) => [k, previous[k] || ""])) : EMPTY
@@ -127,7 +139,8 @@ function RequestForm({ previous, onSent, onCancel }) {
 
     setSending(true);
     try {
-      await orgRequestsApi.create({ ...form, proofUrl: form.proofUrl.trim() || null, courses, themeKey: themeKey || null });
+      const data = { ...form, proofUrl: form.proofUrl.trim() || null, courses, themeKey: themeKey || null };
+      await (editing ? orgRequestsApi.update(previous.id, data) : orgRequestsApi.create(data));
       await onSent();
     } catch (error) {
       setFormError(errorMessage(error));
@@ -147,7 +160,10 @@ function RequestForm({ previous, onSent, onCancel }) {
 
   return (
     <form className="panel register-form" onSubmit={submit} noValidate data-tour="register-form">
-      {previous?.status === "Rejected" && (
+      {editing && (
+        <div className="alert alert-info">Change what the admin asked for, then save. Your request stays in the queue.</div>
+      )}
+      {previous?.status === "Rejected" && !editing && (
         <div className="join-reason">
           <div className="muted small">Your request for {previous.name} was not approved{previous.reviewedAt && ` · ${shortDate(previous.reviewedAt)}`}</div>
           <p>{previous.reviewNote}</p>
@@ -215,13 +231,13 @@ function RequestForm({ previous, onSent, onCancel }) {
 
       <div className="form-actions">
         <button type="button" className="btn btn-outline" onClick={onCancel}>Cancel</button>
-        <button type="submit" className="btn btn-primary" disabled={sending}>{sending ? "Sending…" : "Submit for review"}</button>
+        <button type="submit" className="btn btn-primary" disabled={sending}>{sending ? "Saving…" : editing ? "Save changes" : "Submit for review"}</button>
       </div>
     </form>
   );
 }
 
-function RequestStatus({ request, onClose }) {
+function RequestStatus({ request, onClose, onEdit }) {
   const { switchOrg, reload } = useOrg();
   const [opening, setOpening] = useState(false);
 
@@ -254,7 +270,7 @@ function RequestStatus({ request, onClose }) {
 
   return (
     <section className="panel register-status">
-      <p className="join-state is-pending"><Icon name="clock" size={16} /> Waiting for review</p>
+      <p className="join-state is-pending"><Icon name="clock" size={16} /> {request.changesRequested ? "Changes requested" : "Waiting for review"}</p>
       <h2>{request.name}</h2>
       <p className="muted">Sent {shortDate(request.submittedAt)}. An OrgConnect admin will check the details and you'll see the result here.</p>
       <dl className="join-facts">
@@ -263,10 +279,34 @@ function RequestStatus({ request, onClose }) {
         <div><dt>Adviser</dt><dd>{request.adviser}</dd></div>
         <div><dt>Courses</dt><dd>{request.courses.join(", ")}</dd></div>
       </dl>
+      {request.changesRequested && (
+        <div className="alert alert-info register-changes">
+          <Icon name="alert" size={16} /> The admin asked for changes. Read their message below, answer it, and edit your request.
+        </div>
+      )}
+      <RequestConversation request={request} />
       <div className="form-actions">
         <button type="button" className="btn btn-outline" onClick={onClose}>Back</button>
+        <button type="button" className={`btn ${request.changesRequested ? "btn-accent" : "btn-outline"}`} onClick={onEdit}>
+          <Icon name="edit" size={15} /> Edit request
+        </button>
       </div>
     </section>
+  );
+}
+
+// Your conversation with the OrgConnect admin about this request
+function RequestConversation({ request }) {
+  const [id, setId] = useState(null);
+  useEffect(() => {
+    messagesApi.request(request.id).then((c) => setId(c.id)).catch(() => {});
+  }, [request.id]);
+  if (!id) return null;
+  return (
+    <div className="register-conversation">
+      <h3><Icon name="mail" size={16} /> Messages with the OrgConnect admin</h3>
+      <ConversationView id={id} compact />
+    </div>
   );
 }
 
