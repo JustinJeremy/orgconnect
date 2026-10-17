@@ -70,3 +70,7 @@ export function slug(text = "") {
 export const isCompleted = (e) => e.status === "completed";
 export const attendedCount = (e) => e.registrations.filter((r) => r.status === "attended").length;
 export const myRegistration = (e, userId) => e.registrations.find((r) => r.userId === userId);
+
+// "Blockchain, smart contracts, Blockchain" -> ["Blockchain", "smart contracts"] (trimmed, no blanks or repeats, at most 8)
+export const splitTopics = (text) =>
+  [...new Set(text.split(",").map((t) => t.trim().slice(0, 40)).filter(Boolean))].slice(0, 8);

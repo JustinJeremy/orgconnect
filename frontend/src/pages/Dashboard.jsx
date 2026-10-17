@@ -371,6 +371,8 @@ function FeaturedEvent({ event, userId, onOpen, onToggleRsvp }) {
   return (
     <article className="dash-featured">
       <button type="button" className="dash-featured-media" onClick={() => onOpen(event)} aria-label={`View ${event.title}`}>
+        {/* A blurred copy of the poster fills the space around it, so the frame matches any org's colors */}
+        {event.posterUrl && <img className="dash-featured-backdrop" src={event.posterUrl} alt="" aria-hidden="true" />}
         <EventImage event={event} />
       </button>
       <div className="dash-featured-body">

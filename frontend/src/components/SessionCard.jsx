@@ -4,6 +4,7 @@ import { StatusBadge } from "./Badges.jsx";
 import { parseSchedule, weeklyDates } from "../utils/schedule.js";
 import { UserAvatar } from "./Avatars.jsx";
 import { usePeople } from "../context/PeopleContext.jsx";
+import { SessionDetails } from "./ItemDetails.jsx";
 
 // The next date a weekly session meets, e.g. "Fri, Oct 23" (today counts until its start time)
 function nextMeeting(schedule) {
@@ -18,6 +19,7 @@ function nextMeeting(schedule) {
 
 export default function SessionCard({ session, myRequest, canManage, canRequest, onRequest, onEdit, onDelete, highlighted }) {
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false); // the details pop-up
   const { openPerson } = usePeople();
   const next = nextMeeting(session.schedule);
 
@@ -27,12 +29,28 @@ export default function SessionCard({ session, myRequest, canManage, canRequest,
     setBusy(false);
   };
 
+  // Request button or your request's status: on the card and in its details
+  const action = myRequest ? (
+    <span className="request-state">
+      Your request <StatusBadge status={myRequest.status} />
+    </span>
+  ) : canRequest ? (
+    <button type="button" className="btn btn-primary btn-sm" onClick={request} disabled={busy || session.slots < 1}>
+      Request session
+    </button>
+  ) : null;
+
   return (
-    <article className={`session-card ${highlighted ? "is-highlighted" : ""}`} data-focus={`session-${session.id}`}>
+    <>
+    <article
+      className={`session-card is-openable ${highlighted ? "is-highlighted" : ""}`}
+      data-focus={`session-${session.id}`}
+      onClick={(e) => !e.target.closest("button, a, input, label") && setOpen(true)}
+    >
       <div className="event-card-top">
         <div className="event-card-head">
           <span className="event-cat">{session.area}</span>
-          <h3>{session.subject}</h3>
+          <h3><button type="button" className="card-title-btn" onClick={() => setOpen(true)}>{session.subject}</button></h3>
         </div>
         {canManage && (
           <div className="card-tools">
@@ -67,16 +85,10 @@ export default function SessionCard({ session, myRequest, canManage, canRequest,
         <span className="muted small">
           {session.slots} {session.slots === 1 ? "slot" : "slots"} open
         </span>
-        {myRequest ? (
-          <span className="request-state">
-            Your request <StatusBadge status={myRequest.status} />
-          </span>
-        ) : canRequest ? (
-          <button type="button" className="btn btn-primary btn-sm" onClick={request} disabled={busy || session.slots < 1}>
-            Request session
-          </button>
-        ) : null}
+        {action}
       </div>
     </article>
+    {open && <SessionDetails session={session} next={next} footer={action} onClose={() => setOpen(false)} />}
+    </>
   );
 }

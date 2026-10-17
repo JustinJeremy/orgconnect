@@ -1,0 +1,139 @@
+import Icon from "./Icon.jsx";
+import Modal from "./Modal.jsx";
+import ModeTag from "./ModeTag.jsx";
+import { UserAvatar } from "./Avatars.jsx";
+import { usePeople } from "../context/PeopleContext.jsx";
+import { attendedCount, dateParts, formatDate, formatTime, isCompleted, isPast, percent, plural } from "../utils/format.js";
+
+// The full details of an event or tutoring session, opened by clicking its card.
+// footer: the card's own buttons (RSVP, Request session...), so they work here too.
+
+export function TopicChips({ topics }) {
+  if (!topics?.length) return null;
+  return (
+    <div className="detail-section">
+      <h3>Topics</h3>
+      <div className="person-chips">
+        {topics.map((t) => (
+          <span key={t} className="person-chip">{t}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Fact({ icon, label, children }) {
+  return (
+    <div className="detail-fact">
+      <span className="detail-fact-icon"><Icon name={icon} size={16} /></span>
+      <span>
+        <span className="detail-fact-label">{label}</span>
+        <span className="detail-fact-value">{children}</span>
+      </span>
+    </div>
+  );
+}
+
+export function EventDetails({ event, footer, onClose }) {
+  const { openPerson } = usePeople();
+  const done = isCompleted(event);
+  const passed = !done && isPast(event.date, event.time);
+  const registered = event.registrations.length;
+  const attended = attendedCount(event);
+  const { mon, day, weekday } = dateParts(event.date);
+  const people = done ? event.registrations.filter((r) => r.status === "attended") : event.registrations;
+
+  return (
+    <Modal title={event.title} subtitle={event.category} onClose={onClose} size="lg" footer={<div className="detail-footer">{footer}</div>}>
+      <div className="item-details">
+        <div className="detail-poster">
+          {event.posterUrl ? (
+            <>
+              <img className="detail-poster-backdrop" src={event.posterUrl} alt="" aria-hidden="true" />
+              <img className="detail-poster-img" src={event.posterUrl} alt={`Poster for ${event.title}`} />
+            </>
+          ) : (
+            <span className="detail-poster-date"><span>{mon}</span><strong>{day}</strong></span>
+          )}
+        </div>
+
+        <div className="detail-tags">
+          <span className="person-chip">{event.category}</span>
+          <ModeTag mode={event.mode} />
+          {done && <span className="event-state is-done"><Icon name="check" size={12} /> Completed</span>}
+          {passed && <span className="event-state is-passed"><Icon name="clock" size={12} /> Passed</span>}
+        </div>
+
+        <div className="detail-facts">
+          <Fact icon="calendar" label="Date">{weekday}, {formatDate(event.date)}</Fact>
+          <Fact icon="clock" label="Time">{formatTime(event.time)}</Fact>
+          <Fact icon="pin" label="Where">{event.location}</Fact>
+          <Fact icon="users" label={done ? "Attendance" : "Going"}>
+            {done ? `${attended} of ${registered} attended (${percent(attended, registered)}%)` : `${registered} of ${event.capacity} spots taken`}
+          </Fact>
+        </div>
+
+        {event.description && (
+          <div className="detail-section">
+            <h3>About this event</h3>
+            <p className="detail-text">{event.description}</p>
+          </div>
+        )}
+        <TopicChips topics={event.topics} />
+
+        {people.length > 0 && (
+          <div className="detail-section">
+            <h3>{done ? "Who attended" : "Who's going"}</h3>
+            <div className="detail-people">
+              {people.slice(0, 12).map((r) => (
+                <button key={r.id} type="button" className="detail-person" onClick={() => openPerson(r.userId)} title={r.name}>
+                  <UserAvatar user={r} className="sm" />
+                  <span>{r.name?.split(" ")[0]}</span>
+                </button>
+              ))}
+              {people.length > 12 && <span className="muted small">+{people.length - 12} more</span>}
+            </div>
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+export function SessionDetails({ session, next, footer, onClose }) {
+  const { openPerson } = usePeople();
+
+  return (
+    <Modal title={session.subject} subtitle={`Peer tutoring · ${session.area}`} onClose={onClose} size="lg" footer={<div className="detail-footer">{footer}</div>}>
+      <div className="item-details">
+        <button type="button" className="detail-tutor" onClick={() => openPerson(session.tutorId)}>
+          <UserAvatar user={{ name: session.tutorName, ...session.tutorAvatar }} className="person-avatar" />
+          <span>
+            <span className="detail-fact-label">Tutor</span>
+            <strong>{session.tutorName}</strong>
+            <span className="muted small">View profile <Icon name="arrowRight" size={12} /></span>
+          </span>
+        </button>
+
+        <div className="detail-tags">
+          <span className="person-chip">{session.area}</span>
+        </div>
+
+        <div className="detail-facts">
+          <Fact icon="calendar" label="Schedule">{session.schedule}</Fact>
+          <Fact icon="clock" label="Next meeting">{next || "Not this week"}</Fact>
+          <Fact icon="pin" label="Where">{session.location}</Fact>
+          <Fact icon="users" label="Open slots">{plural(session.slots, "slot")}</Fact>
+        </div>
+
+        {session.description && (
+          <div className="detail-section">
+            <h3>About this session</h3>
+            <p className="detail-text">{session.description}</p>
+          </div>
+        )}
+        <TopicChips topics={session.topics} />
+      </div>
+    </Modal>
+  );
+}

@@ -2725,8 +2725,10 @@ select.input {
   border-radius: 0.5rem;
   box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
 }
-.dash-featured-media { display: flex; align-items: center; padding: 0; border: 0; background: #213f6e; cursor: pointer; }
-/* The whole 16:9 poster, centered; the navy around it matches the posters */
+.dash-featured-media { position: relative; display: flex; align-items: center; overflow: hidden; padding: 0; border: 0; background: var(--navy); cursor: pointer; }
+.dash-featured-backdrop { position: absolute; inset: -10%; width: 120%; height: 120%; object-fit: cover; filter: blur(18px) brightness(0.85); }
+.dash-featured-media .dash-event-image { position: relative; }
+/* The whole 16:9 poster, centered over its blurred copy */
 .dash-featured-media .dash-event-image { width: 100%; aspect-ratio: 16 / 9; }
 /* Brighten instead of zooming: a zoom moved the poster inside its navy frame */
 .dash-featured-media .dash-event-image { transition: filter 0.2s ease; }
@@ -3687,21 +3689,30 @@ a.org-option { text-decoration: none; }
 .main:not(.main-dashboard) .page > *:nth-child(3) { animation-delay: 50ms; }
 .main:not(.main-dashboard) .page > *:nth-child(4) { animation-delay: 100ms; }
 .main:not(.main-dashboard) .page > *:nth-child(n + 5) { animation-delay: 150ms; }
-.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li, .notif-page-item):not(.is-focused, .is-highlighted) {
+.main :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > :not(.modal-backdrop), .suggest-list li, .leaders li, .post, .subject-list li, .notif-page-item):not(.is-focused, .is-highlighted) {
   animation: list-rise 0.35s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
-.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(2) { animation-delay: 70ms; }
-.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(3) { animation-delay: 105ms; }
-.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(4) { animation-delay: 140ms; }
-.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(5) { animation-delay: 175ms; }
-.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(6) { animation-delay: 210ms; }
-.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(7) { animation-delay: 245ms; }
-.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(8) { animation-delay: 280ms; }
-.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(9) { animation-delay: 315ms; }
-.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(10) { animation-delay: 350ms; }
-.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(11) { animation-delay: 385ms; }
-.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(12) { animation-delay: 420ms; }
-.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(n + 13) { animation-delay: 420ms; }
+.main :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > :not(.modal-backdrop), .suggest-list li, .leaders li, .post, .subject-list li):nth-child(2) { animation-delay: 70ms; }
+.main :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > :not(.modal-backdrop), .suggest-list li, .leaders li, .post, .subject-list li):nth-child(3) { animation-delay: 105ms; }
+.main :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > :not(.modal-backdrop), .suggest-list li, .leaders li, .post, .subject-list li):nth-child(4) { animation-delay: 140ms; }
+.main :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > :not(.modal-backdrop), .suggest-list li, .leaders li, .post, .subject-list li):nth-child(5) { animation-delay: 175ms; }
+.main :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > :not(.modal-backdrop), .suggest-list li, .leaders li, .post, .subject-list li):nth-child(6) { animation-delay: 210ms; }
+.main :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > :not(.modal-backdrop), .suggest-list li, .leaders li, .post, .subject-list li):nth-child(7) { animation-delay: 245ms; }
+.main :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > :not(.modal-backdrop), .suggest-list li, .leaders li, .post, .subject-list li):nth-child(8) { animation-delay: 280ms; }
+.main :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > :not(.modal-backdrop), .suggest-list li, .leaders li, .post, .subject-list li):nth-child(9) { animation-delay: 315ms; }
+.main :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > :not(.modal-backdrop), .suggest-list li, .leaders li, .post, .subject-list li):nth-child(10) { animation-delay: 350ms; }
+.main :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > :not(.modal-backdrop), .suggest-list li, .leaders li, .post, .subject-list li):nth-child(11) { animation-delay: 385ms; }
+.main :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > :not(.modal-backdrop), .suggest-list li, .leaders li, .post, .subject-list li):nth-child(12) { animation-delay: 420ms; }
+.main :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > :not(.modal-backdrop), .suggest-list li, .leaders li, .post, .subject-list li):nth-child(n + 13) { animation-delay: 420ms; }
+
+/* The dashboard: its two columns' sections, stat cards and event tiles rise in one after another */
+.main-dashboard :is(.dash-main > *, .dash-rail > *, .stat-cards .stat, .dash-event-row > *, .feed-post) {
+  animation: list-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.main-dashboard :is(.dash-main > *, .dash-rail > *, .stat-cards .stat, .dash-event-row > *, .feed-post):nth-child(2) { animation-delay: 70ms; }
+.main-dashboard :is(.dash-main > *, .dash-rail > *, .stat-cards .stat, .dash-event-row > *, .feed-post):nth-child(3) { animation-delay: 140ms; }
+.main-dashboard :is(.dash-main > *, .dash-rail > *, .stat-cards .stat, .dash-event-row > *, .feed-post):nth-child(4) { animation-delay: 210ms; }
+.main-dashboard :is(.dash-main > *, .dash-rail > *, .stat-cards .stat, .dash-event-row > *, .feed-post):nth-child(n + 5) { animation-delay: 280ms; }
 
 /* Dialogs (profiles, forms, confirmations) pop open */
 .modal-backdrop { animation: auth-fade 0.2s ease; }
@@ -3718,5 +3729,38 @@ a.org-option { text-decoration: none; }
 .event-card:hover, .session-card:hover, .person-card:hover { box-shadow: 0 0 0 1px var(--primary-line), 0 6px 12px rgba(21, 43, 84, 0.12); }
 
 @media (prefers-reduced-motion: reduce) {
-  .main .page > *, .main :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li, .notif-page-item), .modal, .modal-backdrop { animation: none !important; }
+  .main .page > *, .main-dashboard :is(.dash-main > *, .dash-rail > *, .stat-cards .stat, .dash-event-row > *, .feed-post), .main :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > :not(.modal-backdrop), .suggest-list li, .leaders li, .post, .subject-list li, .notif-page-item), .modal, .modal-backdrop { animation: none !important; }
 }
+
+/* ---------- Event and session details pop-up (Batch 18) ---------- */
+.is-openable { cursor: pointer; }
+.card-title-btn { padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.card-title-btn:hover { color: var(--navy); text-decoration: underline; }
+.card-title-btn:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; border-radius: 0.25rem; }
+.item-details { display: flex; flex-direction: column; gap: 1.125rem; }
+.detail-poster { position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; aspect-ratio: 16 / 9; border-radius: 0.75rem; background: var(--navy); }
+.detail-poster-backdrop { position: absolute; inset: -10%; width: 120%; height: 120%; object-fit: cover; filter: blur(18px) brightness(0.85); }
+.detail-poster-img { position: relative; width: 100%; height: 100%; object-fit: contain; }
+.detail-poster-date { display: flex; flex-direction: column; align-items: center; color: #fff; line-height: 1; }
+.detail-poster-date span { font-size: 1rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.85; }
+.detail-poster-date strong { font-size: 3.5rem; font-weight: 800; }
+.detail-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.detail-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.625rem; }
+.detail-fact { display: flex; align-items: flex-start; gap: 0.625rem; padding: 0.75rem; border-radius: 0.625rem; background: var(--surface-2); }
+.detail-fact-icon { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 2rem; height: 2rem; border-radius: 0.5rem; background: var(--sky); color: var(--navy); }
+.detail-fact > span:last-child { display: flex; flex-direction: column; min-width: 0; }
+.detail-fact-label { font-size: 0.75rem; color: var(--meta-ink); }
+.detail-fact-value { font-size: 0.9375rem; font-weight: 600; color: var(--ink); }
+.detail-section { display: flex; flex-direction: column; gap: 0.5rem; }
+.detail-section h3 { margin: 0; font-size: 0.9375rem; font-weight: 700; color: var(--navy); }
+.detail-text { margin: 0; color: var(--ink-2); line-height: 1.6; white-space: pre-line; }
+.detail-people { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.detail-person { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; width: 3.75rem; padding: 0.25rem; border: 0; border-radius: 0.5rem; background: none; font: inherit; font-size: 0.75rem; color: var(--ink-2); cursor: pointer; }
+.detail-person:hover { background: var(--sky-soft); }
+.detail-person span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.detail-tutor { display: flex; align-items: center; gap: 0.875rem; padding: 0.75rem; border: 0; border-radius: 0.75rem; background: var(--surface-2); font: inherit; color: inherit; text-align: left; cursor: pointer; transition: background 0.15s; }
+.detail-tutor:hover { background: var(--sky-soft); }
+.detail-tutor > span { display: flex; flex-direction: column; gap: 0.125rem; }
+.detail-tutor strong { font-size: 1.0625rem; color: var(--ink); }
+.detail-footer { display: flex; justify-content: flex-end; align-items: center; gap: 0.75rem; width: 100%; }
+@media (max-width: 40rem) { .detail-facts { grid-template-columns: 1fr; } }

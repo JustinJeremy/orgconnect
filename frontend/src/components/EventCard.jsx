@@ -1,11 +1,13 @@
 import { useState } from "react";
 import Icon from "./Icon.jsx";
 import ModeTag from "./ModeTag.jsx";
+import { EventDetails } from "./ItemDetails.jsx";
 import { attendedCount, dateParts, formatTime, isCompleted, isPast, myRegistration, percent } from "../utils/format.js";
 
 // layout "row": thumbnail on the left (members); "box": date badge beside the title (officers)
 export default function EventCard({ event, userId, isOfficer, actions, layout = "row", highlighted = false }) {
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false); // the details pop-up
   const done = isCompleted(event);
   // Over, but attendance isn't recorded yet
   const passed = !done && isPast(event.date, event.time);
@@ -30,8 +32,45 @@ export default function EventCard({ event, userId, isOfficer, actions, layout = 
     setBusy(false);
   };
 
+  // RSVP, attendance or certificate: on the card and in its details
+  const action = isOfficer ? (
+    <button type="button" className="btn btn-outline btn-sm" onClick={() => actions.openAttendance(event)}>
+      Attendance
+    </button>
+  ) : done ? (
+    mine?.status === "attended" ? (
+      <button type="button" className="btn btn-outline btn-sm" onClick={() => actions.downloadCertificate(event)}>
+        <Icon name="download" size={15} /> Certificate
+      </button>
+    ) : (
+      <span className="muted small">{mine ? "Marked absent" : "Ended"}</span>
+    )
+  ) : passed && !mine ? (
+    <span className="muted small">Started</span>
+  ) : mine ? (
+    <div className="rsvp-on">
+      <span className="going">
+        <Icon name="check" size={15} /> Going
+      </span>
+      {!passed && (
+        <button type="button" className="link-btn" onClick={toggleRsvp} disabled={busy} aria-label={`Cancel RSVP for ${event.title}`}>
+          Cancel
+        </button>
+      )}
+    </div>
+  ) : (
+    <button type="button" className="btn btn-primary btn-sm" onClick={toggleRsvp} disabled={busy || isFull}>
+      {isFull ? "Full" : "RSVP"}
+    </button>
+  );
+
   return (
-    <article className={`event-card ${done ? "is-done" : ""} ${passed ? "is-passed" : ""} ${highlighted ? "is-highlighted" : ""}`} data-event-id={event.id}>
+    <>
+    <article
+      className={`event-card is-openable ${done ? "is-done" : ""} ${passed ? "is-passed" : ""} ${highlighted ? "is-highlighted" : ""}`}
+      data-event-id={event.id}
+      onClick={(e) => !e.target.closest("button, a, input, label") && setOpen(true)}
+    >
       {/* Poster, or a grey placeholder when the event has none */}
       {layout === "row" && (
         <div className="event-thumb">
@@ -52,7 +91,7 @@ export default function EventCard({ event, userId, isOfficer, actions, layout = 
               {done && <span className="event-state is-done"><Icon name="check" size={12} /> Completed</span>}
               {passed && <span className="event-state is-passed"><Icon name="clock" size={12} /> Passed</span>}
             </span>
-            <h3>{event.title}</h3>
+            <h3><button type="button" className="card-title-btn" onClick={() => setOpen(true)}>{event.title}</button></h3>
           </div>
           {isOfficer && (
             <div className="card-tools">
@@ -96,38 +135,11 @@ export default function EventCard({ event, userId, isOfficer, actions, layout = 
             </div>
           </div>
 
-          {isOfficer ? (
-            <button type="button" className="btn btn-outline btn-sm" onClick={() => actions.openAttendance(event)}>
-              Attendance
-            </button>
-          ) : done ? (
-            mine?.status === "attended" ? (
-              <button type="button" className="btn btn-outline btn-sm" onClick={() => actions.downloadCertificate(event)}>
-                <Icon name="download" size={15} /> Certificate
-              </button>
-            ) : (
-              <span className="muted small">{mine ? "Marked absent" : "Ended"}</span>
-            )
-          ) : passed && !mine ? (
-            <span className="muted small">Started</span>
-          ) : mine ? (
-            <div className="rsvp-on">
-              <span className="going">
-                <Icon name="check" size={15} /> Going
-              </span>
-              {!passed && (
-                <button type="button" className="link-btn" onClick={toggleRsvp} disabled={busy} aria-label={`Cancel RSVP for ${event.title}`}>
-                  Cancel
-                </button>
-              )}
-            </div>
-          ) : (
-            <button type="button" className="btn btn-primary btn-sm" onClick={toggleRsvp} disabled={busy || isFull}>
-              {isFull ? "Full" : "RSVP"}
-            </button>
-          )}
+          {action}
         </div>
       </div>
     </article>
+    {open && <EventDetails event={event} footer={action} onClose={() => setOpen(false)} />}
+    </>
   );
 }

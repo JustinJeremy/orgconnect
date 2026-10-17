@@ -10,11 +10,11 @@ class Event extends Model
 {
     use BelongsToOrganization;
 
-    protected $fillable = ['title', 'category', 'date', 'time', 'location', 'mode', 'capacity', 'description', 'poster_path', 'status', 'created_by'];
+    protected $fillable = ['title', 'category', 'date', 'time', 'location', 'mode', 'capacity', 'description', 'topics', 'poster_path', 'status', 'created_by'];
 
     protected function casts(): array
     {
-        return ['date' => 'date', 'capacity' => 'integer'];
+        return ['date' => 'date', 'capacity' => 'integer', 'topics' => 'array'];
     }
 
     public function registrations(): HasMany
@@ -34,6 +34,7 @@ class Event extends Model
         return [
             'id' => $this->id,
             'title' => $this->title,
+            'topics' => $this->topics ?? [],
             'category' => $this->category,
             'date' => $this->date->format('Y-m-d'),
             'time' => substr($this->time, 0, 5),
@@ -48,6 +49,7 @@ class Event extends Model
                 'id' => $r->id,
                 'userId' => $r->user_id,
                 'name' => $r->user?->name,
+                ...($r->user?->avatarData() ?? []),   // for "Who's going" in the event's details
                 'status' => $r->status,
             ])->values(),
         ];
