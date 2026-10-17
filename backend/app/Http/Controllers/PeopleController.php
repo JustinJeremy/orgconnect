@@ -19,16 +19,24 @@ class PeopleController extends Controller
 {
     use ListsOrPages;
 
-    // GET /api/people?search=&page=  -> active members, officers first (same order as the roster)
+    // GET /api/people?search=&page=  -> active members: your friends first (newest first), then friend
+    // requests waiting for you, then ones you sent, then everyone else (officers first), and you last
     public function index(Request $request)
     {
         $me = $request->user();
+        $states = $this->friendStates($me->id);   // ordered newest first
+        // A position for each person you have a friendship row with (ids are integers from the database)
+        $order = collect(['friends', 'received', 'sent'])
+            ->flatMap(fn ($state) => array_keys(array_filter($states, fn ($s) => $s === $state)))
+            ->map(fn ($id, $i) => 'WHEN '.(int) $id.' THEN '.$i)
+            ->implode(' ');
         $query = User::withMembershipStatus(['Active'])
             ->with('membership')
+            ->orderByRaw('CASE WHEN users.id = ? THEN 2 '.($order ? 'WHEN users.id IN ('.implode(',', array_map('intval', array_keys($states))).') THEN 0 ' : '').'ELSE 1 END', [$me->id])
+            ->when($order, fn ($q) => $q->orderByRaw("CASE users.id {$order} ELSE 0 END"))
             ->orderBy(MembershipRecord::rankIn(Organization::current()->id))
             ->orderBy('name');
         $this->search($request, $query, ['name', 'course'], ['membership' => 'position']);
-        $states = $this->friendStates($me->id);
 
         return $this->listOrPage($request, $query, fn (User $u) => $this->card($u) + [
             'friendship' => $u->id === $me->id ? 'self' : ($states[$u->id] ?? 'none'),
@@ -116,7 +124,8 @@ class PeopleController extends Controller
         $row = fn (Friendship $f) => $this->friendCard($other($f)) + ['since' => ($f->accepted_at ?? $f->created_at)->format('Y-m-d')];
 
         return [
-            'friends' => $rows->where('status', 'Accepted')->sortBy(fn ($f) => $other($f)->name)->map($row)->values(),
+            // Newest friends first, so someone you just accepted is at the top
+            'friends' => $rows->where('status', 'Accepted')->sortByDesc(fn ($f) => $f->accepted_at?->timestamp ?? 0)->map($row)->values(),
             'received' => $rows->where('status', 'Pending')->where('friend_id', $me)->map($row)->values(),
             'sent' => $rows->where('status', 'Pending')->where('user_id', $me)->map($row)->values(),
         ];
@@ -196,10 +205,10 @@ class PeopleController extends Controller
         ];
     }
 
-    // user id => friends | sent | received, for everyone you have a row with
+    // user id => friends | sent | received, for everyone you have a row with (newest first)
     private function friendStates(int $me): array
     {
-        return Friendship::involving($me)->get()
+        return Friendship::involving($me)->orderByRaw('COALESCE(accepted_at, created_at) DESC')->orderByDesc('id')->get()
             ->mapWithKeys(fn (Friendship $f) => [($f->user_id === $me ? $f->friend_id : $f->user_id) => Friendship::stateFor($f, $me)])
             ->all();
     }

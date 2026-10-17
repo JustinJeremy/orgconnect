@@ -4,6 +4,9 @@ import Tabs from "../components/Tabs.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import AnnouncementForm from "../components/AnnouncementForm.jsx";
 import Pagination from "../components/Pagination.jsx";
+import Modal from "../components/Modal.jsx";
+import CommentThread from "../components/CommentThread.jsx";
+import { UserAvatar } from "../components/Avatars.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import usePagedList from "../hooks/usePagedList.js";
 import useFocusItem from "../hooks/useFocusItem.js";
@@ -13,13 +16,48 @@ import { formatDate, relativeDate } from "../utils/format.js";
 
 const PER_PAGE = 8;
 
+// One announcement in full, with its comments and replies (officers see and answer members' comments here)
+function AnnouncementDetails({ post, isOfficer, memberCount, onClose }) {
+  const [count, setCount] = useState(Number(post.commentCount) || 0);
+  return (
+    <Modal title={post.title} subtitle={`${post.category} · ${relativeDate(post.createdAt)}`} onClose={onClose} size="lg">
+      <div className="item-details">
+        <div className="announcement-author">
+          <UserAvatar user={{ name: post.authorName || "", ...post.authorAvatar }} className="sm" />
+          <span>
+            <strong>{post.authorName}</strong>
+            <span className="muted small">{post.authorPosition ? `${post.authorPosition} · ` : ""}{formatDate(post.createdAt.slice(0, 10))}</span>
+          </span>
+          {post.pinned && <span className="post-pinned"><Icon name="pushpin" size={13} /> Pinned</span>}
+        </div>
+        <p className="detail-text">{post.content}</p>
+        {isOfficer && (
+          <p className="muted small">Read by {post.readCount ?? 0}{memberCount ? ` of ${memberCount}` : ""} members</p>
+        )}
+        <div className="detail-section">
+          <h3>Comments{count > 0 && <span className="tab-count">{count}</span>}</h3>
+          <CommentThread postId={post.id} onCount={setCount} />
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function Post({ post, isOfficer, memberCount, actions, onEdit, highlighted = false }) {
   const unread = !isOfficer && !post.isRead;
+  const [open, setOpen] = useState(false); // the full post with its comments
+  // Opening it counts as reading it
+  const openPost = () => {
+    setOpen(true);
+    if (unread) actions.markRead(post);
+  };
 
   return (
+    <>
     <article
-      className={`post ${unread ? "is-unread" : ""} ${post.category === "Urgent" ? "is-urgent" : ""} ${highlighted ? "is-focused" : ""}`}
+      className={`post is-openable ${unread ? "is-unread" : ""} ${post.category === "Urgent" ? "is-urgent" : ""} ${highlighted ? "is-focused" : ""}`}
       data-focus={`post-${post.id}`}
+      onClick={(e) => !e.target.closest("button, a, input") && openPost()}
     >
       <div className="post-meta">
         {post.pinned && (
@@ -35,13 +73,16 @@ function Post({ post, isOfficer, memberCount, actions, onEdit, highlighted = fal
         {unread && <span className="unread-dot" aria-label="Unread" />}
       </div>
 
-      <h3>{post.title}</h3>
+      <h3><button type="button" className="card-title-btn" onClick={openPost}>{post.title}</button></h3>
       <p className="post-body">{post.content}</p>
 
       <footer className="post-foot">
         <span className="muted small">
           {post.authorName}
           {post.authorPosition && `, ${post.authorPosition}`}
+          <button type="button" className="link-btn post-comments-link" onClick={openPost}>
+            <Icon name="comment" size={14} /> {post.commentCount ? `${post.commentCount} ${post.commentCount === 1 ? "comment" : "comments"}` : "Comment"}
+          </button>
         </span>
 
         {isOfficer ? (
@@ -75,6 +116,8 @@ function Post({ post, isOfficer, memberCount, actions, onEdit, highlighted = fal
         )}
       </footer>
     </article>
+    {open && <AnnouncementDetails post={post} isOfficer={isOfficer} memberCount={memberCount} onClose={() => setOpen(false)} />}
+    </>
   );
 }
 

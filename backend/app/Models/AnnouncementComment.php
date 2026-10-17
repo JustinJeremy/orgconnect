@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 // A comment on an announcement in the feed. Belongs to its org through the announcement.
 class AnnouncementComment extends Model
 {
-    protected $fillable = ['announcement_id', 'user_id', 'text', 'edited_at'];
+    protected $fillable = ['announcement_id', 'user_id', 'parent_id', 'text', 'edited_at'];
 
     protected function casts(): array
     {
@@ -25,6 +25,7 @@ class AnnouncementComment extends Model
         return [
             'id' => $this->id,
             'userId' => $this->user_id,
+            'parentId' => $this->parent_id,   // a reply to that comment (null: a top-level comment)
             'userName' => $this->user?->name,
             'userAvatar' => $this->user?->avatarData(),
             'text' => $this->text,

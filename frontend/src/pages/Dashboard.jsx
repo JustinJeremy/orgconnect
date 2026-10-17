@@ -98,7 +98,8 @@ function TopVolunteers({ leaders, loading, currentUserId }) {
 
 /* ---------- Officer ---------- */
 
-function OfficerDashboard({ header, data, loading, onNavigate, onOpenEvent, onOpenSession, events: eventActions, hours: hourActions, members: memberActions, tutoring }) {
+function OfficerDashboard({ header, data, loading, onNavigate, onOpenEvent, onOpenSession, onOpenReview, events: eventActions, hours: hourActions, members: memberActions, tutoring }) {
+  const [reviewTab, setReviewTab] = useState("hours"); // the Needs Review tab that is open
   const { user } = useAuth();
   const { events, hours, members, sessions, requests, applications, leaderboard } = data;
 
@@ -140,9 +141,10 @@ function OfficerDashboard({ header, data, loading, onNavigate, onOpenEvent, onOp
           className="dash-card"
           id="approvals"
           tour="review"
-          action={<ViewAll onClick={() => onNavigate("hours")} label="View All" />}
+          action={<ViewAll onClick={() => (onOpenReview ? onOpenReview(reviewTab) : onNavigate("hours"))} label="View All" />}
         >
           <ApprovalCenter
+            onTabChange={setReviewTab}
             hours={hours}
             requests={requests}
             sessions={sessions}

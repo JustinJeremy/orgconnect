@@ -101,16 +101,28 @@ class AnnouncementController extends Controller
         return $announcement->comments()->with('user')->get()->map->toFrontend();
     }
 
-    // POST /api/announcements/{announcement}/comments  { text }  -> the new comment; the author is notified
+    // POST /api/announcements/{announcement}/comments  { text, parentId? }  -> the new comment
+    // parentId: a reply to that comment (replies to a reply go under the same top-level comment).
+    // The post's author is notified of comments, and a comment's author of replies to it.
     public function addComment(Request $request, Announcement $announcement)
     {
-        $data = $request->validate(['text' => 'required|string|max:1000']);
+        $data = $request->validate(['text' => 'required|string|max:1000', 'parentId' => 'nullable|integer']);
         $user = $request->user();
+        $parent = null;
+        if (! empty($data['parentId'])) {
+            $parent = $announcement->comments()->find($data['parentId']);
+            abort_unless($parent, 422, 'That comment was deleted.');
+            $parent = $parent->parent_id ? $announcement->comments()->find($parent->parent_id) : $parent;
+        }
 
-        $comment = $announcement->comments()->create(['user_id' => $user->id, 'text' => trim($data['text'])]);
+        $comment = $announcement->comments()->create(['user_id' => $user->id, 'parent_id' => $parent?->id, 'text' => trim($data['text'])]);
 
-        if ($announcement->user_id !== $user->id) {
-            UserNotification::send($announcement->user_id, "{$user->name} commented on {$announcement->title}", "announcements/{$announcement->id}");
+        $link = "announcements/{$announcement->id}";
+        if ($parent && $parent->user_id !== $user->id) {
+            UserNotification::send($parent->user_id, "{$user->name} replied to your comment on {$announcement->title}", $link);
+        }
+        if ($announcement->user_id !== $user->id && $announcement->user_id !== $parent?->user_id) {
+            UserNotification::send($announcement->user_id, "{$user->name} commented on {$announcement->title}", $link);
         }
 
         return response()->json($comment->load('user')->toFrontend(), 201);

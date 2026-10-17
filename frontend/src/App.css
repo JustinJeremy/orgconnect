@@ -3764,3 +3764,19 @@ a.org-option { text-decoration: none; }
 .detail-tutor strong { font-size: 1.0625rem; color: var(--ink); }
 .detail-footer { display: flex; justify-content: flex-end; align-items: center; gap: 0.75rem; width: 100%; }
 @media (max-width: 40rem) { .detail-facts { grid-template-columns: 1fr; } }
+
+/* ---------- Announcement pop-up and comment replies (Batch 18) ---------- */
+.announcement-author { display: flex; align-items: center; gap: 0.75rem; }
+.announcement-author > span:nth-child(2) { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.announcement-author strong { color: var(--ink); }
+.detail-section h3 .tab-count { margin-left: 0.375rem; }
+.post-comments-link { display: inline-flex; align-items: center; gap: 0.25rem; margin-left: 0.875rem; font-size: 0.8125rem; }
+.comment-group { display: flex; flex-direction: column; gap: 0.375rem; }
+.comment-replies { margin-left: 2rem !important; padding-left: 0.75rem !important; border-left: 2px solid var(--line-2); }
+.feed-comment.is-reply { font-size: 0.8125rem; }
+.comment-reply-btn { margin-left: 0.5rem; font-size: 0.75rem; }
+.item-details .feed-comments { margin-top: 0; padding-top: 0; border-top: 0; }
+/* Log hours: hours and minutes side by side */
+.duration-inputs { display: flex; align-items: center; gap: 0.5rem; }
+.duration-inputs .input { flex: 1; min-width: 0; }
+.duration-unit { color: var(--meta-ink); font-size: 0.875rem; }

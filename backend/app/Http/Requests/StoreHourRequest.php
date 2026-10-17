@@ -13,7 +13,8 @@ class StoreHourRequest extends FormRequest
         return [
             'activity' => 'required|string|max:255',
             'date' => 'required|date|before_or_equal:today',
-            'hours' => 'required|numeric|min:0.5|max:24',
+            // Hours and minutes, e.g. 1 hr 15 min = 1.25 (at least 5 minutes)
+            'hours' => 'required|numeric|decimal:0,2|min:0.08|max:24',
         ];
     }
 
