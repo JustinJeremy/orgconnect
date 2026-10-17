@@ -2715,14 +2715,16 @@ select.input {
 
 .dash-featured {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  /* Wide enough that the 16:9 poster shows whole (no cropped sides) */
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
   overflow: hidden;
   background: var(--surface);
   border-radius: 0.5rem;
   box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
 }
-.dash-featured-media { display: block; min-height: 13rem; padding: 0; border: 0; cursor: pointer; }
-.dash-featured-media .dash-event-image { width: 100%; height: 100%; transition: transform 0.3s ease; }
+.dash-featured-media { display: flex; align-items: center; padding: 0; border: 0; background: #213f6e; cursor: pointer; }
+/* The whole 16:9 poster, centered; the navy around it matches the posters */
+.dash-featured-media .dash-event-image { width: 100%; aspect-ratio: 16 / 9; transition: transform 0.3s ease; }
 .dash-featured-media:hover .dash-event-image { transform: scale(1.03); }
 .dash-featured-body { display: flex; flex-direction: column; gap: 0.5rem; padding: 1.25rem 1.5rem; min-width: 0; }
 .dash-eyebrow { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-dark); }
