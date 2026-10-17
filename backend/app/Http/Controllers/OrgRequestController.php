@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Organization;
+use App\Models\User;
+use App\Models\UserNotification;
 use App\Support\OrgThemes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -23,12 +25,11 @@ class OrgRequestController extends Controller
             ->map->toRequest();
     }
 
-    // POST /api/org-requests
-    public function store(Request $request)
+    // The registration form. $org: the request being edited (its own name and color don't count as taken)
+    private function validated(Request $request, ?Organization $org = null): array
     {
-        $user = $request->user();
-        $data = $request->validate([
-            'name' => 'required|string|max:120|unique:organizations,name',
+        return $request->validate([
+            'name' => ['required', 'string', 'max:120', Rule::unique('organizations', 'name')->ignore($org?->id)],
             'shortName' => 'required|string|max:20',
             'college' => 'required|string|max:120',
             'tagline' => 'required|string|max:160',
@@ -39,21 +40,17 @@ class OrgRequestController extends Controller
             'courses.*' => 'required|string|max:20|distinct:ignore_case',
             'proofUrl' => 'nullable|url|max:500',
             // One of the org colors no other org has (app/Support/OrgThemes.php); none: the default navy
-            'themeKey' => ['nullable', Rule::in(array_keys(OrgThemes::PRESETS)), Rule::notIn(OrgThemes::taken())],
+            'themeKey' => ['nullable', Rule::in(array_keys(OrgThemes::PRESETS)), Rule::notIn(OrgThemes::taken($org?->id))],
         ], [
             'themeKey.not_in' => 'Another organization already uses this color. Pick a different one.',
             'name.unique' => 'An organization with this name is already on OrgConnect.',
             'courses.required' => 'Pick at least one course that can join.',
         ]);
+    }
 
-        if (Organization::where('requested_by', $user->id)->where('status', 'Pending')->exists()) {
-            throw ValidationException::withMessages(['name' => 'You already have a request waiting for review.']);
-        }
-
-        $org = Organization::create([
-            'slug' => $this->uniqueSlug($data['shortName']),
-            'status' => 'Pending',
-            'requested_by' => $user->id,
+    private function fields(array $data): array
+    {
+        return [
             'name' => trim($data['name']),
             'short_name' => trim($data['shortName']),
             'college' => trim($data['college']),
@@ -64,7 +61,40 @@ class OrgRequestController extends Controller
             'courses' => array_values(array_map(fn ($c) => strtoupper(trim($c)), $data['courses'])),
             'proof_url' => $data['proofUrl'] ?? null,
             'theme' => ! empty($data['themeKey']) ? OrgThemes::theme($data['themeKey']) : [],   // the default navy when none is picked
-        ]);
+        ];
+    }
+
+    // PUT /api/org-requests/{organization} -> your pending request, edited (e.g. after the admin asked for changes)
+    public function update(Request $request, Organization $organization)
+    {
+        $user = $request->user();
+        abort_unless($organization->requested_by === $user->id, 404);
+        abort_unless($organization->status === 'Pending', 422, 'Only a request waiting for review can be edited.');
+        $data = $this->validated($request, $organization);
+
+        $organization->update($this->fields($data) + ['changes_requested_at' => null]);
+        foreach (User::where('is_admin', true)->pluck('id') as $adminId) {
+            UserNotification::platform($adminId, "{$user->name} updated the {$organization->short_name} request", 'requests');
+        }
+
+        return $organization->fresh()->toRequest();
+    }
+
+    // POST /api/org-requests
+    public function store(Request $request)
+    {
+        $user = $request->user();
+        $data = $this->validated($request);
+
+        if (Organization::where('requested_by', $user->id)->where('status', 'Pending')->exists()) {
+            throw ValidationException::withMessages(['name' => 'You already have a request waiting for review.']);
+        }
+
+        $org = Organization::create([
+            'slug' => $this->uniqueSlug($data['shortName']),
+            'status' => 'Pending',
+            'requested_by' => $user->id,
+        ] + $this->fields($data));
 
         return response()->json($org->fresh()->toRequest(), 201);
     }

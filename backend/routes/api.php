@@ -9,6 +9,7 @@ use App\Http\Controllers\MemberController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\OrgChangeController;
+use App\Http\Controllers\MessageController;
 use App\Http\Controllers\OrgRequestController;
 use App\Http\Controllers\PeopleController;
 use App\Http\Controllers\PlatformAnnouncementController;
@@ -43,6 +44,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/organizations/{organization:slug}/membership', [OrganizationController::class, 'leave']);   // leave, with a reason
     // Ask to register a new org (reviewed by a platform admin)
     Route::get('/org-requests', [OrgRequestController::class, 'index']);
+    Route::put('/org-requests/{organization}', [OrgRequestController::class, 'update']);   // edit your pending request
+
+    // Messages: friends, an org's officers and the admin, a requester and the admin
+    Route::get('/conversations', [MessageController::class, 'index']);
+    Route::get('/messages/unread', [MessageController::class, 'unread']);
+    Route::get('/conversations/{conversation}/messages', [MessageController::class, 'show']);
+    Route::post('/conversations/{conversation}/messages', [MessageController::class, 'send'])->middleware('throttle:60,1');
+    Route::post('/conversations/direct/{person}', [MessageController::class, 'direct']);
+    Route::post('/conversations/org/{organization}', [MessageController::class, 'org']);
+    Route::post('/conversations/request/{organization}', [MessageController::class, 'request']);
     // Org colors to pick from, and which ones other orgs already have
     Route::get('/org-themes', fn () => \App\Support\OrgThemes::options(\App\Models\Organization::current()?->id));
     Route::post('/org-requests', [OrgRequestController::class, 'store'])->middleware('throttle:register');
@@ -52,6 +63,7 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
     Route::get('/overview', [AdminController::class, 'overview']);
     Route::patch('/org-requests/{organization}', [AdminController::class, 'decide']);
+    Route::post('/org-requests/{organization}/ask-changes', [MessageController::class, 'askChanges']);
     Route::patch('/organizations/{organization}', [AdminController::class, 'setStatus']);
     Route::get('/organizations/{organization}', [AdminController::class, 'organization']);
     // Announcements to presidents, officers, members or every account, and each org's replies

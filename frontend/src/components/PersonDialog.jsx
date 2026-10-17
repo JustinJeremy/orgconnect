@@ -11,7 +11,7 @@ import { formatDate, plural } from "../utils/format.js";
 
 // Someone's profile in this org: who they are, what they've done here, what they tutor,
 // and a friend button. Email shows only to their friends and officers.
-export default function PersonDialog({ id, flash, onChanged, onClose }) {
+export default function PersonDialog({ id, flash, onChanged, onMessage, onClose }) {
   const { current: org } = useOrg();
   const [person, setPerson] = useState(null);
   const [error, setError] = useState("");
@@ -68,6 +68,11 @@ export default function PersonDialog({ id, flash, onChanged, onClose }) {
 
           <div className="person-actions">
             <FriendButton person={person} state={person.friendship} onChange={setFriendship} flash={flash} size="" />
+            {person.friendship === "friends" && onMessage && (
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => onMessage(person.id)}>
+                <Icon name="mail" size={15} /> Message
+              </button>
+            )}
             {person.friendship === "friends" && (
               <button type="button" className="link-btn danger-link" onClick={unfriend}>Unfriend</button>
             )}

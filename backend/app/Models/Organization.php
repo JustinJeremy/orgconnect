@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Organization extends Model
 {
     protected $fillable = [
-        'slug', 'status', 'requested_by', 'proof_url', 'review_note', 'suspension_reason', 'reviewed_at', 'name', 'short_name', 'college', 'tagline', 'description', 'mission', 'vision', 'founded_year',
+        'slug', 'status', 'requested_by', 'proof_url', 'review_note', 'suspension_reason', 'reviewed_at', 'changes_requested_at', 'name', 'short_name', 'college', 'tagline', 'description', 'mission', 'vision', 'founded_year',
         'adviser', 'email', 'facebook_url', 'office', 'meeting_schedule', 'membership_fee', 'courses', 'tutoring_areas', 'theme', 'logo_path',
     ];
 
@@ -53,6 +53,8 @@ class Organization extends Model
             'submittedAt' => $this->created_at?->format('Y-m-d'),
             'reviewedAt' => $this->reviewed_at?->format('Y-m-d'),
             'reviewNote' => $this->review_note,
+            // The admin asked for changes and the requester hasn't edited the request yet
+            'changesRequested' => $this->changes_requested_at !== null,
             'color' => \App\Support\OrgThemes::describe($this->theme),   // the color they picked
         ];
     }

@@ -76,6 +76,18 @@ export const orgsApi = {
 export const orgRequestsApi = {
   mine: () => get("/org-requests"), // the signed-in user's requests, newest first
   create: (data) => post("/org-requests", data),
+  update: (id, data) => put(`/org-requests/${id}`, data), // edit your pending request (e.g. after the admin asked for changes)
+};
+
+// Messages: friends, an org's officers and the OrgConnect admin, a requester and the admin
+export const messagesApi = {
+  list: () => get("/conversations"), // -> yours, latest first: { id, kind, title, subtitle, who, lastMessage, unread, cantWrite }
+  unread: () => get("/messages/unread"), // -> { count }
+  show: (id) => get(`/conversations/${id}/messages`), // -> { conversation, messages } (marks it read)
+  send: (id, body) => post(`/conversations/${id}/messages`, { body }),
+  direct: (userId) => post(`/conversations/direct/${userId}`), // a friend
+  org: (orgId) => post(`/conversations/org/${orgId}`), // an org's officers and the admin
+  request: (orgId) => post(`/conversations/request/${orgId}`), // an org request and the admin
 };
 
 // Platform admin
@@ -89,6 +101,7 @@ export const adminApi = {
   deleteAnnouncement: (id) => del(`/admin/announcements/${id}`),
   announcementReplies: (id, orgId) => get(`/admin/announcements/${id}/replies?org=${orgId}`),
   replyToOrg: (id, organizationId, text) => post(`/admin/announcements/${id}/replies`, { organizationId, text }),
+  askChanges: (id, message) => post(`/admin/org-requests/${id}/ask-changes`, { message }), // the request stays pending
   decideChange: (id, decision, note) => patch(`/admin/change-requests/${id}`, { decision, note }), // org detail changes
   users: getPage("/admin/users"), // { search, page, perPage } -> every account, with their orgs
   resetPassword: (id) => post(`/admin/users/${id}/reset-password`), // -> { temporaryPassword } (only the admin)
