@@ -3982,3 +3982,9 @@ a.org-option { text-decoration: none; }
   border-radius: 2px;
   background: var(--highlight);
 }
+/* Collapsed sidebar: your avatar sits in the middle of its square (equal room on every side) */
+@media (min-width: 961px) {
+  .layout.is-collapsed .sidebar-user { justify-content: center; padding-left: 0; }
+  .layout.is-collapsed .sidebar-user-btn { flex: none; margin: -0.375rem auto; padding: 0.375rem; }
+  .layout.is-collapsed .sidebar-user-btn.active::before { left: -0.75rem; }   /* same place as the menu's marks */
+}
