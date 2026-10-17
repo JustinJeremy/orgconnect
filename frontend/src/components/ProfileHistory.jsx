@@ -84,7 +84,7 @@ export default function ProfileHistory({ tab, onTab, onClose, orgName, flash }) 
                       <td className="strong">{h.activity}</td>
                       <td>{shortDate(h.date)}</td>
                       <td className="num">{h.hours}</td>
-                      <td><StatusBadge status={h.status} /></td>
+                      <td><StatusBadge status={h.status} />{h.status === "Rejected" && h.rejectionReason && <span className="reject-reason">{h.rejectionReason}</span>}</td>
                       <td className="muted">{h.reviewedBy || "Waiting for review"}</td>
                     </tr>
                   ))}

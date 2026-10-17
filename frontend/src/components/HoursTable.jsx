@@ -29,6 +29,7 @@ export default function HoursTable({ rows, isOfficer, userId, onDecide, onDelete
                 <td className="right num">{log.hours}</td>
                 <td>
                   <StatusBadge status={log.status} />
+                  {log.status === "Rejected" && log.rejectionReason && <span className="reject-reason">{log.rejectionReason}</span>}
                 </td>
                 <td className="right">
                   {canDecide && (

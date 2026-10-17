@@ -9,6 +9,7 @@ use App\Models\Event;
 use App\Models\Friendship;
 use App\Models\MembershipRecord;
 use App\Models\Organization;
+use App\Models\PlatformAnnouncement;
 use App\Models\TutoringRequest;
 use App\Models\TutoringSession;
 use App\Models\User;
@@ -103,7 +104,49 @@ class DemoSeeder extends Seeder
 
         $this->friends();
         $this->topics();
+        $this->rejectionReasons();
+        $this->platformAnnouncement($day);
         $this->attachPosters();
+    }
+
+    // Why the sample rejected hour logs were rejected
+    private function rejectionReasons(): void
+    {
+        VolunteerHour::withoutGlobalScopes()->where('status', 'Rejected')->whereNull('rejection_reason')
+            ->whereIn('activity', ['Membership drive booth', 'Recruitment booth'])
+            ->update(['rejection_reason' => "There's no sign-in sheet for this booth shift. Ask the booth head to confirm it, then log it again."]);
+    }
+
+    // One announcement from the OrgConnect admin to every org's officers, and CompSoc's thread with the admin
+    private function platformAnnouncement(Carbon $day): void
+    {
+        $admin = User::where('is_admin', true)->orderBy('id')->first();
+        $compsoc = Organization::where('slug', 'computer-society')->first();
+        $president = User::where('email', 'officer@orgconnect.test')->first();
+        if (! $admin || ! $compsoc || ! $president) {
+            return;
+        }
+        $at = $day->copy()->subDays(4)->setTime(9, 0);
+        $announcement = PlatformAnnouncement::firstOrCreate(['title' => 'Org renewal for A.Y. 2026–2027'], [
+            'user_id' => $admin->id,
+            'content' => "All organizations need to renew by October 30. Upload your adviser's endorsement and your updated officer list on OrgConnect, then reply here once it's done. Message me here if you have questions.",
+            'audience' => 'officers',
+            'organization_ids' => null,
+        ]);
+        $announcement->timestamps = false;
+        $announcement->forceFill(['created_at' => $at, 'updated_at' => $at])->save();
+
+        if (! $announcement->replies()->exists()) {
+            foreach ([
+                [$president->id, 'Hi! Our adviser is signing the endorsement this week. Can we upload it by Friday?', 4, 15],
+                [$admin->id, 'Friday is fine. Thanks for the update!', 3, 9],
+            ] as [$userId, $text, $daysAgo, $hour]) {
+                $reply = $announcement->replies()->create(['organization_id' => $compsoc->id, 'user_id' => $userId, 'text' => $text]);
+                $when = $day->copy()->subDays($daysAgo)->setTime($hour, 0);
+                $reply->timestamps = false;
+                $reply->forceFill(['created_at' => $when, 'updated_at' => $when])->save();
+            }
+        }
     }
 
     // What each sample event and tutoring session covers (shown as tags in its details)

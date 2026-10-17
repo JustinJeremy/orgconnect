@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\OrgThemes;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -48,7 +49,12 @@ class OrgChangeRequest extends Model
             'reviewedAt' => $this->reviewed_at?->format('Y-m-d'),
             'requestedBy' => $this->requester?->name,
             'organization' => ['id' => $org?->id, 'name' => $org?->name, 'shortName' => $org?->short_name],
-            'changes' => collect($this->proposed)->map(fn ($new, $column) => [
+            'changes' => collect($this->proposed)->map(fn ($new, $column) => $column === 'theme' ? [
+                // A color: its name and swatch, not the whole palette
+                'field' => 'color',
+                'from' => $this->status === 'Pending' ? OrgThemes::describe($org?->theme) : null,
+                'to' => OrgThemes::describe($new),
+            ] : [
                 'field' => $columns[$column] ?? $column,
                 'from' => $this->status === 'Pending' ? $org?->{$column} : null,
                 'to' => $new,

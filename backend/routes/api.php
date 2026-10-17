@@ -11,6 +11,7 @@ use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\OrgChangeController;
 use App\Http\Controllers\OrgRequestController;
 use App\Http\Controllers\PeopleController;
+use App\Http\Controllers\PlatformAnnouncementController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TutoringController;
 use Illuminate\Support\Facades\Route;
@@ -42,6 +43,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/organizations/{organization:slug}/membership', [OrganizationController::class, 'leave']);   // leave, with a reason
     // Ask to register a new org (reviewed by a platform admin)
     Route::get('/org-requests', [OrgRequestController::class, 'index']);
+    // Org colors to pick from, and which ones other orgs already have
+    Route::get('/org-themes', fn () => \App\Support\OrgThemes::options(\App\Models\Organization::current()?->id));
     Route::post('/org-requests', [OrgRequestController::class, 'store'])->middleware('throttle:register');
 });
 
@@ -50,6 +53,13 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::get('/overview', [AdminController::class, 'overview']);
     Route::patch('/org-requests/{organization}', [AdminController::class, 'decide']);
     Route::patch('/organizations/{organization}', [AdminController::class, 'setStatus']);
+    Route::get('/organizations/{organization}', [AdminController::class, 'organization']);
+    // Announcements to presidents, officers, members or every account, and each org's replies
+    Route::get('/announcements', [PlatformAnnouncementController::class, 'adminIndex']);
+    Route::post('/announcements', [PlatformAnnouncementController::class, 'store']);
+    Route::delete('/announcements/{announcement}', [PlatformAnnouncementController::class, 'destroy']);
+    Route::get('/announcements/{announcement}/replies', [PlatformAnnouncementController::class, 'adminReplies']);
+    Route::post('/announcements/{announcement}/replies', [PlatformAnnouncementController::class, 'adminReply']);
     Route::patch('/change-requests/{change}', [OrgChangeController::class, 'decide']);
     // Accounts: look anyone up, reset a forgotten password (only the admin can)
     Route::get('/users', [AdminController::class, 'users']);
@@ -90,6 +100,11 @@ Route::middleware(['auth:sanctum', 'org.member'])->group(function () {
     Route::patch('/hours/{hour}', [HourController::class, 'decide']);
     Route::delete('/hours/{hour}', [HourController::class, 'destroy']);
     Route::get('/leaderboard', [HourController::class, 'leaderboard']);
+
+    // Announcements from the OrgConnect admin, and this org's replies to them
+    Route::get('/platform-announcements', [PlatformAnnouncementController::class, 'index']);
+    Route::get('/platform-announcements/{announcement}/replies', [PlatformAnnouncementController::class, 'replies']);
+    Route::post('/platform-announcements/{announcement}/replies', [PlatformAnnouncementController::class, 'reply']);
 
     // People: the directory, profiles, the most helpful tutors, and friends
     Route::get('/people', [PeopleController::class, 'index']);

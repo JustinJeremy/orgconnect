@@ -6,6 +6,7 @@ use App\Models\OrgChangeRequest;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Support\OrgThemes;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -43,8 +44,11 @@ class OrgChangeController extends Controller
             'membershipFee' => 'sometimes|nullable|string|max:80',
             'courses' => 'sometimes|required|array|min:1|max:20',
             'courses.*' => 'required|string|max:20|distinct:ignore_case',
+            // A new color (one no other org has)
+            'themeKey' => ['sometimes', 'required', Rule::in(array_keys(OrgThemes::PRESETS)), Rule::notIn(OrgThemes::taken($org->id))],
             'reason' => 'required|string|max:1000',
         ], [
+            'themeKey.not_in' => 'Another organization already uses this color. Pick a different one.',
             'reason.required' => 'Say why the details are changing.',
             'name.unique' => 'Another organization already uses this name.',
         ]);
@@ -65,6 +69,9 @@ class OrgChangeController extends Controller
             if ($value !== $org->{$column}) {
                 $changes[$column] = $value;
             }
+        }
+        if (! empty($data['themeKey']) && $data['themeKey'] !== ($org->theme['key'] ?? null)) {
+            $changes['theme'] = OrgThemes::theme($data['themeKey']);
         }
         if (! $changes) {
             throw ValidationException::withMessages(['reason' => 'Nothing was changed.']);
@@ -93,6 +100,10 @@ class OrgChangeController extends Controller
             // The name may have been taken since the request was sent
             if (isset($change->proposed['name']) && Organization::where('name', $change->proposed['name'])->where('id', '!=', $org->id)->exists()) {
                 throw ValidationException::withMessages(['decision' => 'Another organization now uses that name.']);
+            }
+            // ...or the color
+            if (isset($change->proposed['theme']['key']) && in_array($change->proposed['theme']['key'], OrgThemes::taken($org->id), true)) {
+                throw ValidationException::withMessages(['decision' => 'Another organization now uses that color.']);
             }
             $org->update($change->proposed);
         }

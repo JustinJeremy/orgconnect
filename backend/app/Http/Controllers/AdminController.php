@@ -2,21 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\OrgRequestDecided;
 use App\Models\Event;
 use App\Models\MembershipRecord;
 use App\Models\OrgChangeRequest;
 use App\Models\Organization;
+use App\Models\PlatformAnnouncementReply;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Models\VolunteerHour;
+use App\Support\OrgThemes;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 
 // Platform admin (users.is_admin): reviews org registrations and can suspend orgs.
 // Admins don't belong to any org; every route here is behind the EnsureAdmin middleware.
 class AdminController extends Controller
 {
+    // Officers listed President, VPs, Secretary, Treasurer, then other officers (as on the roster)
+    private const POSITION_RANK = ['President' => 0, 'Secretary' => 2, 'Treasurer' => 3];
+
     // GET /api/admin/overview -> totals, every registration request and every org
     public function overview()
     {
@@ -33,6 +40,11 @@ class AdminController extends Controller
                 'members' => MembershipRecord::whereIn('organization_id', $activeIds)->where('status', 'Active')->distinct()->count('user_id'),
                 'approvedHours' => (float) VolunteerHour::withoutGlobalScopes()->whereIn('organization_id', $activeIds)->where('status', 'Approved')->sum('hours'),
             ],
+            // Org threads under your announcements whose latest message is theirs (waiting for your answer)
+            'repliesWaiting' => PlatformAnnouncementReply::with('user')->orderBy('id')->get()
+                ->groupBy(fn ($r) => $r->platform_announcement_id.'-'.$r->organization_id)
+                ->filter(fn ($thread) => ! $thread->last()->user?->is_admin)
+                ->count(),
             // Presidents' requests to change their org's details, waiting for review
             'changeRequests' => OrgChangeRequest::with(['organization', 'requester'])->where('status', 'Pending')->latest()->get()->map->toFrontend(),
             'requests' => $orgs->whereIn('status', ['Pending', 'Rejected'])
@@ -54,6 +66,8 @@ class AdminController extends Controller
     // PATCH /api/admin/org-requests/{organization}  { decision: Approved | Rejected, note?, courses? }
     // Approving puts the org live and makes the requester its President.
     // The admin may fix the course list before approving.
+    // note: the reason when rejecting (required), or an optional message when approving.
+    // The requester is notified and emailed (with the org's details when approved).
     public function decide(Request $request, Organization $organization)
     {
         abort_unless($organization->status === 'Pending', 422, 'This request was already reviewed.');
@@ -70,13 +84,15 @@ class AdminController extends Controller
             if ($organization->requested_by) {
                 UserNotification::platform($organization->requested_by, "Your request to register {$organization->short_name} was not approved: {$organization->review_note}", 'register-org');
             }
+            $this->email($organization, false, $organization->review_note);
 
             return $organization->fresh()->toRequest();
         }
 
+        $message = trim((string) ($data['note'] ?? '')) ?: null;
         $organization->update([
             'status' => 'Active',
-            'review_note' => null,
+            'review_note' => $message,
             'reviewed_at' => now(),
         ] + (isset($data['courses']) ? ['courses' => array_values(array_map(fn ($c) => strtoupper(trim($c)), $data['courses']))] : []));
 
@@ -88,12 +104,57 @@ class AdminController extends Controller
             UserNotification::create([
                 'organization_id' => $organization->id,
                 'user_id' => $organization->requested_by,
-                'message' => "{$organization->short_name} is live on OrgConnect. You're its President: add your officers next",
+                'message' => "{$organization->short_name} is live on OrgConnect. You're its President: add your officers next".($message ? ". Message from the admin: {$message}" : ''),
                 'link' => 'hours',
             ]);
         }
+        $this->email($organization->fresh(), true, $message);
 
         return $organization->fresh()->toRequest();
+    }
+
+    // The requester's copy of the decision. A mail problem never undoes the decision.
+    private function email(Organization $organization, bool $approved, ?string $note): void
+    {
+        $to = $organization->requester?->email;
+        if (! $to) {
+            return;
+        }
+        try {
+            Mail::to($to)->send(new OrgRequestDecided($organization, $approved, $note));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
+    // GET /api/admin/organizations/{organization}  -> everything about one org, for the "View" pop-up
+    public function organization(Organization $organization)
+    {
+        $members = MembershipRecord::with('user')->where('organization_id', $organization->id);
+        $officers = (clone $members)->where('role', 'officer')->where('status', 'Active')->get()
+            ->sortBy(fn (MembershipRecord $m) => [self::POSITION_RANK[$m->position] ?? (str_starts_with((string) $m->position, 'VP') ? 1 : 4), $m->user?->name])
+            ->values();
+        $events = Event::withoutGlobalScopes()->where('organization_id', $organization->id);
+
+        return $organization->toFrontend() + [
+            'status' => $organization->status,
+            'suspensionReason' => $organization->suspension_reason,
+            'color' => OrgThemes::describe($organization->theme),
+            'requestedBy' => $organization->requester?->name,
+            'approvedAt' => $organization->reviewed_at?->format('Y-m-d'),
+            'officers' => $officers->map(fn (MembershipRecord $m) => [
+                'id' => $m->user_id, 'name' => $m->user?->name, 'email' => $m->user?->email, 'position' => $m->position,
+                ...($m->user?->avatarData() ?? []),
+            ])->values(),
+            'counts' => [
+                'members' => (clone $members)->where('status', 'Active')->count(),
+                'inactive' => (clone $members)->where('status', 'Inactive')->count(),
+                'applicants' => (clone $members)->where('status', 'Pending')->count(),
+                'events' => (clone $events)->count(),
+                'upcoming' => (clone $events)->where('status', '!=', 'completed')->whereDate('date', '>=', now()->toDateString())->count(),
+                'approvedHours' => (float) VolunteerHour::withoutGlobalScopes()->where('organization_id', $organization->id)->where('status', 'Approved')->sum('hours'),
+            ],
+        ];
     }
 
     // GET /api/admin/users?search=&org=&page= -> every account (not admins), with the orgs they're in
@@ -179,16 +240,25 @@ class AdminController extends Controller
     public function setStatus(Request $request, Organization $organization)
     {
         abort_unless(in_array($organization->status, ['Active', 'Suspended'], true), 422, 'Only live organizations can be suspended.');
+        $data = $request->validate([
+            'status' => 'required|in:Active,Suspended',
+            // Suspending needs a reason (its officers see it); reactivating may add a note
+            'reason' => 'required_if:status,Suspended|nullable|string|max:500',
+        ], ['reason.required_if' => 'Give the officers a reason.']);
         $before = $organization->status;
-        $organization->update($request->validate(['status' => 'required|in:Active,Suspended']));
+        $note = trim((string) ($data['reason'] ?? '')) ?: null;
+        $organization->update([
+            'status' => $data['status'],
+            'suspension_reason' => $data['status'] === 'Suspended' ? $note : null,
+        ]);
 
         // Tell its officers (not tied to the org: a suspended org can't be opened)
         if ($before !== $organization->status) {
             $officers = MembershipRecord::where('organization_id', $organization->id)->where('role', 'officer')->where('status', 'Active')->pluck('user_id');
             foreach ($officers as $officerId) {
                 UserNotification::platform($officerId, $organization->status === 'Suspended'
-                    ? "{$organization->name} was suspended by an OrgConnect admin"
-                    : "{$organization->name} is active again", 'dashboard');
+                    ? "{$organization->name} was suspended by an OrgConnect admin. Reason: {$note}"
+                    : "{$organization->name} is active again".($note ? ". Note from the admin: {$note}" : ''), 'dashboard');
             }
         }
 

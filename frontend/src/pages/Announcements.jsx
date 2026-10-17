@@ -6,6 +6,7 @@ import AnnouncementForm from "../components/AnnouncementForm.jsx";
 import Pagination from "../components/Pagination.jsx";
 import Modal from "../components/Modal.jsx";
 import CommentThread from "../components/CommentThread.jsx";
+import PlatformAnnouncements from "../components/PlatformAnnouncements.jsx";
 import { UserAvatar } from "../components/Avatars.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import usePagedList from "../hooks/usePagedList.js";
@@ -140,7 +141,7 @@ export default function Announcements({ data, loading, actions, focus, onFocusDo
 
   // From a notification: show every post, search for its title, then scroll to it and highlight it
   useEffect(() => {
-    if (!focus) return;
+    if (!focus || focus.kind === "platform") return;
     setView("all");
     setCategory("All");
     setSearch(focus.search || "");
@@ -155,6 +156,8 @@ export default function Announcements({ data, loading, actions, focus, onFocusDo
 
   return (
     <div className="page">
+      {/* Announcements from the OrgConnect admin (a notification can open one) */}
+      <PlatformAnnouncements openId={focus?.kind === "platform" ? focus.id : null} onOpened={onFocusDone} />
       {!isOfficer && (
         <Tabs
           label="Filter"

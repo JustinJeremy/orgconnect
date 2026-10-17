@@ -90,6 +90,7 @@ class ProfileController extends Controller
                 'date' => $h->date->format('Y-m-d'),
                 'hours' => $h->hours,
                 'status' => $h->status,
+                'rejectionReason' => $h->rejection_reason,
                 'reviewedBy' => $h->reviewer?->name,
             ]);
 

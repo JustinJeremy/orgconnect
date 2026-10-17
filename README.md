@@ -24,10 +24,16 @@ by connecting students, officers and orgs).
 - Post announcements and upload the org's logo
 
 *Platform admin*
-- Review requests to register new orgs, then approve or reject them (with a reason)
-- Suspend or reactivate an org
+- Review requests to register new orgs: approve (with an optional message) or reject (with a reason).
+  The requester gets a notification and an email (with the org's details when approved)
+- View any org's details, officers and numbers; suspend it (with a reason its officers see) or reactivate it
+- Send announcements to presidents, all officers, all members or every account, in every org or chosen
+  ones. Each org's President, VPs and Secretary can reply in a private thread with the admin
+- Look up accounts, correct details and reset forgotten passwords
 
-Each org has its own colors (Data Science Society ocean blue, Computer Society navy). A guided tour
+Each org has its own colors (Data Science Society ocean blue, Computer Society navy). A new org picks one
+of five other shades of blue when it registers (or later, through a details change the admin approves);
+no two orgs share a color. A guided tour
 (the *?* button next to the bell) walks through every feature.
 
 ## How things connect

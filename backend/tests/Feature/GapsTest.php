@@ -141,8 +141,8 @@ class GapsTest extends TestCase
         $this->actingIn($student, $compsoc)->getJson('/api/notifications')->assertJsonFragment(['message' => "Your request to register RC was not approved: Add your adviser's email."]);
 
         // DSS suspended: its officer sees it while in CompSoc
-        $this->actingIn($admin, $compsoc)->patchJson("/api/admin/organizations/{$dss->id}", ['status' => 'Suspended'])->assertOk();
-        $this->actingIn($officer, $compsoc)->getJson('/api/notifications')->assertJsonFragment(['message' => 'Data Science Society was suspended by an OrgConnect admin']);
+        $this->actingIn($admin, $compsoc)->patchJson("/api/admin/organizations/{$dss->id}", ['status' => 'Suspended', 'reason' => 'Missing adviser'])->assertOk();
+        $this->actingIn($officer, $compsoc)->getJson('/api/notifications')->assertJsonFragment(['message' => 'Data Science Society was suspended by an OrgConnect admin. Reason: Missing adviser']);
         $this->assertSame(0, UserNotification::withoutGlobalScopes()->whereNotNull('organization_id')->where('user_id', $officer->id)->count());
     }
 

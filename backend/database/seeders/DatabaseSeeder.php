@@ -99,7 +99,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'jpcs.tip@school.edu.ph',
             'courses' => ['BSIT', 'BSCS', 'BSIS'],
             'proof_url' => 'https://drive.google.com/file/d/osa-recognition-2026',
-            'theme' => [],
+            'theme' => \App\Support\OrgThemes::theme('royal'),   // the color they picked
         ]);
     }
 
