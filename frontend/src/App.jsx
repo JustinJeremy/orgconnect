@@ -15,6 +15,8 @@ import RejectApplicationDialog from "./components/RejectApplicationDialog.jsx";
 import { ADMIN_THEME, applyTheme } from "./utils/theme.js";
 import Profile from "./pages/Profile.jsx";
 import Notifications from "./pages/Notifications.jsx";
+import People from "./pages/People.jsx";
+import { PeopleProvider } from "./context/PeopleContext.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 import Topbar from "./components/Topbar.jsx";
 import Toast from "./components/Toast.jsx";
@@ -35,7 +37,7 @@ import {
   tutoringApi,
 } from "./api/services.js";
 
-const APP_PAGES = ["dashboard", "events", "hours", "tutoring", "announcements", "profile", "notifications"];
+const APP_PAGES = ["dashboard", "events", "hours", "tutoring", "people", "announcements", "profile", "notifications"];
 
 const PAGE_META = {
   notifications: { title: "Notifications" },
@@ -59,6 +61,7 @@ const PAGE_META = {
     officer: "Post updates for the whole organization",
     member: "Updates from your officers",
   },
+  people: { title: "People" },
   profile: {
     title: "Profile & settings",
     officer: "Your account details, password and organizations",
@@ -444,7 +447,10 @@ function MainApp() {
       ? {
           // Figma: officers get a greeting, members a plain "Dashboard"
           title: isOfficer ? `${greeting()}, ${user.name.split(" ")[0]}` : "Dashboard",
-          subtitle: new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }),
+          // Officers also see their position, e.g. "President · Saturday, October 17"
+          subtitle: [isOfficer ? user.position : null, new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })]
+            .filter(Boolean)
+            .join(" · "),
         }
       : { title: PAGE_META[page].title }; // Figma: page titles stand alone, no subtitle
 
@@ -474,6 +480,7 @@ function MainApp() {
   );
 
   return (
+    <PeopleProvider flash={flash}>
     <div className={`layout ${collapsed ? "is-collapsed" : ""}`}>
       <Sidebar
         page={page}
@@ -506,6 +513,7 @@ function MainApp() {
             {page === "hours" && <VolunteerHours key={pageReset} {...pageProps} hours={hours} members={members} focus={focusFor("hours")} onFocusDone={clearFocus} />}
             {page === "tutoring" && <Tutoring key={pageReset} {...pageProps} actions={tutoring} focus={focusFor("tutoring")} onFocusDone={clearFocus} />}
             {page === "announcements" && <Announcements key={pageReset} {...pageProps} actions={announcements} focus={focusFor("announcements")} onFocusDone={clearFocus} />}
+            {page === "people" && <People key={pageReset} {...pageProps} focus={focusFor("people")} onFocusDone={clearFocus} />}
             {page === "profile" && <Profile key={pageReset} {...pageProps} />}
             {page === "notifications" && <Notifications key={pageReset} {...pageProps} onOpen={openNotification} onMarkAllRead={markNotificationsRead} />}
           </>
@@ -551,6 +559,7 @@ function MainApp() {
 
       <Toast toast={toast} />
     </div>
+    </PeopleProvider>
   );
 }
 

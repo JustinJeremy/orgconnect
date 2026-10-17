@@ -123,9 +123,11 @@ export default function FeedPost({ post }) {
         <UserAvatar user={{ name: post.authorName || "", ...post.authorAvatar }} className="feed-avatar" />
         <div>
           <div className="feed-author">{post.authorName}</div>
-          <time className="feed-time" dateTime={post.createdAt}>
-            {relativeDate(post.createdAt)}
-          </time>
+          <div className="feed-time">
+            {/* Which officer posted it, e.g. "Secretary · Oct 3, 2026" */}
+            {post.authorPosition && <span className="feed-position">{post.authorPosition} · </span>}
+            <time dateTime={post.createdAt}>{relativeDate(post.createdAt)}</time>
+          </div>
         </div>
         {post.pinned && (
           <span className="feed-pinned">

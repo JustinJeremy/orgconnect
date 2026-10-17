@@ -47,16 +47,37 @@ class DatabaseSeeder extends Seeder
         $this->sampleAvatars();
     }
 
-    // Sample members get an avatar character, or (about a third of them) just their initials,
-    // so signing in goes straight to the app (new sign-ups still see the avatar picker).
-    // Never touches accounts that already chose one.
+    // Only these sample accounts show just their initials (2–3 per org); the rest get an avatar character
+    private const INITIALS_ONLY = [
+        'officer@orgconnect.test', 'joanna.uy@orgconnect.test', 'patricia.lim@orgconnect.test',
+        'bea.navarro@orgconnect.test', 'denise.tan@orgconnect.test',
+    ];
+
+    // Sample characters that match each sample person's name (the characters with longer hair,
+    // a bow or a headband go to the women's names, the rest to the men's)
+    private const WOMEN = [
+        'officer@orgconnect.test', 'angela.rivera@orgconnect.test', 'joanna.uy@orgconnect.test', 'patricia.lim@orgconnect.test',
+        'bianca.torres@orgconnect.test', 'carla.mendez@orgconnect.test', 'andrea.lim@orgconnect.test', 'bea.navarro@orgconnect.test',
+        'denise.tan@orgconnect.test', 'sofia.garcia@orgconnect.test', 'isabel.cruz@orgconnect.test', 'trisha.domingo@orgconnect.test',
+    ];
+
+    private const WOMEN_AVATARS = ['headband', 'pigtails', 'bow', 'bun'];
+
+    private const MEN_AVATARS = ['cap', 'spiky', 'glasses', 'curly'];
+
+    // Sample members get an avatar character (a few keep just their initials), so signing in goes
+    // straight to the app (new sign-ups still see the avatar picker). Leaves uploaded photos alone.
     private function sampleAvatars(): void
     {
-        $choices = [...User::AVATARS, 'initials', 'initials', 'initials', 'initials'];
         User::where('email', 'like', '%@orgconnect.test')
             ->where('is_admin', false)
-            ->whereNull('avatar')
-            ->each(fn (User $user) => $user->update(['avatar' => $choices[crc32($user->email) % count($choices)]]));
+            ->where(fn ($q) => $q->whereNull('avatar')->orWhereIn('avatar', [...User::AVATARS, 'initials']))
+            ->each(function (User $user) {
+                $set = in_array($user->email, self::WOMEN, true) ? self::WOMEN_AVATARS : self::MEN_AVATARS;
+                $user->update(['avatar' => in_array($user->email, self::INITIALS_ONLY, true)
+                    ? 'initials'
+                    : $set[crc32($user->email) % count($set)]]);
+            });
     }
 
     // The platform admin, and one org registration waiting for review

@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { key: "events", label: "Events", icon: "calendar" },
   { key: "hours", label: "Members & Hours", icon: "clock" },
   { key: "tutoring", label: "Peer Tutoring", icon: "book" },
+  { key: "people", label: "People", icon: "users" },
   { key: "announcements", label: "Announcements", icon: "megaphone" },
 ];
 

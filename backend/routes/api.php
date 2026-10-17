@@ -10,6 +10,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\OrgChangeController;
 use App\Http\Controllers\OrgRequestController;
+use App\Http\Controllers\PeopleController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TutoringController;
 use Illuminate\Support\Facades\Route;
@@ -89,6 +90,15 @@ Route::middleware(['auth:sanctum', 'org.member'])->group(function () {
     Route::patch('/hours/{hour}', [HourController::class, 'decide']);
     Route::delete('/hours/{hour}', [HourController::class, 'destroy']);
     Route::get('/leaderboard', [HourController::class, 'leaderboard']);
+
+    // People: the directory, profiles, the most helpful tutors, and friends
+    Route::get('/people', [PeopleController::class, 'index']);
+    Route::get('/people/helpful', [PeopleController::class, 'helpful']);
+    Route::get('/people/{person}', [PeopleController::class, 'show'])->whereNumber('person');
+    Route::get('/friends', [PeopleController::class, 'friends']);
+    Route::post('/friends/{person}', [PeopleController::class, 'add']);
+    Route::patch('/friends/{person}', [PeopleController::class, 'accept']);
+    Route::delete('/friends/{person}', [PeopleController::class, 'remove']);
 
     // Members & applications (officers)
     Route::get('/members', [MemberController::class, 'index']);
