@@ -115,7 +115,9 @@ export default function CommentThread({ postId, onCount }) {
         <>
           <UserAvatar user={{ name: c.userName, ...c.userAvatar }} className="xs comment-avatar" />
           <span className="feed-comment-text">
-            <strong>{c.userName}</strong> <span>{c.text}</span>
+            <strong>{c.userName}</strong>
+            <span className="comment-divider" aria-hidden="true">|</span>
+            <span className="comment-body">{c.text}</span>
             {c.createdAt && <time className="muted small"> · {relativeDate(c.createdAt)}</time>}
             {c.edited && <span className="muted small"> (edited)</span>}
             {!isReply && (
