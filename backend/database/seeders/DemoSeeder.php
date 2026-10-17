@@ -136,6 +136,17 @@ class DemoSeeder extends Seeder
                 'status' => $accepted ? 'Accepted' : 'Pending',
                 'accepted_at' => $accepted ? $since : null,
             ]);
+
+            // The notifications the app would have sent: a request waiting (unread),
+            // or the sender being told it was accepted (read)
+            $names = User::whereIn('id', [$ids[$from], $ids[$to]])->pluck('name', 'id');
+            [$userId, $message] = $accepted
+                ? [$ids[$from], "{$names[$ids[$to]]} accepted your friend request"]
+                : [$ids[$to], "{$names[$ids[$from]]} sent you a friend request"];
+            $note = UserNotification::firstOrNew(['user_id' => $userId, 'message' => $message, 'organization_id' => null]);
+            $note->forceFill(['link' => 'people/friends', 'is_read' => $accepted, 'created_at' => $since, 'updated_at' => $since]);
+            $note->timestamps = false;
+            UserNotification::withoutEvents(fn () => $note->save());   // no org: shows in every org
         }
     }
 
@@ -273,6 +284,12 @@ class DemoSeeder extends Seeder
                 continue;
             }
             $booked = $options[$this->hash($email, 'tutoring') % $options->count()];
+            // The accounts used in the demo take a session that meets on the demo day's weekday (if the org
+            // has one), so their calendar shows events and tutoring on the same day
+            $weekday = Carbon::parse(env('DEMO_DAY', '2026-10-20'))->format('l');
+            if (in_array($email, self::DEMO_ACCOUNTS, true)) {
+                $booked = $options->first(fn ($s) => str_starts_with($s->schedule, "{$weekday}s")) ?? $booked;
+            }
             $booked->requests()->updateOrCreate(['user_id' => $m->user_id], ['status' => 'Confirmed']);
 
             // Anything else this seeder booked them into before is removed (but not past sessions, below)
@@ -295,6 +312,9 @@ class DemoSeeder extends Seeder
             }
         }
     }
+
+    // The sample accounts the presentation signs in with
+    private const DEMO_ACCOUNTS = ['member@orgconnect.test', 'officer@orgconnect.test', 'andrea.lim@orgconnect.test'];
 
     // Requests the org seeders already make (session subjects, by email): left as they are
     private const SAMPLE_REQUESTS = [

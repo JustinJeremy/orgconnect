@@ -95,8 +95,13 @@ class PeopleTest extends TestCase
         $book($anaSession, $students[2], 'Pending');   // not completed: doesn't count
 
         $this->actingIn($students[0], $org)->getJson('/api/people/helpful')->assertOk()
-            ->assertJsonPath('0.name', 'Ana Tutor')->assertJsonPath('0.sessions', 2)->assertJsonPath('0.students', 2)
-            ->assertJsonPath('1.name', 'Ben Tutor');
+            ->assertJsonPath('tutors.0.name', 'Ana Tutor')->assertJsonPath('tutors.0.sessions', 2)->assertJsonPath('tutors.0.students', 2)
+            ->assertJsonPath('tutors.1.name', 'Ben Tutor')
+            ->assertJsonPath('mine.rank', null)
+            // Ana's session has 3 requests (2 completed, 1 pending): the most requested
+            ->assertJsonPath('subjects.0.id', $anaSession->id)->assertJsonPath('subjects.0.requests', 3);
+        $this->actingIn($ben, $org)->getJson('/api/people/helpful')
+            ->assertJsonPath('mine.rank', 2)->assertJsonPath('mine.sessions', 1)->assertJsonPath('mine.teaching', 1);
         $this->actingIn($students[0], $org)->getJson("/api/people/{$ana->id}")
             ->assertJsonPath('stats.sessionsTaught', 2)->assertJsonPath('stats.studentsHelped', 2)->assertJsonPath('tutoring.0.subject', 'Calculus');
     }

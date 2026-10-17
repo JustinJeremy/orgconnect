@@ -90,7 +90,7 @@ const PEOPLE = {
       click: '[data-tour="tab-helpful"]',
       target: ['[data-tour="people-helpful"]', ".page .empty-state"],
       title: "Most helpful",
-      body: "Tutors ranked by completed peer tutoring sessions and how many students they've helped.",
+      body: "Tutors ranked by completed peer tutoring sessions. Beside it: your own tutoring and rank, and the subjects students ask for most (click one to open that session).",
     },
   ],
 };

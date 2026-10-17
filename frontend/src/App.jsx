@@ -513,7 +513,7 @@ function MainApp() {
             {page === "hours" && <VolunteerHours key={pageReset} {...pageProps} hours={hours} members={members} focus={focusFor("hours")} onFocusDone={clearFocus} />}
             {page === "tutoring" && <Tutoring key={pageReset} {...pageProps} actions={tutoring} focus={focusFor("tutoring")} onFocusDone={clearFocus} />}
             {page === "announcements" && <Announcements key={pageReset} {...pageProps} actions={announcements} focus={focusFor("announcements")} onFocusDone={clearFocus} />}
-            {page === "people" && <People key={pageReset} {...pageProps} focus={focusFor("people")} onFocusDone={clearFocus} />}
+            {page === "people" && <People key={pageReset} {...pageProps} focus={focusFor("people")} onFocusDone={clearFocus} onOpenSession={openSession} />}
             {page === "profile" && <Profile key={pageReset} {...pageProps} />}
             {page === "notifications" && <Notifications key={pageReset} {...pageProps} onOpen={openNotification} onMarkAllRead={markNotificationsRead} />}
           </>

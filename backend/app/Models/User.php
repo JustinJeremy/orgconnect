@@ -26,7 +26,10 @@ class User extends Authenticatable
     ];
 
     // Avatar characters a user can pick (drawn by frontend/src/components/Avatars.jsx)
-    public const AVATARS = ['bun', 'cap', 'headband', 'glasses', 'curly', 'pigtails', 'spiky', 'bow'];
+    public const AVATARS = [
+        'bun', 'cap', 'headband', 'glasses', 'curly', 'pigtails', 'spiky', 'bow',
+        'anime', 'ninja', 'wizard', 'astronaut', 'hero', 'pirate', 'detective', 'magical', 'princess', 'witch', 'catears',
+    ];
 
     protected $hidden = [
         'password',

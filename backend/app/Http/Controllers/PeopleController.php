@@ -61,23 +61,49 @@ class PeopleController extends Controller
         ];
     }
 
-    // GET /api/people/helpful  -> the tutors who taught the most completed sessions in this org (top 10)
-    public function helpful()
+    // GET /api/people/helpful  -> { tutors, mine, subjects }
+    //   tutors: who taught the most completed sessions in this org (top 10)
+    //   mine: your own sessions taught, students helped and place in the ranking (null rank: not ranked yet)
+    //   subjects: the tutoring sessions students ask for most (top 5)
+    public function helpful(Request $request)
     {
-        $rows = TutoringRequest::query()
+        $me = $request->user()->id;
+        $all = TutoringRequest::query()
             ->where('tutoring_requests.status', 'Completed')
             ->join('tutoring_sessions as s', 's.id', '=', 'tutoring_requests.tutoring_session_id')
             ->groupBy('s.tutor_id')
             ->selectRaw('s.tutor_id as id, COUNT(*) as sessions, COUNT(DISTINCT tutoring_requests.user_id) as students')
             ->orderByDesc('sessions')->orderByDesc('students')
-            ->limit(10)
             ->get();
         $people = User::withMembershipStatus(['Active', 'Inactive'])->with('membership')
-            ->whereIn('users.id', $rows->pluck('id'))->get()->keyBy('id');
+            ->whereIn('users.id', $all->pluck('id'))->get()->keyBy('id');
+        $ranked = $all->filter(fn ($row) => isset($people[$row->id]))->values();
+        $myRow = $ranked->firstWhere('id', $me);
 
-        return $rows->filter(fn ($row) => isset($people[$row->id]))
-            ->map(fn ($row) => $this->card($people[$row->id]) + ['sessions' => (int) $row->sessions, 'students' => (int) $row->students])
-            ->values();
+        $subjects = TutoringRequest::query()
+            ->where('tutoring_requests.status', '!=', 'Rejected')
+            ->join('tutoring_sessions as s', 's.id', '=', 'tutoring_requests.tutoring_session_id')
+            ->join('users as t', 't.id', '=', 's.tutor_id')
+            ->groupBy('s.id', 's.subject', 's.area', 't.name')
+            ->selectRaw('s.id as id, s.subject as subject, s.area as area, t.name as tutor, COUNT(*) as requests')
+            ->orderByDesc('requests')->orderBy('s.subject')
+            ->limit(5)
+            ->get()
+            ->map(fn ($row) => ['id' => (int) $row->id, 'subject' => $row->subject, 'area' => $row->area, 'tutor' => $row->tutor, 'requests' => (int) $row->requests]);
+
+        return [
+            'tutors' => $ranked->take(10)
+                ->map(fn ($row) => $this->card($people[$row->id]) + ['sessions' => (int) $row->sessions, 'students' => (int) $row->students])
+                ->values(),
+            'mine' => [
+                'sessions' => (int) ($myRow->sessions ?? 0),
+                'students' => (int) ($myRow->students ?? 0),
+                'rank' => $myRow ? $ranked->search(fn ($row) => $row->id === $me) + 1 : null,
+                'of' => $ranked->count(),
+                'teaching' => TutoringSession::where('tutor_id', $me)->count(),
+            ],
+            'subjects' => $subjects,
+        ];
     }
 
     // GET /api/friends  -> { friends, received, sent }  (across every org you're in)

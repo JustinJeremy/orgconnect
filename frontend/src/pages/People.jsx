@@ -141,47 +141,98 @@ function Friends({ flash }) {
   );
 }
 
-// Tutors ranked by completed tutoring sessions in this org
-function Helpful({ flash }) {
+// Two columns: tutors ranked by completed tutoring sessions in this org, and beside it
+// your own tutoring and the subjects students ask for most
+function Helpful({ flash, onOpenSession }) {
   const { user } = useAuth();
   const { openPerson } = usePeople();
-  const [rows, setRows] = useState(null);
+  const [data, setData] = useState(null);
 
   useEffect(() => {
-    peopleApi.helpful().then(setRows).catch((err) => flash(errorMessage(err), "error"));
+    peopleApi.helpful().then(setData).catch((err) => flash(errorMessage(err), "error"));
   }, [flash]);
 
-  if (!rows) return <div className="skeleton-list" aria-hidden="true"><span /><span /><span /></div>;
-  if (rows.length === 0) {
-    return <EmptyState icon="book" title="No completed tutoring yet" text="Tutors show up here once their sessions are marked completed." />;
-  }
+  if (!data) return <div className="skeleton-list" aria-hidden="true"><span /><span /><span /></div>;
+  const { tutors, mine, subjects } = data;
+  const maxRequests = Math.max(1, ...subjects.map((s) => s.requests));
+
   return (
-    <section className="suggest-card helpful-card" data-tour="people-helpful">
-      <h3>Most helpful tutors</h3>
-      <p className="muted small">Ranked by completed peer tutoring sessions</p>
-      <ol className="leaders helpful-list">
-        {rows.map((r, i) => (
-          <li key={r.id} className={r.id === user.id ? "is-me" : ""}>
-            <span className="leader-rank">{i + 1}</span>
-            <button type="button" className="helpful-person" onClick={() => openPerson(r.id)}>
-              <UserAvatar user={r} className="leader-avatar" />
-              <span className="leader-name">
-                {r.name}
-                {r.id === user.id && " (you)"}
-              </span>
-            </button>
-            <span className="helpful-count">
-              <strong>{plural(r.sessions, "session")}</strong>
-              <span>{plural(r.students, "student")} helped</span>
-            </span>
-          </li>
-        ))}
-      </ol>
-    </section>
+    <div className="helpful-layout">
+      <section className="suggest-card helpful-card" data-tour="people-helpful">
+        <h3>Most helpful tutors</h3>
+        <p className="muted small">Ranked by completed peer tutoring sessions</p>
+        {tutors.length === 0 ? (
+          <EmptyState compact icon="book" title="No completed tutoring yet" text="Tutors show up here once their sessions are marked completed." />
+        ) : (
+          <ol className="leaders helpful-list">
+            {tutors.map((r, i) => (
+              <li key={r.id} className={r.id === user.id ? "is-me" : ""}>
+                <span className="leader-rank">{i + 1}</span>
+                <button type="button" className="helpful-person" onClick={() => openPerson(r.id)}>
+                  <UserAvatar user={r} className="leader-avatar" />
+                  <span className="helpful-who">
+                    <span className="leader-name">
+                      {r.name}
+                      {r.id === user.id && " (you)"}
+                    </span>
+                    <span className="helpful-sub">{details(r) || "Member"}</span>
+                  </span>
+                </button>
+                <span className="helpful-count">
+                  <strong>{plural(r.sessions, "session")}</strong>
+                  <span>{plural(r.students, "student")} helped</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
+
+      <div className="helpful-side">
+        <section className="suggest-card" data-tour="people-my-tutoring">
+          <h3>Your tutoring</h3>
+          <dl className="person-stats helpful-mine">
+            <div><dt>Sessions taught</dt><dd>{mine.sessions}</dd></div>
+            <div><dt>Students helped</dt><dd>{mine.students}</dd></div>
+            <div><dt>Your rank</dt><dd>{mine.rank ? `#${mine.rank}` : "–"}</dd></div>
+          </dl>
+          <p className="muted small">
+            {mine.rank
+              ? `You're #${mine.rank} of ${mine.of} tutors. Thanks for helping!`
+              : mine.teaching
+                ? "Mark your sessions completed after you teach them to join the ranking."
+                : "Post a tutoring session on Peer Tutoring to start helping other members."}
+          </p>
+        </section>
+
+        <section className="suggest-card" data-tour="people-subjects">
+          <h3>Most requested subjects</h3>
+          {subjects.length === 0 ? (
+            <p className="muted small">No tutoring requests yet.</p>
+          ) : (
+            <ul className="suggest-list">
+              {subjects.map((s) => (
+                <li key={s.id}>
+                  <button type="button" className="suggest-item subject-item" onClick={() => onOpenSession?.(s)}>
+                    <span className="suggest-icon"><Icon name="book" size={16} /></span>
+                    <span className="suggest-text">
+                      <strong>{s.subject}</strong>
+                      <span>{s.area} · with {s.tutor}</span>
+                      <span className="subject-bar" aria-hidden="true"><span style={{ width: `${(s.requests / maxRequests) * 100}%` }} /></span>
+                    </span>
+                    <span className="subject-count">{plural(s.requests, "request")}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+    </div>
   );
 }
 
-export default function People({ flash, focus, onFocusDone }) {
+export default function People({ flash, focus, onFocusDone, onOpenSession }) {
   const { friendsVersion } = usePeople();
   const [tab, setTab] = useState(focus?.tab || "members");
   const [requests, setRequests] = useState(0);
@@ -215,7 +266,7 @@ export default function People({ flash, focus, onFocusDone }) {
       </div>
       {tab === "members" && <Directory flash={flash} />}
       {tab === "friends" && <Friends flash={flash} />}
-      {tab === "helpful" && <Helpful flash={flash} />}
+      {tab === "helpful" && <Helpful flash={flash} onOpenSession={onOpenSession} />}
     </div>
   );
 }
