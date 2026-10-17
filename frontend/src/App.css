@@ -1236,6 +1236,8 @@ select.input {
   min-width: 0;
 }
 .panel.flush { padding: 0; overflow: hidden; }
+/* A full-width card (e.g. a table) that has a title: the title keeps the usual padding */
+.panel.flush > .panel-head { padding: 1.25rem 1.375rem 0.75rem; margin-bottom: 0; }
 .panel.flush-body { padding-bottom: 0.5rem; }
 .panel.flush-body .table-wrap { margin: 0 -1.25rem; }
 .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.875rem; }
@@ -3966,3 +3968,17 @@ a.org-option { text-decoration: none; }
 .msg-new-divider::before, .msg-new-divider::after { content: ""; flex: 1; height: 1px; background: var(--accent); opacity: 0.5; }
 .msg.is-new .msg-bubble { animation: msg-new 2.5s ease-out; }
 @keyframes msg-new { 0%, 40% { box-shadow: 0 0 0 2px var(--accent); } 100% { box-shadow: 0 1px 2px rgba(21, 43, 84, 0.08); } }
+
+/* Your name at the bottom of the sidebar (opens Profile): the same orange mark as the menu when it's open */
+.sidebar-user-btn { position: relative; }
+.sidebar-user-btn.active::before {
+  content: "";
+  position: absolute;
+  left: calc(-0.875rem - 2px);   /* lines up with the menu's marks (this button sits 2px further in) */
+  top: 50%;
+  height: 1.375rem;
+  width: 5px;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  background: var(--highlight);
+}

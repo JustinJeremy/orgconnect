@@ -35,7 +35,7 @@ const PROFILE = {
     },
     {
       page: "profile",
-      target: ".stat-link",
+      target: ".page .stat-row.stat-accent",
       title: "Your history",
       body: "Click any of these numbers to see the full list: every hour log and who reviewed it, every event you attended or missed, and your certificates to download.",
     },
