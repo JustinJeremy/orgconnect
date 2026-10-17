@@ -3679,3 +3679,44 @@ a.org-option { text-decoration: none; }
 .leaders li { transition: background 0.15s; border-radius: 0.5rem; }
 .leaders li:hover { background: var(--sky-soft); }
 .nav-item:hover { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28); }
+
+/* ---------- Pop-in when a page or tab opens (Batch 18) ----------
+   Pages and tabs mount fresh, so these play each time one opens: the page's sections rise in,
+   then their cards and rows one after another. Events already does this with .list-enter. */
+.main:not(.main-dashboard) .page > *:not(.tab-card) { animation: list-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.main:not(.main-dashboard) .page > *:nth-child(3) { animation-delay: 50ms; }
+.main:not(.main-dashboard) .page > *:nth-child(4) { animation-delay: 100ms; }
+.main:not(.main-dashboard) .page > *:nth-child(n + 5) { animation-delay: 150ms; }
+.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li, .notif-page-item):not(.is-focused, .is-highlighted) {
+  animation: list-rise 0.35s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(2) { animation-delay: 70ms; }
+.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(3) { animation-delay: 105ms; }
+.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(4) { animation-delay: 140ms; }
+.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(5) { animation-delay: 175ms; }
+.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(6) { animation-delay: 210ms; }
+.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(7) { animation-delay: 245ms; }
+.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(8) { animation-delay: 280ms; }
+.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(9) { animation-delay: 315ms; }
+.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(10) { animation-delay: 350ms; }
+.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(11) { animation-delay: 385ms; }
+.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(12) { animation-delay: 420ms; }
+.main:not(.main-dashboard) :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li):nth-child(n + 13) { animation-delay: 420ms; }
+
+/* Dialogs (profiles, forms, confirmations) pop open */
+.modal-backdrop { animation: auth-fade 0.2s ease; }
+.modal { animation: modal-pop 0.25s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes modal-pop { from { opacity: 0; transform: translateY(10px) scale(0.96); } }
+
+/* Announcements: the list gets the card outline, each post a tint */
+.feed { transition: box-shadow 0.2s ease; }
+.feed:hover { box-shadow: 0 0 0 2px var(--primary-line), 0 4px 4px rgba(0, 0, 0, 0.25); }
+.post { transition: background 0.15s; }
+.post:hover { background: var(--sky-soft); }
+/* Event, session and people cards: the same outline as the other cards */
+.event-card, .session-card, .person-card { transition: border-color 0.15s, box-shadow 0.2s ease; }
+.event-card:hover, .session-card:hover, .person-card:hover { box-shadow: 0 0 0 1px var(--primary-line), 0 6px 12px rgba(21, 43, 84, 0.12); }
+
+@media (prefers-reduced-motion: reduce) {
+  .main .page > *, .main :is(.table tbody tr, .review-list li, .card-grid:not(.list-enter) > *, .suggest-list li, .leaders li, .post, .subject-list li, .notif-page-item), .modal, .modal-backdrop { animation: none !important; }
+}
