@@ -9,6 +9,12 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // OrgConnect: where the React app runs (links in emails), and the day the sample data is built
+    // around (the presentation). Read here so they still work when the config is cached in production.
+    'frontend_url' => collect(explode(',', (string) env('FRONTEND_URL', '')))
+        ->map(fn ($u) => trim($u))->first(fn ($u) => $u !== '' && $u !== '*') ?? 'http://localhost:5173',
+    'demo_day' => env('DEMO_DAY', '2026-10-20'),
+
     'timezone' => env('APP_TIMEZONE', 'UTC'),
 
     'locale' => env('APP_LOCALE', 'en'),

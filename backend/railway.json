@@ -1,0 +1,11 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "builder": "RAILPACK"
+  },
+  "deploy": {
+    "preDeployCommand": ["php artisan migrate --force && php artisan db:seed --force"],
+    "healthcheckPath": "/up",
+    "restartPolicyType": "ON_FAILURE"
+  }
+}

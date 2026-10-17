@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\LearningResource;
 use App\Models\Organization;
 use App\Models\User;
+use App\Support\OrgThemes;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -99,7 +100,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'jpcs.tip@school.edu.ph',
             'courses' => ['BSIT', 'BSCS', 'BSIS'],
             'proof_url' => 'https://drive.google.com/file/d/osa-recognition-2026',
-            'theme' => \App\Support\OrgThemes::theme('royal'),   // the color they picked
+            'theme' => OrgThemes::theme('royal'),   // the color they picked
         ]);
     }
 

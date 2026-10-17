@@ -17,9 +17,7 @@ class OrgRequestDecided extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public function __construct(public Organization $organization, public bool $approved, public ?string $note)
-    {
-    }
+    public function __construct(public Organization $organization, public bool $approved, public ?string $note) {}
 
     public function envelope(): Envelope
     {
@@ -30,8 +28,7 @@ class OrgRequestDecided extends Mailable
 
     public function content(): Content
     {
-        $url = collect(explode(',', (string) env('FRONTEND_URL', '')))->map(fn ($u) => trim($u))->first(fn ($u) => $u !== '' && $u !== '*')
-            ?? 'http://localhost:5173';
+        $url = config('app.frontend_url');
 
         return new Content(view: 'mail.org-decided', with: [
             'org' => $this->organization,

@@ -8,8 +8,8 @@ use App\Http\Requests\DecideHourRequest;
 use App\Http\Requests\StoreHourRequest;
 use App\Models\MembershipRecord;
 use App\Models\Organization;
-use App\Models\UserNotification;
 use App\Models\User;
+use App\Models\UserNotification;
 use App\Models\VolunteerHour;
 use Illuminate\Http\Request;
 
@@ -66,7 +66,7 @@ class HourController extends Controller
 
         UserNotification::send(
             $hour->user_id,
-            "Your {$hour->hours} hrs for {$hour->activity} were " . strtolower($data['status']) . ($rejected ? ". Reason: {$reason}" : ''),
+            "Your {$hour->hours} hrs for {$hour->activity} were ".strtolower($data['status']).($rejected ? ". Reason: {$reason}" : ''),
             "hours/{$hour->id}"
         );
 

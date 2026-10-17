@@ -16,7 +16,7 @@ class ResourceRequest extends FormRequest
         return [
             'title' => 'required|string|max:255',
             'subject' => ['required', Rule::in(Organization::current()->tutoringAreas())],
-            'type' => 'required|in:' . implode(',', self::TYPES),
+            'type' => 'required|in:'.implode(',', self::TYPES),
             'url' => 'required|url:http,https|max:2048',
             'description' => 'nullable|string|max:1000',
         ];

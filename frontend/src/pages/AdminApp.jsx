@@ -15,7 +15,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import useUrlPage, { isPlainClick, pagePath } from "../hooks/useUrlPage.js";
 import { adminApi, messagesApi } from "../api/services.js";
 import { errorMessage } from "../api/client.js";
-import { ADMIN_TOUR } from "../data/tourSteps.js";
+import { ADMIN_SECTIONS, ADMIN_TOUR } from "../data/tourSteps.js";
 import AdminAccounts from "./AdminAccounts.jsx";
 import AdminProfile from "./AdminProfile.jsx";
 import AdminAnnouncements from "./AdminAnnouncements.jsx";
@@ -69,7 +69,7 @@ export default function AdminApp() {
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [confirmState, setConfirmState] = useState(null);
   const [toast, setToast] = useState(null);
-  const [tourOn, setTourOn] = useState(false);
+  const [tourSteps, setTourSteps] = useState(null); // the full tour or one part of it, while it runs
   const toastTimer = useRef(null);
 
   const flash = useCallback((message, tone = "default") => {
@@ -119,7 +119,7 @@ export default function AdminApp() {
     try {
       if (!localStorage.getItem(TOUR_KEY(user.id))) {
         localStorage.setItem(TOUR_KEY(user.id), "1");
-        setTourOn(true);
+        setTourSteps(ADMIN_TOUR);
       }
     } catch {
       /* storage blocked: no auto tour */
@@ -267,8 +267,8 @@ export default function AdminApp() {
           onMarkAllRead={() => {}}
           onOpenNotification={(n) => setPage(n.page || "requests")}
           onOpenMenu={() => setMenuOpen(true)}
-          tourSections={[]}
-          onStartTour={() => setTourOn(true)}
+          tourSections={ADMIN_SECTIONS}
+          onStartTour={(key) => setTourSteps(key ? ADMIN_SECTIONS.find((s) => s.key === key).steps : ADMIN_TOUR)}
         />
 
         {loadError && (
@@ -289,9 +289,9 @@ export default function AdminApp() {
               openId={openConversation}
               onOpenedId={() => setOpenConversation(null)}
               onUnread={loadUnread}
-              newOptions={async () =>
+              newOptions={async (search) =>
                 (data?.organizations || [])
-                  .filter((o) => o.status === "Active")
+                  .filter((o) => o.status === "Active" && o.name.toLowerCase().includes(search.toLowerCase()))
                   .map((o) => ({ key: `o${o.id}`, label: o.name, sub: "Its officers", who: { name: o.name }, open: () => messagesApi.org(o.id) }))
               }
               emptyText="Message an org's officers, or ask someone registering an org for changes."
@@ -434,7 +434,7 @@ export default function AdminApp() {
           }}
         />
       )}
-      {tourOn && <Tour steps={ADMIN_TOUR} page={page} onNavigate={setPage} onClose={() => setTourOn(false)} />}
+      {tourSteps && <Tour steps={tourSteps} page={page} onNavigate={setPage} onClose={() => setTourSteps(null)} />}
       <Toast toast={toast} />
     </div>
   );

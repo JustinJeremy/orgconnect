@@ -16,8 +16,9 @@ by connecting students, officers and orgs).
 - Use one account for every org they join, and switch orgs from the menu
 - *People:* browse everyone in the org (officers first), open anyone's profile (hours, events
   attended, what they tutor, students helped), add friends, and see the most helpful tutors
-- *Messages:* chat with friends; officers also have a conversation with the OrgConnect admin
-  (the President, VPs and Secretary write in it, the other officers read along)
+- *Messages:* message anyone in the same org (someone in another org is messaged from that org);
+  officers also have a conversation with the OrgConnect admin (the President, VPs and Secretary write
+  in it, the other officers read along). New messages show a count and a notification
 
 *Officers*
 - Create events (with posters), record attendance and mark events completed
@@ -51,7 +52,7 @@ no two orgs share a color. A guided tour
 | Hours counting on the leaderboard | An officer approves your log |
 | Being friends | You send a request (People page or their profile) and they accept it; friends see each other's email |
 | A place on "Most helpful" | You tutor a session and mark the request completed |
-| Messaging someone | You're friends (or, for the OrgConnect admin, an officer of your org) |
+| Messaging someone | You're both active members of the org you have open (the OrgConnect admin: you're an officer there) |
 | A suspended org working again | The admin reactivates it |
 
 ## Folders
@@ -90,6 +91,10 @@ npm install
 cp .env.example .env        # VITE_API_URL=http://127.0.0.1:8000/api
 npm run dev                 # http://localhost:5173
 ```
+
+## Deploying
+
+Railway (Laravel API + MySQL) and Vercel (React): step by step in [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Test accounts
 

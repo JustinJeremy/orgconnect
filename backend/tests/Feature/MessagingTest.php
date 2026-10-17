@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Organization;
 use App\Models\User;
+use App\Models\UserNotification;
 use Tests\TestCase;
 
 // Batch 20: messages between friends, an org's officers and the admin, and a requester and the admin
@@ -23,32 +24,48 @@ class MessagingTest extends TestCase
         $this->actingIn($b, $org)->patchJson("/api/friends/{$a->id}");
     }
 
-    public function test_friends_message_each_other_and_see_unread_counts(): void
+    public function test_members_of_the_same_org_message_each_other_inside_it(): void
     {
         $org = $this->compSoc();
         $juan = $this->person($org, 'member', 'Active', ['name' => 'Juan']);
         $isa = $this->person($org, 'member', 'Active', ['name' => 'Isabel']);
-        $stranger = $this->person($org);
+        $elsewhere = $this->person($this->secondOrg(), 'member', 'Active', ['name' => 'Other Org']);
 
-        $this->actingIn($juan, $org)->postJson("/api/conversations/direct/{$isa->id}")->assertForbidden();   // not friends yet
-        $this->befriend($juan, $isa, $org);
-
+        // Not friends: still fine inside the org
         $id = $this->actingIn($juan, $org)->postJson("/api/conversations/direct/{$isa->id}")->assertOk()->assertJsonPath('title', 'Isabel')->json('id');
         $this->actingIn($juan, $org)->postJson("/api/conversations/{$id}/messages", ['body' => 'Hi! Study group later?'])->assertCreated()->assertJsonPath('mine', true);
         $this->actingIn($juan, $org)->postJson("/api/conversations/{$id}/messages", ['body' => 'Library at 3?'])->assertCreated();
-        // One notification for the unread stretch, not one per message
-        $this->assertDatabaseCount('user_notifications', 3);   // 1 friend request + 1 accepted + 1 message
-        $this->assertDatabaseHas('user_notifications', ['user_id' => $isa->id, 'message' => 'New message from Juan', 'link' => "messages/{$id}"]);
+        // One notification for the unread stretch, not one per message, shown in the org
+        $this->assertDatabaseHas('user_notifications', ['user_id' => $isa->id, 'message' => 'New message from Juan', 'link' => "messages/{$id}", 'organization_id' => $org->id]);
+        $this->assertSame(1, UserNotification::withoutGlobalScopes()->where('user_id', $isa->id)->count());
 
         $this->actingIn($isa, $org)->getJson('/api/messages/unread')->assertJsonPath('count', 2);
         $this->actingIn($isa, $org)->getJson('/api/conversations')->assertJsonPath('0.title', 'Juan')->assertJsonPath('0.unread', 2);
         $this->actingIn($isa, $org)->getJson("/api/conversations/{$id}/messages")->assertOk()->assertJsonCount(2, 'messages');
         $this->actingIn($isa, $org)->getJson('/api/messages/unread')->assertJsonPath('count', 0);
 
-        // Outsiders can't read or write; unfriending stops new messages
-        $this->actingIn($stranger, $org)->getJson("/api/conversations/{$id}/messages")->assertNotFound();
-        $this->actingIn($isa, $org)->deleteJson("/api/friends/{$juan->id}");
-        $this->actingIn($juan, $org)->postJson("/api/conversations/{$id}/messages", ['body' => 'Hello?'])->assertForbidden();
+        // Someone in another org can't be messaged from here, and the chat doesn't show in another org
+        $this->actingIn($juan, $org)->postJson("/api/conversations/direct/{$elsewhere->id}")->assertForbidden();
+        $this->actingIn($elsewhere, $org)->getJson("/api/conversations/{$id}/messages")->assertNotFound();
+        $isa->memberships()->create(['organization_id' => $this->secondOrg()->id, 'role' => 'member', 'position' => 'Member', 'status' => 'Active']);
+        $this->actingIn($isa, $this->secondOrg())->getJson('/api/conversations')->assertJsonCount(0);
+    }
+
+    public function test_new_message_suggests_friends_you_have_not_talked_to_first(): void
+    {
+        $org = $this->compSoc();
+        $me = $this->person($org, 'member', 'Active', ['name' => 'Me']);
+        $talked = $this->person($org, 'member', 'Active', ['name' => 'Friend Talked']);
+        $quiet = $this->person($org, 'member', 'Active', ['name' => 'Friend Quiet']);
+        $this->person($org, 'officer', 'Active', ['name' => 'Ava President']);
+        $this->befriend($me, $talked, $org);
+        $this->befriend($me, $quiet, $org);
+        $c = $this->actingIn($me, $org)->postJson("/api/conversations/direct/{$talked->id}")->json('id');
+        $this->actingIn($me, $org)->postJson("/api/conversations/{$c}/messages", ['body' => 'Hey']);
+
+        $names = collect($this->actingIn($me, $org)->getJson('/api/messages/contacts')->json())->pluck('name')->all();
+        $this->assertSame(['Friend Quiet', 'Friend Talked', 'Ava President'], $names);
+        $this->actingIn($me, $org)->getJson('/api/messages/contacts?search=ava')->assertJsonCount(1)->assertJsonPath('0.friend', false);
     }
 
     public function test_org_officers_and_the_admin_talk_and_only_managers_write(): void

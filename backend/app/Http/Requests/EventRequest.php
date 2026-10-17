@@ -18,10 +18,10 @@ class EventRequest extends FormRequest
         return [
             'title' => 'required|string|max:255',
             'date' => 'required|date_format:Y-m-d',
-            'category' => 'required|in:' . implode(',', self::CATEGORIES),
+            'category' => 'required|in:'.implode(',', self::CATEGORIES),
             'time' => 'required|date_format:H:i',
             'location' => 'required|string|max:255',
-            'mode' => 'required|in:' . implode(',', self::MODES),
+            'mode' => 'required|in:'.implode(',', self::MODES),
             'capacity' => 'required|integer|min:1',
             'description' => 'nullable|string|max:2000',
             // What it covers, e.g. ["Blockchain", "Smart contracts"]

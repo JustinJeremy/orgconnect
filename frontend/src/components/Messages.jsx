@@ -28,11 +28,14 @@ export function ConversationView({ id, onBack, onSent, onRead, onOpenPerson, com
   const [sending, setSending] = useState(false);
   const endRef = useRef(null);
   const lastCount = useRef(0);
+  // Where your unread messages started when you opened it (a notification lands you right there)
+  const [newFrom, setNewFrom] = useState(undefined);
 
   const load = useCallback(async () => {
     try {
       const next = await messagesApi.show(id);
       setData(next);
+      setNewFrom((before) => (before === undefined ? next.firstUnreadId || null : before));
       setError("");
       onRead?.();
     } catch (err) {
@@ -43,18 +46,23 @@ export function ConversationView({ id, onBack, onSent, onRead, onOpenPerson, com
 
   useEffect(() => {
     setData(null);
+    setNewFrom(undefined);
     lastCount.current = 0;
     load();
     const timer = setInterval(load, 8000);
     return () => clearInterval(timer);
   }, [load]);
 
-  // Scroll to the newest message when new ones arrive
+  // Opening: go to the first unread message (or the newest). Later: follow new messages as they arrive.
   useEffect(() => {
     const count = data?.messages.length || 0;
-    if (count !== lastCount.current) endRef.current?.scrollIntoView({ block: "end", behavior: lastCount.current ? "smooth" : "auto" });
+    if (count !== lastCount.current) {
+      const firstNew = !lastCount.current && newFrom && document.querySelector(`[data-msg="${newFrom}"]`);
+      if (firstNew) firstNew.scrollIntoView({ block: "center" });
+      else endRef.current?.scrollIntoView({ block: "end", behavior: lastCount.current ? "smooth" : "auto" });
+    }
     lastCount.current = count;
-  }, [data]);
+  }, [data, newFrom]);
 
   const send = async (e) => {
     e?.preventDefault();
@@ -107,8 +115,9 @@ export function ConversationView({ id, onBack, onSent, onRead, onOpenPerson, com
               const newDay = i === 0 || day(m.createdAt) !== day(messages[i - 1].createdAt);
               const sameAuthor = i > 0 && !newDay && messages[i - 1].userId === m.userId;
               return (
-                <li key={m.id} className={`msg ${m.mine ? "is-mine" : ""} ${sameAuthor ? "is-follow" : ""}`}>
+                <li key={m.id} data-msg={m.id} className={`msg ${m.mine ? "is-mine" : ""} ${sameAuthor && m.id !== newFrom ? "is-follow" : ""} ${newFrom && m.id >= newFrom && !m.mine ? "is-new" : ""}`}>
                   {newDay && <div className="msg-day"><span>{formatDate(day(m.createdAt))}</span></div>}
+                  {m.id === newFrom && <div className="msg-new-divider"><span>New messages</span></div>}
                   <div className="msg-row">
                     {!m.mine && (
                       <span className="msg-who-avatar">
@@ -160,12 +169,28 @@ export function ConversationView({ id, onBack, onSent, onRead, onOpenPerson, com
   );
 }
 
-// Start a conversation: options = [{ key, label, sub, who, open: () => Promise<conversation> }]
-function NewConversation({ options, onClose, onOpened }) {
+// Start a conversation. loadOptions(search) -> [{ key, label, sub, who, group?, isAdmin?, open: () => Promise<conversation> }]
+// (searched as you type; "group" puts a small heading above the first option of each group)
+function NewConversation({ loadOptions, onClose, onOpened }) {
   const [search, setSearch] = useState("");
+  const [options, setOptions] = useState(null);
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState("");
-  const shown = options.filter((o) => o.label.toLowerCase().includes(search.trim().toLowerCase()));
+
+  useEffect(() => {
+    let active = true;
+    const timer = setTimeout(() => {
+      loadOptions(search.trim())
+        .then((list) => active && setOptions(list))
+        .catch((err) => active && setError(errorMessage(err)));
+    }, search ? 250 : 0);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+  const shown = options || [];
 
   const pick = async (o) => {
     setBusy(o.key);
@@ -186,12 +211,15 @@ function NewConversation({ options, onClose, onOpened }) {
           <label htmlFor="new-msg-search" className="sr-only">Search</label>
           <input id="new-msg-search" type="search" className="input" placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        {options.length === 0 ? (
-          <p className="muted small">No one to message yet. Add friends from the People page.</p>
+        {!options ? (
+          <div className="skeleton-list" aria-hidden="true"><span /><span /></div>
+        ) : shown.length === 0 ? (
+          <p className="muted small">{search ? "No one by that name." : "No one to message yet."}</p>
         ) : (
           <ul className="suggest-list new-msg-list">
-            {shown.map((o) => (
+            {shown.map((o, i) => (
               <li key={o.key}>
+                {o.group && o.group !== shown[i - 1]?.group && <span className="new-msg-group">{o.group}</span>}
                 <button type="button" className="suggest-item" disabled={busy === o.key} onClick={() => pick(o)}>
                   {o.isAdmin ? <span className="avatar suggest-avatar msg-admin-avatar"><Icon name="megaphone" size={18} /></span> : <UserAvatar user={o.who} className="suggest-avatar" />}
                   <span className="suggest-text">
@@ -211,7 +239,7 @@ function NewConversation({ options, onClose, onOpened }) {
 // The whole messages screen: your conversations on the left, the open one on the right
 // (one at a time on a phone).
 //   openId: a conversation to open (from a notification or a "Message" button); onOpenedId() clears it
-//   newOptions(): async, the people/orgs you can start a conversation with
+//   newOptions(search): async, the people/orgs you can start a conversation with
 //   onUnread(): the unread count may have changed (menu badge)
 export default function Messages({ openId, onOpenedId, newOptions, onUnread, onOpenPerson, emptyText }) {
   const [list, setList] = useState(null);
@@ -238,7 +266,7 @@ export default function Messages({ openId, onOpenedId, newOptions, onUnread, onO
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openId]);
 
-  const startNew = async () => setStarting(await newOptions());
+  const startNew = () => setStarting(true);
   const shown = (list || []).filter((c) => `${c.title} ${c.subtitle}`.toLowerCase().includes(search.trim().toLowerCase()));
 
   return (
@@ -292,7 +320,7 @@ export default function Messages({ openId, onOpenedId, newOptions, onUnread, onO
 
       {starting && (
         <NewConversation
-          options={starting}
+          loadOptions={newOptions}
           onClose={() => setStarting(null)}
           onOpened={(c) => {
             setStarting(null);

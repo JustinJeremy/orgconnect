@@ -104,13 +104,13 @@ const MESSAGES = {
       page: "messages",
       target: '[data-tour="messages"]',
       title: "Messages",
-      body: "Chat with your friends. Officers also have a conversation with the OrgConnect admin: the President, VPs and Secretary write in it and the other officers can read along. New messages show a number beside Messages in the menu.",
+      body: "Message anyone in this org (to reach someone in another org, switch to that org first). Officers also have a conversation with the OrgConnect admin: the President, VPs and Secretary write in it and the other officers read along. New messages show a number beside Messages and a notification that opens the chat.",
     },
     {
       page: "messages",
       target: '[data-tour="messages-new"]',
       title: "Start a conversation",
-      body: "Pick a friend (or, for officers, the OrgConnect admin). You can also press Message on a friend's profile or on the Friends tab.",
+      body: "Search anyone in the org. Friends you haven't messaged yet come first. You can also press Message on someone's profile or card on the People page.",
     },
   ],
 };
@@ -192,14 +192,14 @@ const OFFICER = [
       {
         page: "events",
         click: '[data-tour="tab-upcoming"]',
-        target: [".card-grid > .event-card:not(.skeleton-card)", ".page .empty-state"],
+        target: [".page .event-card:not(.skeleton-card)", ".page .empty-state"],
         title: "Event cards",
         body: "Each card shows the schedule, format and how many are going. Use the pencil to edit and the bin to delete.",
       },
       {
         page: "events",
         click: '[data-tour="tab-past"]',
-        target: [".card-grid > .event-card:not(.skeleton-card)", ".page .empty-state"],
+        target: [".page .event-card:not(.skeleton-card)", ".page .empty-state"],
         title: "Attendance and certificates",
         body: "On a past event, Attendance lets you tick who came. Marking the event completed issues certificates to everyone present.",
       },
@@ -378,7 +378,7 @@ const MEMBER = [
       {
         page: "events",
         click: '[data-tour="tab-upcoming"]',
-        target: [".event-rows > .event-card", ".card-grid > .event-card:not(.skeleton-card)", ".page .empty-state"],
+        target: [".page .event-card:not(.skeleton-card)", ".page .empty-state"],
         title: "RSVP",
         body: "Press RSVP to save your spot; press it again to cancel. Attend and you'll get a certificate.",
       },
@@ -538,3 +538,19 @@ export function buildTour(isOfficer, sectionKey = null, canManageMembers = false
   if (sectionKey) return label(sections.find((s) => s.key === sectionKey));
   return [...sections.flatMap(label), { ...FINISH, section: "Done" }];
 }
+
+// The admin tour in parts, for the help menu's "Or just one part" (same order as the full tour)
+const adminPart = (key, label, titles) => ({
+  key,
+  label,
+  steps: ADMIN_TOUR.filter((step) => titles.includes(step.title)).map((step) => ({ ...step, section: label })),
+});
+export const ADMIN_SECTIONS = [
+  adminPart("overview", "Overview", ["Platform overview"]),
+  adminPart("requests", "Org requests", ["Org requests", "What approving does"]),
+  adminPart("organizations", "Organizations", ["All organizations"]),
+  adminPart("accounts", "Accounts", ["Accounts", "New school year"]),
+  adminPart("announcements", "Announcements", ["Announcements", "Replies"]),
+  adminPart("messages", "Messages", ["Messages"]),
+  adminPart("menu", "Getting around", ["Menu"]),
+];

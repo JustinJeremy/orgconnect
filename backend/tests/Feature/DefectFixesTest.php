@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Models\Certificate;
 use App\Models\Event;
 use App\Models\TutoringSession;
+use App\Models\UserNotification;
 use App\Models\VolunteerHour;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 // One test per issue in "OrgConnect – Access & Logic Defect Test Scenarios" (Oct 15, 2026),
@@ -13,7 +15,7 @@ use Tests\TestCase;
 // only the President manages officers, and nobody changes their own position.
 class DefectFixesTest extends TestCase
 {
-    private function logHours($member, $org, float $hours = 2, ?string $date = null): \Illuminate\Testing\TestResponse
+    private function logHours($member, $org, float $hours = 2, ?string $date = null): TestResponse
     {
         return $this->actingIn($member, $org)->postJson('/api/hours', [
             'activity' => 'Lab cleanup', 'date' => $date ?? now()->toDateString(), 'hours' => $hours,
@@ -53,7 +55,7 @@ class DefectFixesTest extends TestCase
         $this->assertDatabaseHas('volunteer_hours', ['id' => $logId, 'status' => 'Approved']);
         // The member was told once (approved), not again by the refused second decision
         $this->assertDatabaseCount('user_notifications', 2);   // + the officer's "logged hours" notice
-        $this->assertSame(1, \App\Models\UserNotification::where('user_id', $member->id)->count());
+        $this->assertSame(1, UserNotification::where('user_id', $member->id)->count());
     }
 
     // #4

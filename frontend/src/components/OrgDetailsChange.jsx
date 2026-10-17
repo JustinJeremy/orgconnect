@@ -34,7 +34,7 @@ export default function OrgDetailsChange({ flash }) {
   const load = () => orgsApi.changeRequest().then((r) => setLatest(r.request)).catch(() => setLatest(null));
   useEffect(() => {
     load();
-  }, [org.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [org.id]);
 
   const pending = latest?.status === "Pending";
 

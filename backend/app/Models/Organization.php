@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\OrgThemes;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -55,7 +56,7 @@ class Organization extends Model
             'reviewNote' => $this->review_note,
             // The admin asked for changes and the requester hasn't edited the request yet
             'changesRequested' => $this->changes_requested_at !== null,
-            'color' => \App\Support\OrgThemes::describe($this->theme),   // the color they picked
+            'color' => OrgThemes::describe($this->theme),   // the color they picked
         ];
     }
 
@@ -107,7 +108,7 @@ class Organization extends Model
             'courses' => $this->courses ?? [],
             'tutoringAreas' => $this->tutoringAreas(),
             'theme' => $this->theme,
-            'color' => \App\Support\OrgThemes::describe($this->theme),   // its name and swatch
+            'color' => OrgThemes::describe($this->theme),   // its name and swatch
             // ?v= changes on every upload so browsers don't keep showing the old logo
             'logoUrl' => $this->logo_path ? url("/api/organizations/{$this->slug}/logo").'?v='.$this->updated_at?->timestamp : null,
             'memberCount' => $this->memberships()->where('status', 'Active')->count(),

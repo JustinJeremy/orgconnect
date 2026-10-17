@@ -68,7 +68,8 @@ export default function PersonDialog({ id, flash, onChanged, onMessage, onClose 
 
           <div className="person-actions">
             <FriendButton person={person} state={person.friendship} onChange={setFriendship} flash={flash} size="" />
-            {person.friendship === "friends" && onMessage && (
+            {/* Anyone in this org can be messaged, friends or not */}
+            {person.friendship !== "self" && person.status === "Active" && onMessage && (
               <button type="button" className="btn btn-primary btn-sm" onClick={() => onMessage(person.id)}>
                 <Icon name="mail" size={15} /> Message
               </button>
