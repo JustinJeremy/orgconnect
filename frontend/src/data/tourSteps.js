@@ -538,3 +538,19 @@ export function buildTour(isOfficer, sectionKey = null, canManageMembers = false
   if (sectionKey) return label(sections.find((s) => s.key === sectionKey));
   return [...sections.flatMap(label), { ...FINISH, section: "Done" }];
 }
+
+// The admin tour in parts, for the help menu's "Or just one part" (same order as the full tour)
+const adminPart = (key, label, titles) => ({
+  key,
+  label,
+  steps: ADMIN_TOUR.filter((step) => titles.includes(step.title)).map((step) => ({ ...step, section: label })),
+});
+export const ADMIN_SECTIONS = [
+  adminPart("overview", "Overview", ["Platform overview"]),
+  adminPart("requests", "Org requests", ["Org requests", "What approving does"]),
+  adminPart("organizations", "Organizations", ["All organizations"]),
+  adminPart("accounts", "Accounts", ["Accounts", "New school year"]),
+  adminPart("announcements", "Announcements", ["Announcements", "Replies"]),
+  adminPart("messages", "Messages", ["Messages"]),
+  adminPart("menu", "Getting around", ["Menu"]),
+];
