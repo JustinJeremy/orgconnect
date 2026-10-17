@@ -9,7 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 
 // A conversation (see the messaging migration for the three kinds and who is in each):
-//   direct  - two friends; they can write while they're friends
+//   direct  - two members of the same org, inside that org (organization_id): they write while both are
+//             active members there. Someone in another org is messaged from that org.
 //   org     - the org's officers read it; its President, VPs and Secretary and the admin write
 //   request - the person registering an org and the admin
 class Conversation extends Model
@@ -41,9 +42,15 @@ class Conversation extends Model
         return $this->belongsTo(User::class, 'user_two_id');
     }
 
-    public static function direct(int $a, int $b): self
+    public static function direct(int $organizationId, int $a, int $b): self
     {
-        return static::firstOrCreate(['kind' => 'direct', 'organization_id' => null, 'user_one_id' => min($a, $b), 'user_two_id' => max($a, $b)]);
+        return static::firstOrCreate(['kind' => 'direct', 'organization_id' => $organizationId, 'user_one_id' => min($a, $b), 'user_two_id' => max($a, $b)]);
+    }
+
+    // Is this person an active member of the conversation's org?
+    private function activeIn(int $userId): bool
+    {
+        return MembershipRecord::where('organization_id', $this->organization_id)->where('user_id', $userId)->where('status', 'Active')->exists();
     }
 
     public static function forOrg(string $kind, int $organizationId): self
@@ -76,8 +83,8 @@ class Conversation extends Model
         }
 
         return match ($this->kind) {
-            'direct' => Friendship::stateFor(Friendship::between($this->user_one_id, $this->user_two_id), $user->id) === 'friends'
-                ? null : 'You can only message your friends.',
+            'direct' => $this->activeIn($this->user_one_id) && $this->activeIn($this->user_two_id)
+                ? null : "You can only message people while you're both active members of {$this->organization?->short_name}.",
             'org' => $user->is_admin || $this->isManager($this->officerIn($user))
                 ? null : 'Only the President, VPs and Secretary can write to the OrgConnect admin.',
             'request' => in_array($this->organization?->status, ['Pending', 'Rejected'], true)
@@ -105,18 +112,22 @@ class Conversation extends Model
         return $ids->filter()->unique()->reject(fn ($id) => $id === $sender->id)->values();
     }
 
-    // Every conversation this person can see
+    // The conversations this person sees: in the selected org, their chats there and (officers) the org's
+    // conversation with the admin; anywhere, their own org requests. The admin sees every org and request.
     public static function scopeVisibleTo(Builder $query, User $user): Builder
     {
         if ($user->is_admin) {
             return $query->whereIn('kind', ['org', 'request']);
         }
-        $officerOrgs = MembershipRecord::where('user_id', $user->id)->where('status', 'Active')->where('role', 'officer')->pluck('organization_id');
+        $org = Organization::current()?->id;
+        $officerHere = $org && MembershipRecord::where('user_id', $user->id)->where('organization_id', $org)
+            ->where('status', 'Active')->where('role', 'officer')->exists();
         $requested = Organization::where('requested_by', $user->id)->pluck('id');
 
         return $query->where(fn ($q) => $q
-            ->where(fn ($q) => $q->where('kind', 'direct')->where(fn ($q) => $q->where('user_one_id', $user->id)->orWhere('user_two_id', $user->id)))
-            ->orWhere(fn ($q) => $q->where('kind', 'org')->whereIn('organization_id', $officerOrgs))
+            ->where(fn ($q) => $q->where('kind', 'direct')->where('organization_id', $org)
+                ->where(fn ($q) => $q->where('user_one_id', $user->id)->orWhere('user_two_id', $user->id)))
+            ->orWhere(fn ($q) => $q->where('kind', 'org')->where('organization_id', $officerHere ? $org : 0))
             ->orWhere(fn ($q) => $q->where('kind', 'request')->whereIn('organization_id', $requested)));
     }
 
@@ -140,7 +151,7 @@ class Conversation extends Model
         $other = $this->kind === 'direct' ? ($this->user_one_id === $viewer->id ? $this->userTwo : $this->userOne) : null;
 
         [$title, $subtitle, $who] = match ($this->kind) {
-            'direct' => [$other?->name, 'Friend', ['name' => $other?->name, ...($other?->avatarData() ?? [])]],
+            'direct' => [$other?->name, $this->describe($other, $viewer), ['name' => $other?->name, ...($other?->avatarData() ?? [])]],
             'org' => $viewer->is_admin
                 ? [$org?->name, 'Officers', ['name' => $org?->short_name]]
                 : ['OrgConnect admin', "{$org?->short_name} officers", ['name' => 'OrgConnect']],
@@ -163,5 +174,17 @@ class Conversation extends Model
             'unread' => $this->unreadFor($viewer),
             'cantWrite' => $this->cantWrite($viewer),
         ];
+    }
+
+    // Under a chat's name: their position in the org (officers), and "Friend" if you're friends
+    private function describe(?User $other, User $viewer): string
+    {
+        if (! $other) {
+            return '';
+        }
+        $position = MembershipRecord::where('organization_id', $this->organization_id)->where('user_id', $other->id)->value('position');
+        $friends = Friendship::stateFor(Friendship::between($viewer->id, $other->id), $viewer->id) === 'friends';
+
+        return collect([$position && $position !== 'Member' ? $position : null, $friends ? 'Friend' : null])->filter()->implode(' · ') ?: 'Member';
     }
 }

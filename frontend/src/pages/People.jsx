@@ -32,7 +32,7 @@ const details = (p) => [p.position && p.position !== "Member" ? p.position : nul
 
 // Everyone in the org, officers first; add friends straight from the card
 function Directory({ flash }) {
-  const { friendsVersion, friendsChanged } = usePeople();
+  const { friendsVersion, friendsChanged, messagePerson } = usePeople();
   const [search, setSearch] = useState("");
   const list = usePagedList(peopleApi.page, { search }, PER_PAGE, friendsVersion);
 
@@ -57,7 +57,14 @@ function Directory({ flash }) {
               {p.friendship === "self" ? (
                 <span className="friend-state is-you">You</span>
               ) : (
-                <FriendButton person={p} state={p.friendship} onChange={friendsChanged} flash={flash} />
+                <div className="person-card-actions">
+                  <FriendButton person={p} state={p.friendship} onChange={friendsChanged} flash={flash} />
+                  {messagePerson && (
+                    <button type="button" className="btn btn-outline btn-sm" aria-label={`Message ${p.name}`} onClick={() => messagePerson(p.id)}>
+                      <Icon name="mail" size={15} /> Message
+                    </button>
+                  )}
+                </div>
               )}
             </article>
           ))}
@@ -118,7 +125,7 @@ function Friends({ flash }) {
             {data.friends.map((f) => (
               <li key={f.id} className="friend-row">
                 <PersonLink person={f} sub={where(f)} />
-                {messagePerson && (
+                {messagePerson && f.inThisOrg && (
                   <button type="button" className="icon-btn sm" aria-label={`Message ${f.name}`} title="Message" onClick={() => messagePerson(f.id)}>
                     <Icon name="mail" size={16} />
                   </button>

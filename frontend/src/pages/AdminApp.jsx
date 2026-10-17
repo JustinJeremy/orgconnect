@@ -289,9 +289,9 @@ export default function AdminApp() {
               openId={openConversation}
               onOpenedId={() => setOpenConversation(null)}
               onUnread={loadUnread}
-              newOptions={async () =>
+              newOptions={async (search) =>
                 (data?.organizations || [])
-                  .filter((o) => o.status === "Active")
+                  .filter((o) => o.status === "Active" && o.name.toLowerCase().includes(search.toLowerCase()))
                   .map((o) => ({ key: `o${o.id}`, label: o.name, sub: "Its officers", who: { name: o.name }, open: () => messagesApi.org(o.id) }))
               }
               emptyText="Message an org's officers, or ask someone registering an org for changes."

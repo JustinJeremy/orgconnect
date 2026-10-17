@@ -85,7 +85,8 @@ export const messagesApi = {
   unread: () => get("/messages/unread"), // -> { count }
   show: (id) => get(`/conversations/${id}/messages`), // -> { conversation, messages } (marks it read)
   send: (id, body) => post(`/conversations/${id}/messages`, { body }),
-  direct: (userId) => post(`/conversations/direct/${userId}`), // a friend
+  direct: (userId) => post(`/conversations/direct/${userId}`), // someone in the selected org
+  contacts: (search = "") => get(`/messages/contacts?search=${encodeURIComponent(search)}`), // who you can message in this org
   org: (orgId) => post(`/conversations/org/${orgId}`), // an org's officers and the admin
   request: (orgId) => post(`/conversations/request/${orgId}`), // an org request and the admin
 };

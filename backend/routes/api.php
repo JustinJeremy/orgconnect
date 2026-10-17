@@ -6,15 +6,17 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\HourController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\OrgChangeController;
-use App\Http\Controllers\MessageController;
 use App\Http\Controllers\OrgRequestController;
 use App\Http\Controllers\PeopleController;
 use App\Http\Controllers\PlatformAnnouncementController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TutoringController;
+use App\Models\Organization;
+use App\Support\OrgThemes;
 use Illuminate\Support\Facades\Route;
 
 // The app sends the selected org in the X-Organization header (its slug).
@@ -51,11 +53,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/messages/unread', [MessageController::class, 'unread']);
     Route::get('/conversations/{conversation}/messages', [MessageController::class, 'show']);
     Route::post('/conversations/{conversation}/messages', [MessageController::class, 'send'])->middleware('throttle:60,1');
-    Route::post('/conversations/direct/{person}', [MessageController::class, 'direct']);
     Route::post('/conversations/org/{organization}', [MessageController::class, 'org']);
     Route::post('/conversations/request/{organization}', [MessageController::class, 'request']);
     // Org colors to pick from, and which ones other orgs already have
-    Route::get('/org-themes', fn () => \App\Support\OrgThemes::options(\App\Models\Organization::current()?->id));
+    Route::get('/org-themes', fn () => OrgThemes::options(Organization::current()?->id));
     Route::post('/org-requests', [OrgRequestController::class, 'store'])->middleware('throttle:register');
 });
 
@@ -112,6 +113,10 @@ Route::middleware(['auth:sanctum', 'org.member'])->group(function () {
     Route::patch('/hours/{hour}', [HourController::class, 'decide']);
     Route::delete('/hours/{hour}', [HourController::class, 'destroy']);
     Route::get('/leaderboard', [HourController::class, 'leaderboard']);
+
+    // Messages with people in this org: who you can message, and your chat with one of them
+    Route::get('/messages/contacts', [MessageController::class, 'contacts']);
+    Route::post('/conversations/direct/{person}', [MessageController::class, 'direct']);
 
     // Announcements from the OrgConnect admin, and this org's replies to them
     Route::get('/platform-announcements', [PlatformAnnouncementController::class, 'index']);

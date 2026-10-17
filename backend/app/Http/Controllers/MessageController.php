@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Conversation;
+use App\Models\ConversationRead;
 use App\Models\Friendship;
 use App\Models\MembershipRecord;
 use App\Models\Organization;
@@ -10,9 +11,8 @@ use App\Models\User;
 use App\Models\UserNotification;
 use Illuminate\Http\Request;
 
-// Messages: friends with each other, an org's officers with the OrgConnect admin, and someone
-// registering an org with the admin (including "Ask for changes"). Not tied to the selected org,
-// so they work from any org, from the registration page and in the admin console.
+// Messages: members of the same org with each other (inside that org), an org's officers with the
+// OrgConnect admin, and someone registering an org with the admin (including "Ask for changes").
 class MessageController extends Controller
 {
     // GET /api/conversations -> yours, latest message first
@@ -39,10 +39,14 @@ class MessageController extends Controller
     {
         $user = $request->user();
         abort_unless($conversation->canSee($user), 404);
+        // The first message they hadn't read yet (a notification opens the chat right there)
+        $read = (int) ConversationRead::where('conversation_id', $conversation->id)->where('user_id', $user->id)->value('last_read_message_id');
+        $firstUnread = $conversation->messages()->where('id', '>', $read)->where('user_id', '!=', $user->id)->min('id');
         $conversation->markRead($user);
 
         return [
             'conversation' => $conversation->toFrontend($user),
+            'firstUnreadId' => $firstUnread,
             'messages' => $conversation->messages()->with('user')->orderBy('id')->get()->map(fn ($m) => $m->toFrontend($user)),
         ];
     }
@@ -58,14 +62,44 @@ class MessageController extends Controller
         return response()->json($this->post($conversation, $user, trim($data['body']))->toFrontend($user), 201);
     }
 
-    // POST /api/conversations/direct/{person} -> the conversation with a friend (made the first time)
+    // POST /api/conversations/direct/{person} -> your conversation with someone in the selected org
+    // (made the first time). Someone in another org: message them from that org.
     public function direct(Request $request, User $person)
     {
         $user = $request->user();
+        $org = Organization::current();
         abort_if($person->id === $user->id, 422, "You can't message yourself.");
-        abort_unless(Friendship::stateFor(Friendship::between($user->id, $person->id), $user->id) === 'friends', 403, 'You can only message your friends.');
+        abort_unless($person->membership->status === 'Active', 403, "You can only message people in {$org->short_name}. To message someone in another org, open that org.");
 
-        return Conversation::direct($user->id, $person->id)->toFrontend($user);
+        return Conversation::direct($org->id, $user->id, $person->id)->toFrontend($user);
+    }
+
+    // GET /api/messages/contacts?search= -> people in the selected org you can message:
+    // friends you haven't talked to yet first, then your other friends, then everyone else (officers first)
+    public function contacts(Request $request)
+    {
+        $user = $request->user();
+        $org = Organization::current();
+        $words = trim((string) $request->input('search'));
+        $friends = Friendship::involving($user->id)->where('status', 'Accepted')->get()
+            ->map(fn (Friendship $f) => $f->user_id === $user->id ? $f->friend_id : $f->user_id)->all();
+        $talked = Conversation::where('kind', 'direct')->where('organization_id', $org->id)->whereNotNull('last_message_at')
+            ->where(fn ($q) => $q->where('user_one_id', $user->id)->orWhere('user_two_id', $user->id))->get()
+            ->mapWithKeys(fn (Conversation $c) => [($c->user_one_id === $user->id ? $c->user_two_id : $c->user_one_id) => $c->id]);
+
+        return User::withMembershipStatus(['Active'])->with('membership')
+            ->where('users.id', '!=', $user->id)
+            ->when($words !== '', fn ($q) => $q->where('name', 'like', "%{$words}%"))
+            ->orderBy(MembershipRecord::rankIn($org->id))->orderBy('name')
+            ->get()
+            ->map(fn (User $u) => [
+                'id' => $u->id, 'name' => $u->name, ...$u->avatarData(),
+                'position' => $u->membership->position, 'course' => $u->course, 'yearLevel' => $u->year_level,
+                'friend' => in_array($u->id, $friends, true),
+                'conversationId' => $talked[$u->id] ?? null,
+            ])
+            ->sortBy(fn ($p) => $p['friend'] && ! $p['conversationId'] ? 0 : ($p['friend'] ? 1 : 2))
+            ->values();
     }
 
     // POST /api/conversations/org/{organization} -> an org's conversation with the OrgConnect admin
@@ -124,8 +158,15 @@ class MessageController extends Controller
             foreach ($conversation->audience($user) as $userId) {
                 $recipient = User::find($userId);
                 // Already has unread messages here: they've been told
-                if ($recipient && $conversation->unreadFor($recipient) === 1) {
-                    UserNotification::platform($userId, "New message from {$from}{$about}", "messages/{$conversation->id}");
+                if (! $recipient || $conversation->unreadFor($recipient) !== 1) {
+                    continue;
+                }
+                // Chats belong to their org: the notice shows there. The admin and requests have no org.
+                $notice = "New message from {$from}{$about}";
+                if ($conversation->kind === 'request' || $recipient->is_admin) {
+                    UserNotification::platform($userId, $notice, "messages/{$conversation->id}");
+                } else {
+                    UserNotification::create(['organization_id' => $conversation->organization_id, 'user_id' => $userId, 'message' => $notice, 'link' => "messages/{$conversation->id}"]);
                 }
             }
         }

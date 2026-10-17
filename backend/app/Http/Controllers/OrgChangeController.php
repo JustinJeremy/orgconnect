@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\OrgChangeRequest;
 use App\Models\Organization;
+use App\Models\OrgChangeRequest;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Support\OrgThemes;

@@ -16,7 +16,7 @@ class AnnouncementRequest extends FormRequest
 
         return [
             'title' => "$required|string|max:255",
-            'category' => "$required|in:" . implode(',', self::CATEGORIES),
+            'category' => "$required|in:".implode(',', self::CATEGORIES),
             'content' => "$required|string|max:1000",
             'pinned' => 'sometimes|boolean',
         ];

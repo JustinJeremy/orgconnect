@@ -3955,3 +3955,14 @@ a.org-option { text-decoration: none; }
   .join-main > *, .register-grid > *, .org-cards > .org-card { animation: none; }
   .org-card:hover { transform: none; }
 }
+
+/* New message: small headings between suggestion groups */
+.new-msg-group { display: block; margin: 0.5rem 0 0.25rem; font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--meta-ink); }
+.person-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.person-card-actions .btn, .person-card-actions .friend-state { align-self: center !important; }
+
+/* Unread messages when you open a chat (e.g. from a notification): a divider and a brief highlight */
+.msg-new-divider { display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; color: var(--accent-dark); font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.msg-new-divider::before, .msg-new-divider::after { content: ""; flex: 1; height: 1px; background: var(--accent); opacity: 0.5; }
+.msg.is-new .msg-bubble { animation: msg-new 2.5s ease-out; }
+@keyframes msg-new { 0%, 40% { box-shadow: 0 0 0 2px var(--accent); } 100% { box-shadow: 0 1px 2px rgba(21, 43, 84, 0.08); } }
