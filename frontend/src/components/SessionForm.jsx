@@ -1,8 +1,9 @@
 import { useState } from "react";
 import Modal from "./Modal.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
+import { splitTopics } from "../utils/format.js";
 
-const EMPTY = { subject: "", area: "", schedule: "", location: "", slots: 3, description: "" };
+const EMPTY = { subject: "", area: "", schedule: "", location: "", slots: 3, description: "", topics: "" };
 
 export default function SessionForm({ initial, onSave, onCancel }) {
   const { current: org } = useOrg();
@@ -17,6 +18,7 @@ export default function SessionForm({ initial, onSave, onCancel }) {
           location: initial.location,
           slots: initial.slots,
           description: initial.description || "",
+          topics: (initial.topics || []).join(", "),
         }
       : { ...EMPTY, area: areas[0] }
   );
@@ -41,6 +43,7 @@ export default function SessionForm({ initial, onSave, onCancel }) {
       schedule: formData.schedule.trim(),
       location: formData.location.trim(),
       description: formData.description.trim(),
+      topics: splitTopics(formData.topics),
       slots: Math.max(1, Number(formData.slots) || 1),
     });
     setSaving(false);
@@ -93,6 +96,12 @@ export default function SessionForm({ initial, onSave, onCancel }) {
             Description <span className="optional">Optional</span>
           </label>
           <textarea id="ts-description" className="input" rows="3" name="description" value={formData.description} onChange={handleChange} />
+        </div>
+        <div className="field span-2">
+          <label htmlFor="ts-topics">
+            Topics <span className="optional">Optional</span>
+          </label>
+          <input id="ts-topics" className="input" name="topics" value={formData.topics} onChange={handleChange} placeholder="Separate with commas, e.g. Joins, GROUP BY, Analytics" />
         </div>
       </div>
       {error && <span className="field-error">{error}</span>}

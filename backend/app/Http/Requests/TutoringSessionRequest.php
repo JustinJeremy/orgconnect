@@ -18,6 +18,9 @@ class TutoringSessionRequest extends FormRequest
             'location' => 'required|string|max:255',
             'slots' => 'required|integer|min:1|max:100',
             'description' => 'nullable|string|max:2000',
+            // What it covers, e.g. ["Blockchain", "Smart contracts"]
+            'topics' => 'nullable|array|max:8',
+            'topics.*' => 'string|distinct|max:40',
         ];
     }
 }

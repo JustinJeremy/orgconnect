@@ -35,7 +35,18 @@ class EventController extends Controller
         if ($request->input('sort') === 'popular') {
             $query->withCount('registrations')->orderByDesc('registrations_count');
         }
-        $query->orderBy('date', $tab === 'past' ? 'desc' : 'asc')->orderBy('id');
+        if ($tab === 'past') {
+            $query->orderByDesc('date')->orderBy('time');
+        } else {
+            // Coming up first (soonest at the top), then completed or passed ones (most recent first)
+            $ahead = "status != 'completed' AND date >= ?";
+            $today = now()->toDateString();
+            $query->orderByRaw("CASE WHEN $ahead THEN 0 ELSE 1 END", [$today])
+                ->orderByRaw("CASE WHEN $ahead THEN date END ASC", [$today])
+                ->orderByRaw("CASE WHEN $ahead THEN NULL ELSE date END DESC", [$today])
+                ->orderBy('time');
+        }
+        $query->orderBy('id');
 
         return $this->listOrPage($request, $query, fn (Event $e) => $e->toFrontend());
     }

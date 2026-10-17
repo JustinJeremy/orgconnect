@@ -47,37 +47,31 @@ class DatabaseSeeder extends Seeder
         $this->sampleAvatars();
     }
 
-    // Only these sample accounts show just their initials (2–3 per org); the rest get an avatar character
-    private const INITIALS_ONLY = [
-        'officer@orgconnect.test', 'joanna.uy@orgconnect.test', 'patricia.lim@orgconnect.test',
-        'bea.navarro@orgconnect.test', 'denise.tan@orgconnect.test',
+    // Each sample person's character, matching their name. No character repeats within an org, and
+    // none is used more than twice overall. A few (2–3 per org) show just their initials.
+    private const SAMPLE_AVATARS = [
+        // Both orgs
+        'member@orgconnect.test' => 'glasses',
+        // Computer Society
+        'officer@orgconnect.test' => 'initials', 'leo.manalo@orgconnect.test' => 'anime', 'angela.rivera@orgconnect.test' => 'headband',
+        'nico.fernandez@orgconnect.test' => 'cap', 'joanna.uy@orgconnect.test' => 'initials', 'mark.delarosa@orgconnect.test' => 'spiky',
+        'patricia.lim@orgconnect.test' => 'initials', 'ryan.castillo@orgconnect.test' => 'ninja', 'bianca.torres@orgconnect.test' => 'pigtails',
+        'enzo.villanueva@orgconnect.test' => 'pirate', 'carla.mendez@orgconnect.test' => 'catears', 'jerome.santiago@orgconnect.test' => 'astronaut',
+        // Data Science Society
+        'andrea.lim@orgconnect.test' => 'princess', 'paolo.reyes@orgconnect.test' => 'wizard', 'bea.navarro@orgconnect.test' => 'initials',
+        'marco.villareal@orgconnect.test' => 'curly', 'carlo.mendoza@orgconnect.test' => 'hero', 'denise.tan@orgconnect.test' => 'initials',
+        'miguel.ramos@orgconnect.test' => 'detective', 'sofia.garcia@orgconnect.test' => 'witch', 'gabriel.aquino@orgconnect.test' => 'spiky',
+        'isabel.cruz@orgconnect.test' => 'magical', 'rafael.santos@orgconnect.test' => 'cap', 'kyle.bautista@orgconnect.test' => 'ninja',
+        'trisha.domingo@orgconnect.test' => 'bun',
     ];
 
-    // Sample characters that match each sample person's name (the characters with longer hair,
-    // a bow or a headband go to the women's names, the rest to the men's)
-    private const WOMEN = [
-        'officer@orgconnect.test', 'angela.rivera@orgconnect.test', 'joanna.uy@orgconnect.test', 'patricia.lim@orgconnect.test',
-        'bianca.torres@orgconnect.test', 'carla.mendez@orgconnect.test', 'andrea.lim@orgconnect.test', 'bea.navarro@orgconnect.test',
-        'denise.tan@orgconnect.test', 'sofia.garcia@orgconnect.test', 'isabel.cruz@orgconnect.test', 'trisha.domingo@orgconnect.test',
-    ];
-
-    private const WOMEN_AVATARS = ['headband', 'pigtails', 'bow', 'bun'];
-
-    private const MEN_AVATARS = ['cap', 'spiky', 'glasses', 'curly'];
-
-    // Sample members get an avatar character (a few keep just their initials), so signing in goes
-    // straight to the app (new sign-ups still see the avatar picker). Leaves uploaded photos alone.
+    // Sample members get their character, so signing in goes straight to the app (new sign-ups
+    // still see the avatar picker). Leaves uploaded photos alone.
     private function sampleAvatars(): void
     {
-        User::where('email', 'like', '%@orgconnect.test')
-            ->where('is_admin', false)
-            ->where(fn ($q) => $q->whereNull('avatar')->orWhereIn('avatar', [...User::AVATARS, 'initials']))
-            ->each(function (User $user) {
-                $set = in_array($user->email, self::WOMEN, true) ? self::WOMEN_AVATARS : self::MEN_AVATARS;
-                $user->update(['avatar' => in_array($user->email, self::INITIALS_ONLY, true)
-                    ? 'initials'
-                    : $set[crc32($user->email) % count($set)]]);
-            });
+        User::whereIn('email', array_keys(self::SAMPLE_AVATARS))
+            ->where(fn ($q) => $q->whereNull('avatar')->orWhere('avatar', '!=', 'photo'))
+            ->each(fn (User $user) => $user->update(['avatar' => self::SAMPLE_AVATARS[$user->email]]));
     }
 
     // The platform admin, and one org registration waiting for review

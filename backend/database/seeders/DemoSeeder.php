@@ -102,7 +102,67 @@ class DemoSeeder extends Seeder
         Organization::setCurrent(null);
 
         $this->friends();
+        $this->topics();
         $this->attachPosters();
+    }
+
+    // What each sample event and tutoring session covers (shown as tags in its details)
+    private const TOPICS = [
+        // Computer Society events
+        'Laravel + React Full-Stack Workshop' => ['Laravel', 'React', 'REST APIs', 'Full-stack'],
+        'CCS Hackathon 2026 Orientation' => ['Hackathon', 'Team building', 'Project pitching'],
+        'Cybersecurity Basics: Staying Safe Online' => ['Cybersecurity', 'Passwords', 'Phishing'],
+        'Tech4Schools: Computer Literacy Outreach' => ['Computer literacy', 'Teaching', 'Outreach'],
+        'CompSoc Movie Night' => ['Social', 'Tech movies'],
+        'Git and GitHub Crash Course' => ['Git', 'GitHub', 'Version control'],
+        'Intro to UI/UX with Figma' => ['UI/UX', 'Figma', 'Prototyping'],
+        'General Assembly: A.Y. 2026–2027 Kickoff' => ['Org plans', 'Committees', 'Officers'],
+        'Python Fundamentals Bootcamp' => ['Python', 'Programming basics', 'Loops & functions'],
+        'Coastal Cleanup with Manila Bay Advocates' => ['Environment', 'Volunteering'],
+        'Freshmen Org Fair Booth' => ['Recruitment', 'Project demos'],
+        'Intro to Cloud Computing with AWS' => ['Cloud computing', 'AWS', 'Free tier'],
+        'Code for a Cause: Website for a Local NGO' => ['Web development', 'Volunteering', 'Teamwork'],
+        'Mock Technical Interviews' => ['Careers', 'Coding interviews', 'Data structures'],
+        'Blood Donation Drive' => ['Health', 'Volunteering'],
+        'Tech Talk: AI in Everyday Apps' => ['Artificial intelligence', 'Recommendation systems', 'Chatbots'],
+        'Hackathon Mentoring Clinic' => ['Hackathon', 'Tech stack', 'Pitching'],
+        'CompSoc Org Day Booth' => ['Social', 'Project demos', 'Games'],
+        // Data Science Society events
+        'Intro to Python for Data Analysis' => ['Python', 'Data analysis', 'pandas'],
+        'Kaggle Kickoff: Titanic Challenge' => ['Kaggle', 'Machine learning', 'Classification'],
+        'Careers in Data: Alumni Talk' => ['Careers', 'Data science', 'Analytics'],
+        'Data for Good: Barangay Dashboard Build' => ['Dashboards', 'Data for good', 'Volunteering'],
+        'DSS Game Night' => ['Social', 'Board games'],
+        'CRISP-DM Bootcamp' => ['CRISP-DM', 'Data mining', 'Project workflow'],
+        'Data Visualization with Tableau Public' => ['Tableau', 'Data visualization', 'Storytelling'],
+        'DSS General Assembly and Orientation' => ['Org plans', 'Committees', 'Projects'],
+        'Excel to Python: Data Cleaning Workshop' => ['Data cleaning', 'Excel', 'pandas'],
+        'Data for Good: Barangay Census Encoding' => ['Data encoding', 'Data for good', 'Volunteering'],
+        'Kaggle Study Group: Titanic Challenge' => ['Kaggle', 'Machine learning', 'Feature engineering'],
+        'Women in Data Science Talk' => ['Careers', 'Women in tech', 'Data science'],
+        'Tree Planting at La Mesa Watershed' => ['Environment', 'Volunteering'],
+        'Power BI Dashboard Sprint' => ['Power BI', 'Dashboards', 'Business analytics'],
+        'DSS Movie and Board Game Night' => ['Social', 'Board games'],
+        'Data Visualization Showcase' => ['Data visualization', 'Dashboards', 'Presenting'],
+        'SQL Speedrun Challenge' => ['SQL', 'Queries', 'Databases'],
+        'DSS Org Day Booth' => ['Social', 'Project demos', 'Games'],
+        // Tutoring sessions
+        'Java OOP: classes and inheritance' => ['Java', 'Classes & objects', 'Inheritance', 'Polymorphism'],
+        'HTML, CSS and responsive layouts' => ['HTML', 'CSS', 'Flexbox & grid', 'Responsive design'],
+        'SQL for beginners' => ['SQL', 'SELECT queries', 'Filtering', 'Databases'],
+        'Subnetting made easy' => ['Networking', 'IP addressing', 'Subnetting'],
+        'Pandas & NumPy basics' => ['Python', 'pandas', 'NumPy', 'Data analysis'],
+        'Statistics for Data Science' => ['Statistics', 'Probability', 'Hypothesis testing'],
+        'SQL joins and aggregates' => ['SQL', 'Joins', 'GROUP BY', 'Analytics'],
+        'Intro to machine learning with scikit-learn' => ['Machine learning', 'scikit-learn', 'Regression', 'Classification'],
+    ];
+
+    private function topics(): void
+    {
+        foreach (self::TOPICS as $title => $topics) {
+            Event::withoutGlobalScopes()->where('title', $title)->update(['topics' => json_encode($topics)]);
+            TutoringSession::withoutGlobalScopes()->where('subject', $title)->update(['topics' => json_encode($topics)]);
+        }
     }
 
     // Friends for the sample accounts, including requests waiting for Juan (member@) and Maria (officer@)
@@ -136,6 +196,17 @@ class DemoSeeder extends Seeder
                 'status' => $accepted ? 'Accepted' : 'Pending',
                 'accepted_at' => $accepted ? $since : null,
             ]);
+
+            // The notifications the app would have sent: a request waiting (unread),
+            // or the sender being told it was accepted (read)
+            $names = User::whereIn('id', [$ids[$from], $ids[$to]])->pluck('name', 'id');
+            [$userId, $message] = $accepted
+                ? [$ids[$from], "{$names[$ids[$to]]} accepted your friend request"]
+                : [$ids[$to], "{$names[$ids[$from]]} sent you a friend request"];
+            $note = UserNotification::firstOrNew(['user_id' => $userId, 'message' => $message, 'organization_id' => null]);
+            $note->forceFill(['link' => 'people/friends', 'is_read' => $accepted, 'created_at' => $since, 'updated_at' => $since]);
+            $note->timestamps = false;
+            UserNotification::withoutEvents(fn () => $note->save());   // no org: shows in every org
         }
     }
 
@@ -273,6 +344,12 @@ class DemoSeeder extends Seeder
                 continue;
             }
             $booked = $options[$this->hash($email, 'tutoring') % $options->count()];
+            // The accounts used in the demo take a session that meets on the demo day's weekday (if the org
+            // has one), so their calendar shows events and tutoring on the same day
+            $weekday = Carbon::parse(env('DEMO_DAY', '2026-10-20'))->format('l');
+            if (in_array($email, self::DEMO_ACCOUNTS, true)) {
+                $booked = $options->first(fn ($s) => str_starts_with($s->schedule, "{$weekday}s")) ?? $booked;
+            }
             $booked->requests()->updateOrCreate(['user_id' => $m->user_id], ['status' => 'Confirmed']);
 
             // Anything else this seeder booked them into before is removed (but not past sessions, below)
@@ -295,6 +372,9 @@ class DemoSeeder extends Seeder
             }
         }
     }
+
+    // The sample accounts the presentation signs in with
+    private const DEMO_ACCOUNTS = ['member@orgconnect.test', 'officer@orgconnect.test', 'andrea.lim@orgconnect.test'];
 
     // Requests the org seeders already make (session subjects, by email): left as they are
     private const SAMPLE_REQUESTS = [

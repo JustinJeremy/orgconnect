@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import Icon from "./Icon.jsx";
 import Modal from "./Modal.jsx";
 import { EVENT_CATEGORIES, EVENT_MODES } from "../data/constants.js";
-import { todayIso, isPast } from "../utils/format.js";
+import { todayIso, isPast, splitTopics } from "../utils/format.js";
 
 const EMPTY = {
   title: "",
@@ -13,6 +13,7 @@ const EMPTY = {
   mode: "F2F",
   capacity: 50,
   description: "",
+  topics: "", // comma-separated in the form, a list for the API
 };
 
 const POSTER_TYPES = ["image/png", "image/jpeg"];
@@ -31,6 +32,7 @@ export default function EventForm({ initial, onSave, onCancel }) {
           mode: initial.mode || "F2F",
           capacity: initial.capacity,
           description: initial.description || "",
+          topics: (initial.topics || []).join(", "),
         }
       : EMPTY
   );
@@ -97,6 +99,7 @@ export default function EventForm({ initial, onSave, onCancel }) {
       title: formData.title.trim(),
       location: formData.location.trim(),
       description: formData.description.trim(),
+      topics: splitTopics(formData.topics),
       capacity: Number(formData.capacity),
     }, poster);
     setSaving(false);
@@ -181,6 +184,12 @@ export default function EventForm({ initial, onSave, onCancel }) {
             Description <span className="optional">Optional</span>
           </label>
           <textarea id="ev-description" className="input" rows="3" name="description" value={formData.description} onChange={handleChange} />
+        </div>
+        <div className="field span-2">
+          <label htmlFor="ev-topics">
+            Topics <span className="optional">Optional</span>
+          </label>
+          <input id="ev-topics" className="input" name="topics" value={formData.topics} onChange={handleChange} placeholder="Separate with commas, e.g. Blockchain, Smart contracts" />
         </div>
 
         <div className="field span-2">

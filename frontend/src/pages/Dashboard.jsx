@@ -98,7 +98,8 @@ function TopVolunteers({ leaders, loading, currentUserId }) {
 
 /* ---------- Officer ---------- */
 
-function OfficerDashboard({ header, data, loading, onNavigate, onOpenEvent, onOpenSession, events: eventActions, hours: hourActions, members: memberActions, tutoring }) {
+function OfficerDashboard({ header, data, loading, onNavigate, onOpenEvent, onOpenSession, onOpenReview, events: eventActions, hours: hourActions, members: memberActions, tutoring }) {
+  const [reviewTab, setReviewTab] = useState("hours"); // the Needs Review tab that is open
   const { user } = useAuth();
   const { events, hours, members, sessions, requests, applications, leaderboard } = data;
 
@@ -140,9 +141,10 @@ function OfficerDashboard({ header, data, loading, onNavigate, onOpenEvent, onOp
           className="dash-card"
           id="approvals"
           tour="review"
-          action={<ViewAll onClick={() => onNavigate("hours")} label="View All" />}
+          action={<ViewAll onClick={() => (onOpenReview ? onOpenReview(reviewTab) : onNavigate("hours"))} label="View All" />}
         >
           <ApprovalCenter
+            onTabChange={setReviewTab}
             hours={hours}
             requests={requests}
             sessions={sessions}
@@ -371,6 +373,8 @@ function FeaturedEvent({ event, userId, onOpen, onToggleRsvp }) {
   return (
     <article className="dash-featured">
       <button type="button" className="dash-featured-media" onClick={() => onOpen(event)} aria-label={`View ${event.title}`}>
+        {/* A blurred copy of the poster fills the space around it, so the frame matches any org's colors */}
+        {event.posterUrl && <img className="dash-featured-backdrop" src={event.posterUrl} alt="" aria-hidden="true" />}
         <EventImage event={event} />
       </button>
       <div className="dash-featured-body">

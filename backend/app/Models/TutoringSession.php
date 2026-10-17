@@ -11,11 +11,11 @@ class TutoringSession extends Model
 {
     use BelongsToOrganization;
 
-    protected $fillable = ['tutor_id', 'subject', 'area', 'schedule', 'location', 'slots', 'description'];
+    protected $fillable = ['tutor_id', 'subject', 'area', 'schedule', 'location', 'slots', 'description', 'topics'];
 
     protected function casts(): array
     {
-        return ['slots' => 'integer'];
+        return ['slots' => 'integer', 'topics' => 'array'];
     }
 
     public function tutor(): BelongsTo
@@ -33,6 +33,7 @@ class TutoringSession extends Model
         return [
             'id' => $this->id,
             'subject' => $this->subject,
+            'topics' => $this->topics ?? [],
             'area' => $this->area,
             'tutorId' => $this->tutor_id,
             'tutorName' => $this->tutor?->name,

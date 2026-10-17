@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { todayIso } from "../utils/format.js";
 
-const EMPTY = () => ({ choice: "", custom: "", hours: "", date: todayIso() });
+const EMPTY = () => ({ choice: "", custom: "", hours: "", minutes: "0", date: todayIso() });
+const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 const OTHER = "__other";
 // Things members often volunteer for
 const COMMON = [
@@ -50,11 +51,13 @@ export default function LogHoursForm({ onSubmit, events = [] }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const hours = Number(formData.hours);
+    // Hours and minutes -> hours with two decimals, e.g. 1 hr 15 min = 1.25
+    const hours = Math.round(((Number(formData.hours) || 0) + Number(formData.minutes) / 60) * 100) / 100;
     if (!activity) return setError(formData.choice === OTHER ? "Describe the activity." : "Pick an activity.");
     if (!formData.date) return setError("Pick the date of the activity.");
     if (formData.date > todayIso()) return setError("You can't log hours for a future date.");
-    if (!(hours > 0) || hours > 24) return setError("Hours must be between 0.5 and 24.");
+    if (hours < 0.08) return setError("Enter how long you volunteered (at least 5 minutes).");
+    if (hours > 24) return setError("That's more than 24 hours.");
 
     setSaving(true);
     const ok = await onSubmit({ activity, hours, date: formData.date });
@@ -85,14 +88,19 @@ export default function LogHoursForm({ onSubmit, events = [] }) {
           <input id="lh-custom" className="input" name="custom" maxLength={255} placeholder="e.g. Helped set up the hackathon venue" value={formData.custom} onChange={handleChange} autoFocus />
         </div>
       )}
-      <div className="form-grid">
-        <div className="field">
-          <label htmlFor="lh-date">Date</label>
-          <input id="lh-date" type="date" max={todayIso()} className="input" name="date" value={formData.date} onChange={handleChange} />
-        </div>
-        <div className="field">
-          <label htmlFor="lh-hours">Hours</label>
-          <input id="lh-hours" type="number" min="0.5" max="24" step="0.5" className="input" name="hours" value={formData.hours} onChange={handleChange} />
+      <div className="field">
+        <label htmlFor="lh-date">Date</label>
+        <input id="lh-date" type="date" max={todayIso()} className="input" name="date" value={formData.date} onChange={handleChange} />
+      </div>
+      <div className="field">
+        <label htmlFor="lh-hours">How long</label>
+        <div className="duration-inputs">
+          <input id="lh-hours" type="number" min="0" max="24" step="1" className="input" name="hours" placeholder="0" value={formData.hours} onChange={handleChange} aria-label="Hours" />
+          <span className="duration-unit">hr</span>
+          <select id="lh-minutes" className="input select" name="minutes" value={formData.minutes} onChange={handleChange} aria-label="Minutes">
+            {MINUTES.map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+          <span className="duration-unit">min</span>
         </div>
       </div>
       {error && <span className="field-error">{error}</span>}

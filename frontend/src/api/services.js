@@ -175,7 +175,7 @@ export const announcementsApi = {
   like: (id) => post(`/announcements/${id}/like`), // -> { likes, likedByMe }
   unlike: (id) => del(`/announcements/${id}/like`), // -> { likes, likedByMe }
   comments: (id) => get(`/announcements/${id}/comments`), // -> [{ id, userName, text, createdAt }]
-  addComment: (id, text) => post(`/announcements/${id}/comments`, { text }), // -> the new comment
+  addComment: (id, text, parentId = null) => post(`/announcements/${id}/comments`, { text, parentId }), // -> the new comment (parentId: a reply)
   updateComment: (id, commentId, text) => put(`/announcements/${id}/comments/${commentId}`, { text }), // author only
   deleteComment: (id, commentId) => del(`/announcements/${id}/comments/${commentId}`), // author or officer
 };

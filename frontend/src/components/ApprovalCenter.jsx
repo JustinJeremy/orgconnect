@@ -3,7 +3,7 @@ import Tabs from "./Tabs.jsx";
 import EmptyState from "./EmptyState.jsx";
 import Pagination from "./Pagination.jsx";
 import usePagination from "../hooks/usePagination.js";
-import { shortDate } from "../utils/format.js";
+import { hoursText, shortDate } from "../utils/format.js";
 import { UserAvatar } from "./Avatars.jsx";
 
 const TAB_LABELS = {
@@ -24,8 +24,13 @@ export default function ApprovalCenter({
   tabs = ["hours", "tutoring", "memberships"],
   limit,
   userId, // your own hours and requests are reviewed by another officer, so they aren't listed
+  onTabChange, // tells the dashboard which tab is open, so "View All" opens the right page
 }) {
-  const [tab, setTab] = useState(tabs[0]);
+  const [tab, setTabState] = useState(tabs[0]);
+  const setTab = (next) => {
+    setTabState(next);
+    onTabChange?.(next);
+  };
   const [busy, setBusy] = useState(null);
 
   const rows = {
@@ -36,7 +41,7 @@ export default function ApprovalCenter({
         name: h.memberName,
         who: { name: h.memberName, ...h.memberAvatar },
         detail: h.activity,
-        amount: `${h.hours} ${Number(h.hours) === 1 ? "hour" : "hours"}`,
+        amount: hoursText(h.hours),
         when: shortDate(h.date),
         decide: (status) => onDecideHours(h, status),
       })),

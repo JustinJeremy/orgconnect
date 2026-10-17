@@ -8,27 +8,27 @@ by connecting students, officers and orgs).
 
 ## What it does
 
-**Members**
+*Members*
 - RSVP to events, see them on a calendar, and download a certificate for events they attended
 - Log volunteer hours for an officer to approve, and see the leaderboard
 - Book peer tutoring sessions and open shared learning resources
 - Read, like and comment on announcements in the dashboard feed
 - Use one account for every org they join, and switch orgs from the menu
-- **People:** browse everyone in the org (officers first), open anyone's profile (hours, events
+- *People:* browse everyone in the org (officers first), open anyone's profile (hours, events
   attended, what they tutor, students helped), add friends, and see the most helpful tutors
 
-**Officers**
+*Officers*
 - Create events (with posters), record attendance and mark events completed
 - Approve or reject volunteer hours and tutoring requests (never their own)
 - Manage the member roster, approve applications and reactivation requests, and export hours as CSV
 - Post announcements and upload the org's logo
 
-**Platform admin**
+*Platform admin*
 - Review requests to register new orgs, then approve or reject them (with a reason)
 - Suspend or reactivate an org
 
 Each org has its own colors (Data Science Society ocean blue, Computer Society navy). A guided tour
-(the **?** button next to the bell) walks through every feature.
+(the *?* button next to the bell) walks through every feature.
 
 ## How things connect
 
@@ -85,7 +85,7 @@ npm run dev                 # http://localhost:5173
 The seeder creates two orgs, Computer Society (CompSoc) and Data Science Society (DSS), with sample
 events, hours, tutoring and announcements, plus a semester of history for the demo (`DemoSeeder`):
 past events with attendance, certificates and volunteer hours (officers miss only one or two), event
-posters, and three events per org on the presentation day, **October 20, 2026** (change it with
+posters, and three events per org on the presentation day, *October 20, 2026* (change it with
 `DEMO_DAY=2026-10-27` in `backend/.env` before seeding). Password for every account: `password123`
 
 | Account | What it shows |
@@ -172,26 +172,26 @@ npm install                 # only if package.json changed
 ```
 
 If something looks off after a big change, `php artisan migrate:fresh --seed` rebuilds the
-database from scratch (this **deletes** everything in your local database).
+database from scratch (this *deletes* everything in your local database).
 
 ## Accounts and passwords
 
-- **Sign up** creates an account and an application to the selected org; an officer approves it.
-  Signing up from **Register your organization** skips the application and opens the org request form.
-- **Officers adding a member** on Members & Hours → Members: a brand-new account gets a
+- *Sign up* creates an account and an application to the selected org; an officer approves it.
+  Signing up from *Register your organization* skips the application and opens the org request form.
+- *Officers adding a member* on Members & Hours → Members: a brand-new account gets a
   temporary password, shown once to the officer to pass on.
-- **Forgot password:** only the platform admin resets it (Admin → **Accounts**) and passes on the new
-  temporary password. Members then change it on **Profile & settings** (click your name in the sidebar).
+- *Forgot password:* only the platform admin resets it (Admin → *Accounts*) and passes on the new
+  temporary password. Members then change it on *Profile & settings* (click your name in the sidebar).
   The admin has a Profile & settings page too (click your name in the admin sidebar).
-- **Remember me** off: you're signed out when the browser closes (and after 12 hours at most).
+- *Remember me* off: you're signed out when the browser closes (and after 12 hours at most).
 - Sign in, sign up and password changes allow 5 attempts per minute.
-- **Personal details are locked** (name, student ID, email, course, year). Officers editing a member
-  change only position and status. The admin corrects mistakes (Admin → Accounts → **Edit details**)
-  and, at the start of a new school year, turns on **Let students update their details** so everyone
+- *Personal details are locked* (name, student ID, email, course, year). Officers editing a member
+  change only position and status. The admin corrects mistakes (Admin → Accounts → *Edit details*)
+  and, at the start of a new school year, turns on *Let students update their details* so everyone
   can update their own on Profile, then turns it off again.
-- **Leaving an org** (Profile → My organizations) asks for a reason, which the officers see.
+- *Leaving an org* (Profile → My organizations) asks for a reason, which the officers see.
   The President hands the role to another officer first.
-- **Org details** (name, description, courses...): the President requests changes with a reason,
+- *Org details* (name, description, courses...): the President requests changes with a reason,
   and they go live only after the platform admin approves.
-- **Finished tutoring** counts as volunteer hours: marking a session completed asks how long it was
+- *Finished tutoring* counts as volunteer hours: marking a session completed asks how long it was
   and logs the hours for the tutor, for an officer to approve.

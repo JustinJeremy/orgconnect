@@ -97,6 +97,9 @@ class ProfileController extends Controller
         $events = Event::whereHas('registrations', fn ($q) => $q->where('user_id', $user->id))
             ->with(['registrations' => fn ($q) => $q->where('user_id', $user->id)])
             ->orderByDesc('date')->get()
+            // Ones still to come first (soonest first), then the ones already done (most recent first)
+            ->sortBy(fn (Event $e) => $e->status !== 'completed' ? '0'.$e->date->format('Y-m-d') : '1'.(99999999 - (int) $e->date->format('Ymd')))
+            ->values()
             ->map(fn (Event $e) => [
                 'id' => $e->id,
                 'title' => $e->title,

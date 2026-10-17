@@ -19,16 +19,24 @@ class PeopleController extends Controller
 {
     use ListsOrPages;
 
-    // GET /api/people?search=&page=  -> active members, officers first (same order as the roster)
+    // GET /api/people?search=&page=  -> active members: your friends first (newest first), then friend
+    // requests waiting for you, then ones you sent, then everyone else (officers first), and you last
     public function index(Request $request)
     {
         $me = $request->user();
+        $states = $this->friendStates($me->id);   // ordered newest first
+        // A position for each person you have a friendship row with (ids are integers from the database)
+        $order = collect(['friends', 'received', 'sent'])
+            ->flatMap(fn ($state) => array_keys(array_filter($states, fn ($s) => $s === $state)))
+            ->map(fn ($id, $i) => 'WHEN '.(int) $id.' THEN '.$i)
+            ->implode(' ');
         $query = User::withMembershipStatus(['Active'])
             ->with('membership')
+            ->orderByRaw('CASE WHEN users.id = ? THEN 2 '.($order ? 'WHEN users.id IN ('.implode(',', array_map('intval', array_keys($states))).') THEN 0 ' : '').'ELSE 1 END', [$me->id])
+            ->when($order, fn ($q) => $q->orderByRaw("CASE users.id {$order} ELSE 0 END"))
             ->orderBy(MembershipRecord::rankIn(Organization::current()->id))
             ->orderBy('name');
         $this->search($request, $query, ['name', 'course'], ['membership' => 'position']);
-        $states = $this->friendStates($me->id);
 
         return $this->listOrPage($request, $query, fn (User $u) => $this->card($u) + [
             'friendship' => $u->id === $me->id ? 'self' : ($states[$u->id] ?? 'none'),
@@ -61,23 +69,49 @@ class PeopleController extends Controller
         ];
     }
 
-    // GET /api/people/helpful  -> the tutors who taught the most completed sessions in this org (top 10)
-    public function helpful()
+    // GET /api/people/helpful  -> { tutors, mine, subjects }
+    //   tutors: who taught the most completed sessions in this org (top 10)
+    //   mine: your own sessions taught, students helped and place in the ranking (null rank: not ranked yet)
+    //   subjects: the tutoring sessions students ask for most (top 5)
+    public function helpful(Request $request)
     {
-        $rows = TutoringRequest::query()
+        $me = $request->user()->id;
+        $all = TutoringRequest::query()
             ->where('tutoring_requests.status', 'Completed')
             ->join('tutoring_sessions as s', 's.id', '=', 'tutoring_requests.tutoring_session_id')
             ->groupBy('s.tutor_id')
             ->selectRaw('s.tutor_id as id, COUNT(*) as sessions, COUNT(DISTINCT tutoring_requests.user_id) as students')
             ->orderByDesc('sessions')->orderByDesc('students')
-            ->limit(10)
             ->get();
         $people = User::withMembershipStatus(['Active', 'Inactive'])->with('membership')
-            ->whereIn('users.id', $rows->pluck('id'))->get()->keyBy('id');
+            ->whereIn('users.id', $all->pluck('id'))->get()->keyBy('id');
+        $ranked = $all->filter(fn ($row) => isset($people[$row->id]))->values();
+        $myRow = $ranked->firstWhere('id', $me);
 
-        return $rows->filter(fn ($row) => isset($people[$row->id]))
-            ->map(fn ($row) => $this->card($people[$row->id]) + ['sessions' => (int) $row->sessions, 'students' => (int) $row->students])
-            ->values();
+        $subjects = TutoringRequest::query()
+            ->where('tutoring_requests.status', '!=', 'Rejected')
+            ->join('tutoring_sessions as s', 's.id', '=', 'tutoring_requests.tutoring_session_id')
+            ->join('users as t', 't.id', '=', 's.tutor_id')
+            ->groupBy('s.id', 's.subject', 's.area', 't.name')
+            ->selectRaw('s.id as id, s.subject as subject, s.area as area, t.name as tutor, COUNT(*) as requests')
+            ->orderByDesc('requests')->orderBy('s.subject')
+            ->limit(5)
+            ->get()
+            ->map(fn ($row) => ['id' => (int) $row->id, 'subject' => $row->subject, 'area' => $row->area, 'tutor' => $row->tutor, 'requests' => (int) $row->requests]);
+
+        return [
+            'tutors' => $ranked->take(10)
+                ->map(fn ($row) => $this->card($people[$row->id]) + ['sessions' => (int) $row->sessions, 'students' => (int) $row->students])
+                ->values(),
+            'mine' => [
+                'sessions' => (int) ($myRow->sessions ?? 0),
+                'students' => (int) ($myRow->students ?? 0),
+                'rank' => $myRow ? $ranked->search(fn ($row) => $row->id === $me) + 1 : null,
+                'of' => $ranked->count(),
+                'teaching' => TutoringSession::where('tutor_id', $me)->count(),
+            ],
+            'subjects' => $subjects,
+        ];
     }
 
     // GET /api/friends  -> { friends, received, sent }  (across every org you're in)
@@ -90,7 +124,8 @@ class PeopleController extends Controller
         $row = fn (Friendship $f) => $this->friendCard($other($f)) + ['since' => ($f->accepted_at ?? $f->created_at)->format('Y-m-d')];
 
         return [
-            'friends' => $rows->where('status', 'Accepted')->sortBy(fn ($f) => $other($f)->name)->map($row)->values(),
+            // Newest friends first, so someone you just accepted is at the top
+            'friends' => $rows->where('status', 'Accepted')->sortByDesc(fn ($f) => $f->accepted_at?->timestamp ?? 0)->map($row)->values(),
             'received' => $rows->where('status', 'Pending')->where('friend_id', $me)->map($row)->values(),
             'sent' => $rows->where('status', 'Pending')->where('user_id', $me)->map($row)->values(),
         ];
@@ -170,10 +205,10 @@ class PeopleController extends Controller
         ];
     }
 
-    // user id => friends | sent | received, for everyone you have a row with
+    // user id => friends | sent | received, for everyone you have a row with (newest first)
     private function friendStates(int $me): array
     {
-        return Friendship::involving($me)->get()
+        return Friendship::involving($me)->orderByRaw('COALESCE(accepted_at, created_at) DESC')->orderByDesc('id')->get()
             ->mapWithKeys(fn (Friendship $f) => [($f->user_id === $me ? $f->friend_id : $f->user_id) => Friendship::stateFor($f, $me)])
             ->all();
     }

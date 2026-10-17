@@ -14,7 +14,7 @@ const NAV = [
   {
     target: ".nav",
     title: "Main menu",
-    body: "Dashboard, Events, Members & Hours, Peer Tutoring, People and Announcements. The tour visits each of them next.",
+    body: "Dashboard, Events, Peer Tutoring, People, Members & Hours and Announcements. The tour visits each of them next.",
   },
   {
     target: '[data-tour="notifications"]',
@@ -90,7 +90,7 @@ const PEOPLE = {
       click: '[data-tour="tab-helpful"]',
       target: ['[data-tour="people-helpful"]', ".page .empty-state"],
       title: "Most helpful",
-      body: "Tutors ranked by completed peer tutoring sessions and how many students they've helped.",
+      body: "Tutors ranked by completed peer tutoring sessions. Beside it: your own tutoring and rank, and the subjects students ask for most (click one to open that session).",
     },
   ],
 };
@@ -186,6 +186,48 @@ const OFFICER = [
     ],
   },
   {
+    key: "tutoring",
+    label: "Peer Tutoring",
+    steps: [
+      {
+        page: "tutoring",
+        click: '[data-tour="tab-sessions"]',
+        target: '[data-tour="tutoring-tabs"]',
+        title: "Sessions, requests and resources",
+        body: "Tutoring sessions members can join, the requests they send, and shared study materials.",
+      },
+      {
+        page: "tutoring",
+        click: '[data-tour="tab-sessions"]',
+        target: '[data-tour="session-post"]',
+        title: "Post a session",
+        body: "Any member can tutor. Give the subject, area, schedule, place and number of open slots.",
+      },
+      {
+        page: "tutoring",
+        click: '[data-tour="tab-sessions"]',
+        target: [".card-grid > .session-card:not(.skeleton-card)", ".page .empty-state"],
+        title: "Session cards",
+        body: "Members request a slot here. Officers and the tutor can edit or delete the session.",
+      },
+      {
+        page: "tutoring",
+        click: '[data-tour="tab-requests"]',
+        target: '[data-tour="tutoring-requests"]',
+        title: "Answer requests",
+        body: "Approve or reject each request; approving uses one slot. After the session, mark it completed.",
+      },
+      {
+        page: "tutoring",
+        click: '[data-tour="tab-resources"]',
+        target: '[data-tour="resource-share"]',
+        title: "Share resources",
+        body: "Post links to notes, reviewers and videos, tagged by subject so members can find them.",
+      },
+    ],
+  },
+  PEOPLE,
+  {
     key: "hours",
     label: "Members & Hours",
     steps: [
@@ -236,48 +278,6 @@ const OFFICER = [
       },
     ],
   },
-  {
-    key: "tutoring",
-    label: "Peer Tutoring",
-    steps: [
-      {
-        page: "tutoring",
-        click: '[data-tour="tab-sessions"]',
-        target: '[data-tour="tutoring-tabs"]',
-        title: "Sessions, requests and resources",
-        body: "Tutoring sessions members can join, the requests they send, and shared study materials.",
-      },
-      {
-        page: "tutoring",
-        click: '[data-tour="tab-sessions"]',
-        target: '[data-tour="session-post"]',
-        title: "Post a session",
-        body: "Any member can tutor. Give the subject, area, schedule, place and number of open slots.",
-      },
-      {
-        page: "tutoring",
-        click: '[data-tour="tab-sessions"]',
-        target: [".card-grid > .session-card:not(.skeleton-card)", ".page .empty-state"],
-        title: "Session cards",
-        body: "Members request a slot here. Officers and the tutor can edit or delete the session.",
-      },
-      {
-        page: "tutoring",
-        click: '[data-tour="tab-requests"]',
-        target: '[data-tour="tutoring-requests"]',
-        title: "Answer requests",
-        body: "Approve or reject each request; approving uses one slot. After the session, mark it completed.",
-      },
-      {
-        page: "tutoring",
-        click: '[data-tour="tab-resources"]',
-        target: '[data-tour="resource-share"]',
-        title: "Share resources",
-        body: "Post links to notes, reviewers and videos, tagged by subject so members can find them.",
-      },
-    ],
-  },
-  PEOPLE,
   {
     key: "announcements",
     label: "Announcements",
@@ -364,24 +364,6 @@ const MEMBER = [
     ],
   },
   {
-    key: "hours",
-    label: "Volunteer hours",
-    steps: [
-      {
-        page: "hours",
-        target: '[data-tour="log-hours"]',
-        title: "Log volunteer hours",
-        body: "Enter what you did, the date and how many hours. An officer verifies each log.",
-      },
-      {
-        page: "hours",
-        target: '[data-tour="my-logs"]',
-        title: "Track your logs",
-        body: "See each log's status (pending, approved or rejected). You can delete a log while it's still pending.",
-      },
-    ],
-  },
-  {
     key: "tutoring",
     label: "Peer Tutoring",
     steps: [
@@ -416,6 +398,24 @@ const MEMBER = [
     ],
   },
   PEOPLE,
+  {
+    key: "hours",
+    label: "Volunteer hours",
+    steps: [
+      {
+        page: "hours",
+        target: '[data-tour="log-hours"]',
+        title: "Log volunteer hours",
+        body: "Enter what you did, the date and how many hours. An officer verifies each log.",
+      },
+      {
+        page: "hours",
+        target: '[data-tour="my-logs"]',
+        title: "Track your logs",
+        body: "See each log's status (pending, approved or rejected). You can delete a log while it's still pending.",
+      },
+    ],
+  },
   {
     key: "announcements",
     label: "Announcements",

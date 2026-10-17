@@ -70,3 +70,16 @@ export function slug(text = "") {
 export const isCompleted = (e) => e.status === "completed";
 export const attendedCount = (e) => e.registrations.filter((r) => r.status === "attended").length;
 export const myRegistration = (e, userId) => e.registrations.find((r) => r.userId === userId);
+
+// "Blockchain, smart contracts, Blockchain" -> ["Blockchain", "smart contracts"] (trimmed, no blanks or repeats, at most 8)
+export const splitTopics = (text) =>
+  [...new Set(text.split(",").map((t) => t.trim().slice(0, 40)).filter(Boolean))].slice(0, 8);
+
+// 2.5 -> "2.5 hours", 1 -> "1 hour", 1.25 -> "1 hr 15 min", 0.75 -> "45 min"
+export function hoursText(value) {
+  const h = Number(value) || 0;
+  if (Number.isInteger(h * 2)) return `${h} ${h === 1 ? "hour" : "hours"}`;
+  const whole = Math.floor(h);
+  const minutes = Math.round((h - whole) * 60);
+  return whole ? `${whole} hr ${minutes} min` : `${minutes} min`;
+}

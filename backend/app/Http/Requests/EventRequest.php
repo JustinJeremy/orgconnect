@@ -24,6 +24,9 @@ class EventRequest extends FormRequest
             'mode' => 'required|in:' . implode(',', self::MODES),
             'capacity' => 'required|integer|min:1',
             'description' => 'nullable|string|max:2000',
+            // What it covers, e.g. ["Blockchain", "Smart contracts"]
+            'topics' => 'nullable|array|max:8',
+            'topics.*' => 'string|distinct|max:40',
         ];
     }
 

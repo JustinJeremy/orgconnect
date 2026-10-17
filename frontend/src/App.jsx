@@ -435,6 +435,20 @@ function MainApp() {
     setFocus({ page: "events", eventId: event.id, eventTitle: event.title, key: Date.now() });
   };
 
+  // Dashboard "Needs Review" > View All: the page for the tab that is open
+  //   hours -> Members & Hours (hour logs); tutoring -> Peer Tutoring requests; memberships -> Members & Hours requests
+  const openReview = (tab) => {
+    if (tab === "tutoring") {
+      setPage("tutoring");
+      setFocus({ page: "tutoring", kind: "request", view: "received", key: Date.now() });
+    } else if (tab === "memberships") {
+      setPage("hours");
+      setFocus({ page: "hours", kind: "applications", key: Date.now() });
+    } else {
+      setPage("hours");
+    }
+  };
+
   // Dashboard calendar: open Peer Tutoring on that session
   const openSession = (session) => {
     setPage("tutoring");
@@ -504,6 +518,7 @@ function MainApp() {
             announcements={announcements}
             onOpenEvent={openEvent}
             onOpenSession={openSession}
+            onOpenReview={openReview}
           />
         ) : (
           <>
@@ -513,7 +528,7 @@ function MainApp() {
             {page === "hours" && <VolunteerHours key={pageReset} {...pageProps} hours={hours} members={members} focus={focusFor("hours")} onFocusDone={clearFocus} />}
             {page === "tutoring" && <Tutoring key={pageReset} {...pageProps} actions={tutoring} focus={focusFor("tutoring")} onFocusDone={clearFocus} />}
             {page === "announcements" && <Announcements key={pageReset} {...pageProps} actions={announcements} focus={focusFor("announcements")} onFocusDone={clearFocus} />}
-            {page === "people" && <People key={pageReset} {...pageProps} focus={focusFor("people")} onFocusDone={clearFocus} />}
+            {page === "people" && <People key={pageReset} {...pageProps} focus={focusFor("people")} onFocusDone={clearFocus} onOpenSession={openSession} />}
             {page === "profile" && <Profile key={pageReset} {...pageProps} />}
             {page === "notifications" && <Notifications key={pageReset} {...pageProps} onOpen={openNotification} onMarkAllRead={markNotificationsRead} />}
           </>
