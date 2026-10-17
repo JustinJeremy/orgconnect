@@ -10,6 +10,7 @@ import { membersApi } from "../api/services.js";
 import usePagedList from "../hooks/usePagedList.js";
 import { formatDate } from "../utils/format.js";
 import { UserAvatar } from "./Avatars.jsx";
+import { usePeople } from "../context/PeopleContext.jsx";
 
 const PER_PAGE = 10;
 const EMPTY = { name: "", email: "", position: "Member", status: "Active" };
@@ -127,6 +128,7 @@ function MemberForm({ member, onSave, onCancel, isPresident }) {
 // Forgotten passwords: only the OrgConnect admin resets them (Admin → Accounts)
 export default function MemberList({ members, onSave, onRemove }) {
   const { user } = useAuth();
+  const { openPerson } = usePeople();
   // President, VPs and Secretary manage members; only the President manages officers; nobody edits themselves
   const canManage = (m) => user.canManageMembers && m.id !== user.id && (m.position === "Member" || user.isPresident);
   const [search, setSearch] = useState("");
@@ -188,13 +190,13 @@ export default function MemberList({ members, onSave, onRemove }) {
                 {list.items.map((m) => (
                   <tr key={m.id}>
                     <td>
-                      <div className="person">
+                      <button type="button" className="person person-open" onClick={() => openPerson(m.id)} title={`View ${m.name}'s profile`}>
                         <UserAvatar user={m} className="sm" />
                         <div>
                           <div className="strong">{m.name}</div>
                           <div className="muted small">{m.email}</div>
                         </div>
-                      </div>
+                      </button>
                     </td>
                     <td>{m.position}</td>
                     <td className="muted nowrap">{formatDate(m.joinDate)}</td>

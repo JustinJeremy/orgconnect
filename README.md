@@ -14,6 +14,8 @@ by connecting students, officers and orgs).
 - Book peer tutoring sessions and open shared learning resources
 - Read, like and comment on announcements in the dashboard feed
 - Use one account for every org they join, and switch orgs from the menu
+- **People:** browse everyone in the org (officers first), open anyone's profile (hours, events
+  attended, what they tutor, students helped), add friends, and see the most helpful tutors
 
 **Officers**
 - Create events (with posters), record attendance and mark events completed
@@ -37,6 +39,8 @@ Each org has its own colors (Data Science Society ocean blue, Computer Society n
 | Using it again after being made inactive | You see the officer's reason, send a reactivation request, and an officer approves it |
 | A certificate | You RSVP, attend, and an officer records attendance and completes the event |
 | Hours counting on the leaderboard | An officer approves your log |
+| Being friends | You send a request (People page or their profile) and they accept it; friends see each other's email |
+| A place on "Most helpful" | You tutor a session and mark the request completed |
 | A suspended org working again | The admin reactivates it |
 
 ## Folders

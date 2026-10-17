@@ -14,7 +14,7 @@ const NAV = [
   {
     target: ".nav",
     title: "Main menu",
-    body: "Dashboard, Events, Members & Hours, Peer Tutoring and Announcements. The tour visits each of them next.",
+    body: "Dashboard, Events, Members & Hours, Peer Tutoring, People and Announcements. The tour visits each of them next.",
   },
   {
     target: '[data-tour="notifications"]',
@@ -66,6 +66,35 @@ const FINISH = {
   body: "Open this help button any time to replay the full tour or just one section.",
 };
 
+// Same for officers and members
+const PEOPLE = {
+  key: "people",
+  label: "People",
+  steps: [
+    {
+      page: "people",
+      click: '[data-tour="tab-members"]',
+      target: '[data-tour="people-directory"]',
+      title: "Everyone in your org",
+      body: "Officers first, then members. Click a name to open their profile: what they've done here and what they tutor. Add friends straight from here.",
+    },
+    {
+      page: "people",
+      click: '[data-tour="tab-friends"]',
+      target: '[data-tour="friends-list"]',
+      title: "Friends",
+      body: "Your friends, from any org you're in. Requests waiting for you show above, with Accept and Decline. Friends can see each other's email.",
+    },
+    {
+      page: "people",
+      click: '[data-tour="tab-helpful"]',
+      target: ['[data-tour="people-helpful"]', ".page .empty-state"],
+      title: "Most helpful",
+      body: "Tutors ranked by completed peer tutoring sessions and how many students they've helped.",
+    },
+  ],
+};
+
 const OFFICER = [
   {
     key: "dashboard",
@@ -105,6 +134,12 @@ const OFFICER = [
         target: '[data-tour="leaders"]',
         title: "Top volunteers",
         body: "Members ranked by approved volunteer hours, for recognition.",
+      },
+      {
+        page: "dashboard",
+        target: '[data-tour="dash-friends"]',
+        title: "Friends",
+        body: "Your friends at a glance, and any friend requests waiting for you. Click a name to see their profile.",
       },
       ...NAV.map((s) => ({ page: "dashboard", ...s })),
     ],
@@ -242,6 +277,7 @@ const OFFICER = [
       },
     ],
   },
+  PEOPLE,
   {
     key: "announcements",
     label: "Announcements",
@@ -289,7 +325,13 @@ const MEMBER = [
         page: "dashboard",
         target: '[data-tour="suggestions"]',
         title: "Suggestions",
-        body: "Peer tutors with open slots, and tutoring sessions in subjects you haven't tried yet.",
+        body: "Peer tutors with open slots (click one to see their profile), and tutoring sessions in subjects you haven't tried yet.",
+      },
+      {
+        page: "dashboard",
+        target: '[data-tour="dash-friends"]',
+        title: "Friends",
+        body: "Your friends at a glance, and any friend requests waiting for you. Click a name to see their profile.",
       },
       ...NAV.map((s) => ({ page: "dashboard", ...s })),
     ],
@@ -373,6 +415,7 @@ const MEMBER = [
       },
     ],
   },
+  PEOPLE,
   {
     key: "announcements",
     label: "Announcements",

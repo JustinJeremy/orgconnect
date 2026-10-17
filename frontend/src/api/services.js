@@ -121,6 +121,17 @@ export const hoursApi = {
   leaderboard: () => get("/leaderboard"),
 };
 
+// People in the selected org, their profiles, the most helpful tutors, and your friends
+export const peopleApi = {
+  page: getPage("/people"), // { search, page, perPage } -> active members, officers first, with your friendship to each
+  show: (id) => get(`/people/${id}`), // -> profile: details, stats, tutoring subjects, friendship
+  helpful: () => get("/people/helpful"), // -> top tutors by completed sessions
+  friends: () => get("/friends"), // -> { friends, received, sent }
+  add: (id) => post(`/friends/${id}`), // send a request (or accept theirs) -> { friendship }
+  accept: (id) => patch(`/friends/${id}`),
+  remove: (id) => del(`/friends/${id}`), // decline, cancel or unfriend
+};
+
 export const membersApi = {
   list: () => get("/members"),
   page: getPage("/members"), // { search, page, perPage }

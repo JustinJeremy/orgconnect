@@ -5,8 +5,11 @@ import EmptyState from "../components/EmptyState.jsx";
 import ApprovalCenter from "../components/ApprovalCenter.jsx";
 import EventCalendar from "../components/EventCalendar.jsx";
 import FeedPost from "../components/FeedPost.jsx";
+import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
+import { usePeople } from "../context/PeopleContext.jsx";
 import { UserAvatar } from "../components/Avatars.jsx";
+import { peopleApi } from "../api/services.js";
 import {
   attendedCount,
   dateParts,
@@ -30,6 +33,7 @@ function ViewAll({ onClick, label = "View all" }) {
 }
 
 function Leaderboard({ leaders, loading, currentUserId }) {
+  const { openPerson } = usePeople();
   if (loading) return <div className="skeleton-list" aria-hidden="true"><span /><span /><span /></div>;
   if (leaders.length === 0) {
     return <EmptyState compact title="No hours yet" text="Members appear here once their hours are approved." />;
@@ -41,11 +45,13 @@ function Leaderboard({ leaders, loading, currentUserId }) {
         return (
           <li key={l.id} className={me ? "is-me" : ""}>
             <span className="leader-rank">{i + 1}</span>
-            <UserAvatar user={l} className="leader-avatar" />
-            <span className="leader-name">
-              {l.name}
-              {me && " (you)"}
-            </span>
+            <button type="button" className="helpful-person" onClick={() => openPerson(l.id)}>
+              <UserAvatar user={l} className="leader-avatar" />
+              <span className="leader-name">
+                {l.name}
+                {me && " (you)"}
+              </span>
+            </button>
             <span className="leader-hours">{l.hours} hrs</span>
           </li>
         );
@@ -201,6 +207,7 @@ function OfficerDashboard({ header, data, loading, onNavigate, onOpenEvent, onOp
 
       <DashboardRail events={events} sessions={sessions} requests={requests} userId={user.id} onNavigate={onNavigate} onOpenEvent={onOpenEvent} onOpenSession={onOpenSession}>
         <TopVolunteers leaders={leaderboard} loading={loading} currentUserId={user.id} />
+        <FriendsCard onNavigate={onNavigate} />
       </DashboardRail>
     </div>
   );
@@ -220,7 +227,59 @@ function latestRecognition(notifications) {
   return null;
 }
 
+// Your friends, under the calendar: up to 4, plus how many requests are waiting.
+// Same card and list as Suggestions; a name opens their profile.
+function FriendsCard({ onNavigate }) {
+  const { openPerson, friendsVersion } = usePeople();
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    peopleApi.friends().then(setData).catch(() => setData({ friends: [], received: [], sent: [] }));
+  }, [friendsVersion]);
+
+  const friends = data?.friends ?? [];
+  const waiting = data?.received.length ?? 0;
+
+  return (
+    <section className="rail-section" data-tour="dash-friends">
+      <div className="rail-head">
+        <h2>Friends</h2>
+        <button type="button" className="rail-link" onClick={() => onNavigate("people")}>
+          {friends.length ? "See all" : "Find people"} <Icon name="arrowRight" size={16} />
+        </button>
+      </div>
+      <div className="suggest-card">
+        {waiting > 0 && (
+          <button type="button" className="friend-requests-note" onClick={() => onNavigate("people")}>
+            <Icon name="users" size={15} /> {plural(waiting, "friend request")} waiting
+          </button>
+        )}
+        {!data ? (
+          <div className="skeleton-list" aria-hidden="true"><span /><span /></div>
+        ) : friends.length === 0 ? (
+          <p className="muted small">No friends yet. Add people you know from the People page.</p>
+        ) : (
+          <ul className="suggest-list">
+            {friends.slice(0, 4).map((f) => (
+              <li key={f.id}>
+                <button type="button" className="suggest-item" onClick={() => openPerson(f.id)}>
+                  <UserAvatar user={f} className="suggest-avatar" />
+                  <span className="suggest-text">
+                    <strong>{f.name}</strong>
+                    <span>{f.inThisOrg ? [f.position !== "Member" ? f.position : null, f.course, f.yearLevel].filter(Boolean).join(" · ") : `In ${f.orgs.join(", ")}`}</span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function Suggestions({ user, sessions, requests, onNavigate }) {
+  const { openPerson } = usePeople();
   const open = sessions.filter((s) => s.slots > 0 && s.tutorId !== user.id);
 
   // Tutors with open slots (one entry per tutor)
@@ -248,7 +307,7 @@ function Suggestions({ user, sessions, requests, onNavigate }) {
           <ul className="suggest-list">
             {tutors.slice(0, 3).map((t) => (
               <li key={t.id}>
-                <button type="button" className="suggest-item" onClick={() => onNavigate("tutoring")}>
+                <button type="button" className="suggest-item" onClick={() => openPerson(t.id)}>
                   <UserAvatar user={t} className="suggest-avatar" />
                   <span className="suggest-text">
                     <strong>{t.name}</strong>
@@ -419,6 +478,7 @@ function MemberDashboard({ header, data, loading, onNavigate, onOpenEvent, onOpe
 
       <DashboardRail events={events} sessions={sessions} requests={requests} userId={user.id} onNavigate={onNavigate} onOpenEvent={onOpenEvent} onOpenSession={onOpenSession}>
         <Suggestions user={user} sessions={sessions} requests={requests} onNavigate={onNavigate} />
+        <FriendsCard onNavigate={onNavigate} />
       </DashboardRail>
     </div>
   );

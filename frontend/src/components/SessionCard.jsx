@@ -3,6 +3,7 @@ import Icon from "./Icon.jsx";
 import { StatusBadge } from "./Badges.jsx";
 import { parseSchedule, weeklyDates } from "../utils/schedule.js";
 import { UserAvatar } from "./Avatars.jsx";
+import { usePeople } from "../context/PeopleContext.jsx";
 
 // The next date a weekly session meets, e.g. "Fri, Oct 23" (today counts until its start time)
 function nextMeeting(schedule) {
@@ -17,6 +18,7 @@ function nextMeeting(schedule) {
 
 export default function SessionCard({ session, myRequest, canManage, canRequest, onRequest, onEdit, onDelete, highlighted }) {
   const [busy, setBusy] = useState(false);
+  const { openPerson } = usePeople();
   const next = nextMeeting(session.schedule);
 
   const request = async () => {
@@ -44,10 +46,10 @@ export default function SessionCard({ session, myRequest, canManage, canRequest,
         )}
       </div>
 
-      <div className="tutor">
+      <button type="button" className="tutor tutor-link" onClick={() => openPerson(session.tutorId)} title={`View ${session.tutorName}'s profile`}>
         <UserAvatar user={{ name: session.tutorName, ...session.tutorAvatar }} className="xs" />
         <span>{session.tutorName}</span>
-      </div>
+      </button>
 
       <div className="event-meta">
         <span>

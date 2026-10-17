@@ -6,6 +6,7 @@ use App\Models\Announcement;
 use App\Models\AnnouncementComment;
 use App\Models\Certificate;
 use App\Models\Event;
+use App\Models\Friendship;
 use App\Models\MembershipRecord;
 use App\Models\Organization;
 use App\Models\TutoringRequest;
@@ -100,7 +101,42 @@ class DemoSeeder extends Seeder
         }
         Organization::setCurrent(null);
 
+        $this->friends();
         $this->attachPosters();
+    }
+
+    // Friends for the sample accounts, including requests waiting for Juan (member@) and Maria (officer@)
+    private const FRIENDS = [
+        // sender, receiver, accepted?
+        ['member@orgconnect.test', 'joanna.uy@orgconnect.test', true],
+        ['mark.delarosa@orgconnect.test', 'member@orgconnect.test', true],
+        ['member@orgconnect.test', 'leo.manalo@orgconnect.test', true],
+        ['isabel.cruz@orgconnect.test', 'member@orgconnect.test', true],
+        ['member@orgconnect.test', 'carlo.mendoza@orgconnect.test', true],
+        ['officer@orgconnect.test', 'leo.manalo@orgconnect.test', true],
+        ['angela.rivera@orgconnect.test', 'officer@orgconnect.test', true],
+        ['officer@orgconnect.test', 'nico.fernandez@orgconnect.test', true],
+        ['isabel.cruz@orgconnect.test', 'denise.tan@orgconnect.test', true],
+        ['gabriel.aquino@orgconnect.test', 'isabel.cruz@orgconnect.test', true],
+        ['bianca.torres@orgconnect.test', 'member@orgconnect.test', false],
+        ['sofia.garcia@orgconnect.test', 'member@orgconnect.test', false],
+        ['member@orgconnect.test', 'ryan.castillo@orgconnect.test', false],
+        ['patricia.lim@orgconnect.test', 'officer@orgconnect.test', false],
+    ];
+
+    private function friends(): void
+    {
+        $ids = User::whereIn('email', collect(self::FRIENDS)->flatMap(fn ($f) => [$f[0], $f[1]]))->pluck('id', 'email');
+        foreach (self::FRIENDS as $i => [$from, $to, $accepted]) {
+            if (! isset($ids[$from], $ids[$to])) {
+                continue;
+            }
+            $since = Carbon::parse(env('DEMO_DAY', '2026-10-20'))->subDays(60 - $i * 4);
+            Friendship::updateOrCreate(['user_id' => $ids[$from], 'friend_id' => $ids[$to]], [
+                'status' => $accepted ? 'Accepted' : 'Pending',
+                'accepted_at' => $accepted ? $since : null,
+            ]);
+        }
     }
 
     private function seedOrg(Organization $org, array $events, Carbon $day): void
@@ -239,11 +275,24 @@ class DemoSeeder extends Seeder
             $booked = $options[$this->hash($email, 'tutoring') % $options->count()];
             $booked->requests()->updateOrCreate(['user_id' => $m->user_id], ['status' => 'Confirmed']);
 
-            // Anything else this seeder booked them into before is removed
+            // Anything else this seeder booked them into before is removed (but not past sessions, below)
             TutoringRequest::where('user_id', $m->user_id)
                 ->whereIn('tutoring_session_id', $options->pluck('id'))
                 ->where('tutoring_session_id', '!=', $booked->id)
+                ->where('status', '!=', 'Completed')
                 ->delete();
+
+            // One or two sessions they already finished this semester, for the "Most helpful" ranking
+            $done = $options->reject(fn ($s) => $s->id === $booked->id)
+                ->sortBy(fn ($s) => $this->hash($email, "done{$s->id}"))
+                ->take(1 + $this->hash($email, 'done') % 2);
+            foreach ($done as $s) {
+                $row = $s->requests()->updateOrCreate(['user_id' => $m->user_id], ['status' => 'Completed']);
+                // Earlier in the semester, so they list after current requests
+                $when = Carbon::parse(env('DEMO_DAY', '2026-10-20'))->subDays(20 + $this->hash($email, "when{$s->id}") % 60);
+                $row->timestamps = false;
+                $row->forceFill(['created_at' => $when, 'updated_at' => $when])->save();
+            }
         }
     }
 
