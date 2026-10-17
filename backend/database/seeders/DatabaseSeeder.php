@@ -47,16 +47,22 @@ class DatabaseSeeder extends Seeder
         $this->sampleAvatars();
     }
 
-    // Sample members get an avatar character, or (about a third of them) just their initials,
-    // so signing in goes straight to the app (new sign-ups still see the avatar picker).
-    // Never touches accounts that already chose one.
+    // Only these sample accounts show just their initials (2–3 per org); the rest get an avatar character
+    private const INITIALS_ONLY = [
+        'officer@orgconnect.test', 'joanna.uy@orgconnect.test', 'patricia.lim@orgconnect.test',
+        'bea.navarro@orgconnect.test', 'denise.tan@orgconnect.test',
+    ];
+
+    // Sample members get an avatar character (a few keep just their initials), so signing in goes
+    // straight to the app (new sign-ups still see the avatar picker). Leaves uploaded photos alone.
     private function sampleAvatars(): void
     {
-        $choices = [...User::AVATARS, 'initials', 'initials', 'initials', 'initials'];
         User::where('email', 'like', '%@orgconnect.test')
             ->where('is_admin', false)
-            ->whereNull('avatar')
-            ->each(fn (User $user) => $user->update(['avatar' => $choices[crc32($user->email) % count($choices)]]));
+            ->where(fn ($q) => $q->whereNull('avatar')->orWhereIn('avatar', [...User::AVATARS, 'initials']))
+            ->each(fn (User $user) => $user->update(['avatar' => in_array($user->email, self::INITIALS_ONLY, true)
+                ? 'initials'
+                : User::AVATARS[crc32($user->email) % count(User::AVATARS)]]));
     }
 
     // The platform admin, and one org registration waiting for review

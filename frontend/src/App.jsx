@@ -447,7 +447,10 @@ function MainApp() {
       ? {
           // Figma: officers get a greeting, members a plain "Dashboard"
           title: isOfficer ? `${greeting()}, ${user.name.split(" ")[0]}` : "Dashboard",
-          subtitle: new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }),
+          // Officers also see their position, e.g. "President · Saturday, October 17"
+          subtitle: [isOfficer ? user.position : null, new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })]
+            .filter(Boolean)
+            .join(" · "),
         }
       : { title: PAGE_META[page].title }; // Figma: page titles stand alone, no subtitle
 
