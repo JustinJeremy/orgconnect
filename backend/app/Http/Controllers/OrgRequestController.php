@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Organization;
+use App\Support\OrgThemes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 // Students asking to bring a new organization onto OrgConnect.
@@ -36,7 +38,10 @@ class OrgRequestController extends Controller
             'courses' => 'required|array|min:1|max:20',
             'courses.*' => 'required|string|max:20|distinct:ignore_case',
             'proofUrl' => 'nullable|url|max:500',
+            // One of the org colors no other org has (app/Support/OrgThemes.php); none: the default navy
+            'themeKey' => ['nullable', Rule::in(array_keys(OrgThemes::PRESETS)), Rule::notIn(OrgThemes::taken())],
         ], [
+            'themeKey.not_in' => 'Another organization already uses this color. Pick a different one.',
             'name.unique' => 'An organization with this name is already on OrgConnect.',
             'courses.required' => 'Pick at least one course that can join.',
         ]);
@@ -58,7 +63,7 @@ class OrgRequestController extends Controller
             'email' => $data['email'],
             'courses' => array_values(array_map(fn ($c) => strtoupper(trim($c)), $data['courses'])),
             'proof_url' => $data['proofUrl'] ?? null,
-            'theme' => [],   // the default palette until the org picks its own
+            'theme' => ! empty($data['themeKey']) ? OrgThemes::theme($data['themeKey']) : [],   // the default navy when none is picked
         ]);
 
         return response()->json($org->fresh()->toRequest(), 201);

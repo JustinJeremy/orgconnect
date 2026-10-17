@@ -6,6 +6,7 @@ import { useOrg } from "../context/OrgContext.jsx";
 import { orgsApi } from "../api/services.js";
 import { errorMessage } from "../api/client.js";
 import { shortDate } from "../utils/format.js";
+import { ColorPicker } from "./OrgColors.jsx";
 
 // President only (Profile): ask to change the org's details. An OrgConnect admin reviews the
 // request (with the reason) before anything changes; the latest request's status shows here.
@@ -23,7 +24,7 @@ const FIELDS = [
   { key: "meetingSchedule", label: "Meeting schedule", half: true },
   { key: "membershipFee", label: "Membership fee", half: true },
 ];
-export const FIELD_LABELS = { ...Object.fromEntries(FIELDS.map((f) => [f.key, f.label])), courses: "Courses that can join" };
+export const FIELD_LABELS = { ...Object.fromEntries(FIELDS.map((f) => [f.key, f.label])), courses: "Courses that can join", color: "Color" };
 
 export default function OrgDetailsChange({ flash }) {
   const { current: org } = useOrg();
@@ -79,6 +80,7 @@ function ChangeForm({ org, onClose, onSent }) {
   const [courses, setCourses] = useState(org.courses || []);
   const [newCourse, setNewCourse] = useState("");
   const [reason, setReason] = useState("");
+  const [themeKey, setThemeKey] = useState(""); // "" keeps the current color
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -100,6 +102,7 @@ function ChangeForm({ org, onClose, onSent }) {
       if ((form[key] || "").trim() !== (org[key] ?? "").toString().trim()) data[key] = form[key].trim();
     });
     if (courses.join(",") !== (org.courses || []).join(",")) data.courses = courses;
+    if (themeKey) data.themeKey = themeKey;
     if (!Object.keys(data).length) return setError("Change at least one detail.");
     if (!courses.length) return setError("Keep at least one course.");
     if (!reason.trim()) return setError("Say why the details are changing.");
@@ -158,6 +161,7 @@ function ChangeForm({ org, onClose, onSent }) {
             <button type="button" className="btn btn-outline" onClick={addCourse} disabled={!newCourse.trim()}><Icon name="plus" size={16} /> Add</button>
           </div>
         </fieldset>
+        <ColorPicker value={themeKey} onChange={(k) => { setThemeKey(k); setError(""); }} current={org.color} label="Color" />
         <div className="field">
           <label htmlFor="oc-reason">Reason for the change <span className="muted">(shown to the admin)</span></label>
           <textarea id="oc-reason" className="input" rows="3" maxLength={1000} placeholder="e.g. The officers voted on a new tagline at the general assembly." value={reason} onChange={(e) => { setReason(e.target.value); setError(""); }} />

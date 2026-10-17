@@ -56,14 +56,17 @@ class HourController extends Controller
         abort_unless($hour->status === 'Pending', 422, "This log was already {$hour->status}.");
         $data = $request->validated();
 
+        $rejected = $data['status'] === 'Rejected';
+        $reason = $rejected ? trim($data['reason']) : null;
         $hour->update([
             'status' => $data['status'],
             'reviewed_by' => $request->user()->id,
+            'rejection_reason' => $reason,
         ]);
 
         UserNotification::send(
             $hour->user_id,
-            "Your {$hour->hours} hrs for {$hour->activity} were " . strtolower($data['status']),
+            "Your {$hour->hours} hrs for {$hour->activity} were " . strtolower($data['status']) . ($rejected ? ". Reason: {$reason}" : ''),
             "hours/{$hour->id}"
         );
 

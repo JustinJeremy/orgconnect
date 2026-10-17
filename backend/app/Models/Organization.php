@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Organization extends Model
 {
     protected $fillable = [
-        'slug', 'status', 'requested_by', 'proof_url', 'review_note', 'reviewed_at', 'name', 'short_name', 'college', 'tagline', 'description', 'mission', 'vision', 'founded_year',
+        'slug', 'status', 'requested_by', 'proof_url', 'review_note', 'suspension_reason', 'reviewed_at', 'name', 'short_name', 'college', 'tagline', 'description', 'mission', 'vision', 'founded_year',
         'adviser', 'email', 'facebook_url', 'office', 'meeting_schedule', 'membership_fee', 'courses', 'tutoring_areas', 'theme', 'logo_path',
     ];
 
@@ -53,6 +53,7 @@ class Organization extends Model
             'submittedAt' => $this->created_at?->format('Y-m-d'),
             'reviewedAt' => $this->reviewed_at?->format('Y-m-d'),
             'reviewNote' => $this->review_note,
+            'color' => \App\Support\OrgThemes::describe($this->theme),   // the color they picked
         ];
     }
 
@@ -104,6 +105,7 @@ class Organization extends Model
             'courses' => $this->courses ?? [],
             'tutoringAreas' => $this->tutoringAreas(),
             'theme' => $this->theme,
+            'color' => \App\Support\OrgThemes::describe($this->theme),   // its name and swatch
             // ?v= changes on every upload so browsers don't keep showing the old logo
             'logoUrl' => $this->logo_path ? url("/api/organizations/{$this->slug}/logo").'?v='.$this->updated_at?->timestamp : null,
             'memberCount' => $this->memberships()->where('status', 'Active')->count(),

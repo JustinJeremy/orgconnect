@@ -13,7 +13,7 @@ class TutoringRequest extends Model
         static::addGlobalScope('organization', fn ($query) => $query->whereHas('session'));
     }
 
-    protected $fillable = ['tutoring_session_id', 'user_id', 'status'];
+    protected $fillable = ['tutoring_session_id', 'user_id', 'status', 'rejection_reason'];
 
     public function session(): BelongsTo
     {
@@ -35,6 +35,7 @@ class TutoringRequest extends Model
             'requesterAvatar' => $this->user?->avatarData(),
             'yearLevel' => $this->user?->year_level,
             'status' => $this->status,
+            'rejectionReason' => $this->rejection_reason,   // why the tutor or an officer said no
         ];
     }
 }

@@ -201,7 +201,7 @@ export default function AdminAccounts({ flash }) {
                         </div>
                       </div>
                     </td>
-                    <td className="muted">{u.studentId}</td>
+                    <td className="muted nowrap">{u.studentId}</td>
                     <td>
                       {u.orgs.length === 0 ? (
                         <span className="muted small">None</span>

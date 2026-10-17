@@ -82,7 +82,13 @@ export const orgRequestsApi = {
 export const adminApi = {
   overview: () => get("/admin/overview"), // -> { stats, requests: [OrgRequest], organizations: [...] }
   decide: (id, decision, extra = {}) => patch(`/admin/org-requests/${id}`, { decision, ...extra }), // Approved | Rejected
-  setStatus: (id, status) => patch(`/admin/organizations/${id}`, { status }), // Active | Suspended
+  setStatus: (id, status, reason = null) => patch(`/admin/organizations/${id}`, { status, reason }), // Active | Suspended (reason required)
+  organization: (id) => get(`/admin/organizations/${id}`), // -> everything about one org (the "View" pop-up)
+  announcements: () => get("/admin/announcements"), // -> sent announcements with each org's reply thread
+  sendAnnouncement: (data) => post("/admin/announcements", data), // { title, content, audience, organizationIds }
+  deleteAnnouncement: (id) => del(`/admin/announcements/${id}`),
+  announcementReplies: (id, orgId) => get(`/admin/announcements/${id}/replies?org=${orgId}`),
+  replyToOrg: (id, organizationId, text) => post(`/admin/announcements/${id}/replies`, { organizationId, text }),
   decideChange: (id, decision, note) => patch(`/admin/change-requests/${id}`, { decision, note }), // org detail changes
   users: getPage("/admin/users"), // { search, page, perPage } -> every account, with their orgs
   resetPassword: (id) => post(`/admin/users/${id}/reset-password`), // -> { temporaryPassword } (only the admin)
@@ -116,7 +122,7 @@ export const hoursApi = {
   list: () => get("/hours"), // officers get every log, members get their own
   page: getPage("/hours"), // { status, search, page, perPage }
   create: (data) => post("/hours", data),
-  decide: (id, status) => patch(`/hours/${id}`, { status }),
+  decide: (id, status, reason = null) => patch(`/hours/${id}`, { status, reason }), // reason: required when Rejected
   remove: (id) => del(`/hours/${id}`),
   leaderboard: () => get("/leaderboard"),
 };
@@ -154,7 +160,7 @@ export const tutoringApi = {
   requests: () => get("/tutoring-requests"),
   requestsPage: getPage("/tutoring-requests"), // { view: received | sent, status, page, perPage }
   request: (sessionId) => post("/tutoring-requests", { sessionId }),
-  decideRequest: (id, status, hours) => patch(`/tutoring-requests/${id}`, { status, hours }), // hours: when Completed
+  decideRequest: (id, status, hours, reason = null) => patch(`/tutoring-requests/${id}`, { status, hours, reason }), // hours: when Completed; reason: when Rejected
   cancelRequest: (id, reason) => api.delete(`/tutoring-requests/${id}`, { data: { reason } }).then(unwrap), // your own
   resources: () => get("/resources"),
   resourcesPage: getPage("/resources"), // { subject, type, search, page, perPage }
@@ -186,3 +192,13 @@ export const notificationsApi = {
   markAllRead: () => post("/notifications/read-all"),
   markRead: (id) => post(`/notifications/${id}/read`), // -> updated Notification
 };
+
+// Announcements from the OrgConnect admin, and this org's private thread with the admin
+export const platformApi = {
+  list: () => get("/platform-announcements"), // -> the ones you see in the selected org
+  replies: (id) => get(`/platform-announcements/${id}/replies`), // officers
+  reply: (id, text) => post(`/platform-announcements/${id}/replies`, { text }), // President, VPs, Secretary
+};
+
+// Org colors to pick from: [{ key, label, theme, taken }]
+export const themesApi = { list: () => get("/org-themes") };

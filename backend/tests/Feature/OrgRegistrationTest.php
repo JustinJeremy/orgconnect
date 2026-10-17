@@ -96,7 +96,7 @@ class OrgRegistrationTest extends TestCase
         $org = $this->compSoc();
         $member = $this->person($org);
 
-        $this->actingIn($this->admin(), $org)->patchJson("/api/admin/organizations/{$org->id}", ['status' => 'Suspended'])->assertOk();
+        $this->actingIn($this->admin(), $org)->patchJson("/api/admin/organizations/{$org->id}", ['status' => 'Suspended', 'reason' => 'Missing adviser'])->assertOk();
 
         $this->getJson('/api/organizations')->assertJsonMissing(['slug' => 'computer-society']);
         $this->actingIn($member, $org)->getJson('/api/events')->assertStatus(403);

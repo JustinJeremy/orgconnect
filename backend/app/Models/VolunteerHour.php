@@ -10,7 +10,7 @@ class VolunteerHour extends Model
 {
     use BelongsToOrganization;
 
-    protected $fillable = ['user_id', 'activity', 'date', 'hours', 'status', 'reviewed_by'];
+    protected $fillable = ['user_id', 'activity', 'date', 'hours', 'status', 'reviewed_by', 'rejection_reason'];
 
     protected function casts(): array
     {
@@ -39,6 +39,7 @@ class VolunteerHour extends Model
             'date' => $this->date->format('Y-m-d'),
             'hours' => $this->hours,
             'status' => $this->status,
+            'rejectionReason' => $this->rejection_reason,   // why an officer rejected it
         ];
     }
 }

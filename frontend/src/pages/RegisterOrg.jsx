@@ -8,6 +8,7 @@ import { errorMessage } from "../api/client.js";
 import { COURSES } from "../data/constants.js";
 import { shortDate } from "../utils/format.js";
 import { UserAvatar } from "../components/Avatars.jsx";
+import { ColorPicker } from "../components/OrgColors.jsx";
 
 // Bring a new org onto OrgConnect: the request form, then its status.
 //   Pending  -> waiting for an OrgConnect admin
@@ -87,6 +88,7 @@ function RequestForm({ previous, onSent, onCancel }) {
     previous ? Object.fromEntries(Object.keys(EMPTY).map((k) => [k, previous[k] || ""])) : EMPTY
   );
   const [courses, setCourses] = useState(previous?.courses || []);
+  const [themeKey, setThemeKey] = useState(previous?.color?.key || ""); // "" = the default navy
   const [newCourse, setNewCourse] = useState("");
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState("");
@@ -125,7 +127,7 @@ function RequestForm({ previous, onSent, onCancel }) {
 
     setSending(true);
     try {
-      await orgRequestsApi.create({ ...form, proofUrl: form.proofUrl.trim() || null, courses });
+      await orgRequestsApi.create({ ...form, proofUrl: form.proofUrl.trim() || null, courses, themeKey: themeKey || null });
       await onSent();
     } catch (error) {
       setFormError(errorMessage(error));
@@ -206,6 +208,8 @@ function RequestForm({ previous, onSent, onCancel }) {
         </div>
         {errors.courses && <span className="field-error">{errors.courses}</span>}
       </fieldset>
+
+      <ColorPicker value={themeKey} onChange={setThemeKey} label="Your organization's color" />
 
       {field("proofUrl", <>Proof of recognition <span className="muted">Optional</span></>, { placeholder: "e.g. a Google Drive link to your school recognition letter" })}
 

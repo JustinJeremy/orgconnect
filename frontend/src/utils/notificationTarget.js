@@ -33,6 +33,8 @@ export function notificationTarget({ link, message = "" }) {
     case "events":
       return { page, eventId: lastId, eventTitle: firstMatch(EVENT_TITLE, message) };
     case "announcements":
+      // From the OrgConnect admin: "announcements/platform/12"
+      if (parts[1] === "platform") return { page, kind: "platform", id: lastId };
       return { page, kind: "post", id: lastId, search: firstMatch(POST_TITLE, message) };
     case "hours":
       return { page, kind: "hour", id: lastId, search: message.match(HOURS_ACTIVITY)?.[1] };

@@ -12,6 +12,7 @@ import RegisterOrg from "./pages/RegisterOrg.jsx";
 import AdminApp from "./pages/AdminApp.jsx";
 import useUrlPage from "./hooks/useUrlPage.js";
 import RejectApplicationDialog from "./components/RejectApplicationDialog.jsx";
+import ReasonDialog from "./components/ReasonDialog.jsx";
 import { ADMIN_THEME, applyTheme } from "./utils/theme.js";
 import Profile from "./pages/Profile.jsx";
 import Notifications from "./pages/Notifications.jsx";
@@ -139,6 +140,7 @@ function MainApp() {
   const [attendanceEvent, setAttendanceEvent] = useState(null);
   const [confirmState, setConfirmState] = useState(null);
   const [reasonState, setReasonState] = useState(null); // { app, resolve }: rejecting an application
+  const [rejectState, setRejectState] = useState(null); // { title, intro, resolve }: rejecting hours or a tutoring request
   const [tempPassword, setTempPassword] = useState(null); // { name, email, password, isNew }
 
   const [toast, setToast] = useState(null);
@@ -231,6 +233,8 @@ function MainApp() {
     new Promise((resolve) => setConfirmState({ ...options, resolve }));
   // Resolves with the typed reason, or null if cancelled
   const askReason = (app) => new Promise((resolve) => setReasonState({ app, resolve }));
+  // Rejecting needs a reason the member sees; null if the officer cancels
+  const askRejectReason = (title, intro) => new Promise((resolve) => setRejectState({ title, intro, resolve }));
 
   const closeConfirm = (answer) => {
     confirmState?.resolve(answer);
@@ -292,11 +296,16 @@ function MainApp() {
   // ---- Hours & members ----
   const hours = {
     log: (form) => run(async () => upsert("hours", await hoursApi.create(form)), "Hours submitted for review"),
-    decide: (log, status) =>
-      run(async () => {
-        upsert("hours", await hoursApi.decide(log.id, status));
+    decide: async (log, status) => {
+      const reason = status === "Rejected"
+        ? await askRejectReason(`Reject ${log.memberName}'s hours?`, `${log.hours} hrs for ${log.activity}. Tell them why, so they know what to fix.`)
+        : null;
+      if (status === "Rejected" && !reason) return false;
+      return run(async () => {
+        upsert("hours", await hoursApi.decide(log.id, status, reason));
         reload("leaderboard", ...(isOfficer ? ["members"] : []));
-      }, `${log.hours} hrs ${status === "Approved" ? "approved" : "rejected"} for ${log.memberName}`),
+      }, `${log.hours} hrs ${status === "Approved" ? "approved" : "rejected"} for ${log.memberName}`);
+    },
     remove: async (log) => {
       const ok = await confirm({
         title: "Delete this log?",
@@ -360,15 +369,20 @@ function MainApp() {
     },
     request: (session) => run(async () => upsert("requests", await tutoringApi.request(session.id)), "Request sent to the tutor"),
     // hours: how long a completed session was (logged as the tutor's volunteer hours)
-    decide: (req, status, hours) =>
-      run(
+    decide: async (req, status, hours) => {
+      const reason = status === "Rejected"
+        ? await askRejectReason(`Reject ${req.requesterName}'s request?`, "Tell them why, e.g. the session is full this week.")
+        : null;
+      if (status === "Rejected" && !reason) return false;
+      return run(
         async () => {
-          upsert("requests", await tutoringApi.decideRequest(req.id, status, hours));
+          upsert("requests", await tutoringApi.decideRequest(req.id, status, hours, reason));
           if (status === "Confirmed") reload("sessions"); // approving uses up a slot
           if (status === "Completed") reload("hours");
         },
         { Confirmed: "Tutoring request approved", Rejected: "Tutoring request rejected", Completed: "Session completed. The tutor's hours were sent for approval" }[status]
-      ),
+      );
+    },
     // Your own request, with a reason for the tutor
     cancel: (req, reason) =>
       run(async () => {
@@ -551,6 +565,24 @@ function MainApp() {
           confirmLabel={confirmState.confirmLabel}
           onCancel={() => closeConfirm(false)}
           onConfirm={() => closeConfirm(true)}
+        />
+      )}
+
+      {rejectState && (
+        <ReasonDialog
+          title={rejectState.title}
+          intro={rejectState.intro}
+          label="Reason (they'll see this)"
+          placeholder="e.g. There's no sign-in sheet for this activity"
+          confirmLabel="Reject"
+          onCancel={() => {
+            rejectState.resolve(null);
+            setRejectState(null);
+          }}
+          onSubmit={(reason) => {
+            rejectState.resolve(reason);
+            return true;
+          }}
         />
       )}
 

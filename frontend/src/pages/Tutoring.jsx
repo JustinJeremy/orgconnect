@@ -243,6 +243,7 @@ function RequestsTab({ sessions, requests, actions, focus, onFocusDone }) {
                       <td>{s.tutorName}</td>
                       <td>
                         <StatusBadge status={r.status} />
+                        {r.status === "Rejected" && r.rejectionReason && <span className="reject-reason">{r.rejectionReason}</span>}
                       </td>
                       <td className="right">
                         {r.userId === user.id && ["Pending", "Confirmed"].includes(r.status) && (

@@ -153,7 +153,8 @@ class TutoringController extends Controller
             $session->decrement('slots');
         }
 
-        $tutoringRequest->update(['status' => $status]);
+        $reason = $status === 'Rejected' ? trim($request->validated('reason')) : null;
+        $tutoringRequest->update(['status' => $status, 'rejection_reason' => $reason]);
 
         // A finished session counts as volunteer hours for the tutor: a Pending log for an officer to approve
         if ($status === 'Completed') {
@@ -171,7 +172,7 @@ class TutoringController extends Controller
         }
 
         $word = ['Confirmed' => 'approved', 'Rejected' => 'rejected', 'Completed' => 'marked as completed'][$status];
-        UserNotification::send($tutoringRequest->user_id, "Your tutoring request for {$session->subject} was {$word}", "tutoring/sent/{$tutoringRequest->id}");
+        UserNotification::send($tutoringRequest->user_id, "Your tutoring request for {$session->subject} was {$word}".($reason ? ". Reason: {$reason}" : ''), "tutoring/sent/{$tutoringRequest->id}");
         // Both sides of the session know: the student (above) and the tutor, when someone else decided
         $decider = $request->user();
         if ($decider->id !== $session->tutor_id) {

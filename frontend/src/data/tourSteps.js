@@ -478,6 +478,18 @@ export const ADMIN_TOUR = [
     body: "Students' details are locked during the year. Turn this on at the start of a new school year so everyone can update their course, year and details, then turn it off again.",
   },
   {
+    page: "announcements",
+    target: '[data-tour="admin-announce-form"]',
+    title: "Announcements",
+    body: "Send an update to presidents, all officers, all members or every account, in every org or only the ones you pick. It shows on their Announcements page and in their notifications.",
+  },
+  {
+    page: "announcements",
+    target: '[data-tour="admin-announce-list"]',
+    title: "Replies",
+    body: "Each org's President, VPs and Secretary can write back. Every org has its own private thread with you. Open an announcement to read and answer them; the menu shows how many are waiting.",
+  },
+  {
     page: "overview",
     target: '[data-tour="admin-nav"]',
     title: "Menu",

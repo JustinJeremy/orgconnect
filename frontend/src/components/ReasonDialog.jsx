@@ -3,14 +3,15 @@ import Modal from "./Modal.jsx";
 
 // Asks for a short reason before something happens (leaving an org, cancelling a request...).
 // onSubmit(reason) returns true when it worked (the dialog closes) or false (it stays open).
-export default function ReasonDialog({ title, intro, label, placeholder, confirmLabel, danger = true, onCancel, onSubmit }) {
+// optional: the text may be left empty (e.g. a note when reactivating an org)
+export default function ReasonDialog({ title, intro, label, placeholder, confirmLabel, danger = true, optional = false, onCancel, onSubmit }) {
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!reason.trim()) return setError("Please give a reason.");
+    if (!optional && !reason.trim()) return setError("Please give a reason.");
     setBusy(true);
     const ok = await onSubmit(reason.trim());
     setBusy(false);
