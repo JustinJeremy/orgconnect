@@ -9,6 +9,7 @@ use App\Models\Event;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\VolunteerHour;
+use App\Support\Uploads;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -50,7 +51,9 @@ class ProfileController extends Controller
     public function avatarPhoto(Request $request)
     {
         // No SVG: it can carry scripts
-        $request->validate(['photo' => ['required', 'image', 'mimes:png,jpg,jpeg', 'max:2048']]);
+        Uploads::ensureArrived($request, 'photo', 'Photos can be up to 2 MB.');
+        $request->validate(['photo' => ['required', 'image', 'mimes:png,jpg,jpeg', 'max:2048']],
+            ['photo.max' => 'Your photo must be 2 MB or smaller.', 'photo.uploaded' => 'That photo is too large to upload. Photos can be up to 2 MB.']);
         $user = $request->user();
         $this->deletePhoto($user);
         $user->update(['avatar' => 'photo', 'avatar_path' => $request->file('photo')->store('avatars', 'public')]);

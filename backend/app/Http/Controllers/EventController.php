@@ -10,6 +10,7 @@ use App\Models\Certificate;
 use App\Models\Event;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Support\Uploads;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -217,7 +218,9 @@ class EventController extends Controller
     {
         $this->officerOnly($request);
         // No SVG: it can carry scripts
-        $request->validate(['poster' => ['required', 'image', 'mimes:png,jpg,jpeg', 'max:5120']]);
+        Uploads::ensureArrived($request, 'poster', 'Posters can be up to 5 MB.');
+        $request->validate(['poster' => ['required', 'image', 'mimes:png,jpg,jpeg', 'max:5120']],
+            ['poster.max' => 'The poster must be 5 MB or smaller.', 'poster.uploaded' => 'That poster is too large to upload. Posters can be up to 5 MB.']);
 
         $old = $event->poster_path;
         $event->update(['poster_path' => $request->file('poster')->store('event-posters', 'public')]);
