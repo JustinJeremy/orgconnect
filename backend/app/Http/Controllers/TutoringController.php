@@ -8,7 +8,6 @@ use App\Http\Requests\ResourceRequest;
 use App\Http\Requests\StoreTutoringRequest;
 use App\Http\Requests\TutoringSessionRequest;
 use App\Models\LearningResource;
-use App\Models\MembershipRecord;
 use App\Models\Organization;
 use App\Models\TutoringRequest;
 use App\Models\TutoringSession;
@@ -165,10 +164,8 @@ class TutoringController extends Controller
                 'hours' => (float) ($request->validated('hours') ?? 1),
                 'status' => 'Pending',
             ]);
-            $officers = MembershipRecord::where('organization_id', Organization::current()->id)
-                ->where('role', 'officer')->where('status', 'Active')
-                ->where('user_id', '!=', $session->tutor_id)->pluck('user_id');
-            UserNotification::send($officers, "{$session->tutor->name} logged {$log->hours} hrs for {$log->activity}", "hours/{$log->id}");
+            $reviewers = VolunteerHour::reviewersFor($session->tutor_id, Organization::current()->id);
+            UserNotification::send($reviewers, "{$session->tutor->name} logged {$log->hours} hrs for {$log->activity}", "hours/{$log->id}");
         }
 
         $word = ['Confirmed' => 'approved', 'Rejected' => 'rejected', 'Completed' => 'marked as completed'][$status];

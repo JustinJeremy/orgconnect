@@ -24,6 +24,7 @@ export default function ApprovalCenter({
   tabs = ["hours", "tutoring", "memberships"],
   limit,
   userId, // your own hours and requests are reviewed by another officer, so they aren't listed
+  canReviewOfficers = false, // the President, VPs and Secretary also review other officers' hours
   onTabChange, // tells the dashboard which tab is open, so "View All" opens the right page
 }) {
   const [tab, setTabState] = useState(tabs[0]);
@@ -35,7 +36,7 @@ export default function ApprovalCenter({
 
   const rows = {
     hours: hours
-      .filter((h) => h.status === "Pending" && h.userId !== userId)
+      .filter((h) => h.status === "Pending" && h.userId !== userId && (!h.byOfficer || canReviewOfficers))
       .map((h) => ({
         id: `h${h.id}`,
         name: h.memberName,

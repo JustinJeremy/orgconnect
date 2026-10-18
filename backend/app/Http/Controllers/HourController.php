@@ -6,7 +6,6 @@ use App\Http\Controllers\Concerns\ListsOrPages;
 use App\Http\Controllers\Concerns\OfficerOnly;
 use App\Http\Requests\DecideHourRequest;
 use App\Http\Requests\StoreHourRequest;
-use App\Models\MembershipRecord;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\UserNotification;
@@ -17,14 +16,14 @@ class HourController extends Controller
 {
     use ListsOrPages, OfficerOnly;
 
-    // GET /api/hours  (officers get every log, members get their own)
+    // GET /api/hours  (officers get every log, members get their own; ?mine=1: just your own)
     public function index(Request $request)
     {
         $user = $request->user();
 
         // List filters: ?status= &search= (+ ?page)
-        $query = VolunteerHour::with('user')
-            ->when(! $user->isOfficer(), fn ($q) => $q->where('user_id', $user->id))
+        $query = VolunteerHour::with('user.membership')
+            ->when(! $user->isOfficer() || $request->boolean('mine'), fn ($q) => $q->where('user_id', $user->id))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
             ->latest('date')
             ->latest('id');
@@ -39,13 +38,10 @@ class HourController extends Controller
         $user = $request->user();
         $log = $user->hourLogs()->create($request->validated() + ['status' => 'Pending']);
 
-        // Officers review it: let them know (not the one who logged it, if they're an officer)
-        $officers = MembershipRecord::where('organization_id', Organization::current()->id)
-            ->where('role', 'officer')->where('status', 'Active')
-            ->where('user_id', '!=', $user->id)->pluck('user_id');
-        UserNotification::send($officers, "{$user->name} logged {$log->hours} hrs for {$log->activity}", "hours/{$log->id}");
+        // The officers who review it hear about it (an officer's own hours: the President, VPs and Secretary)
+        UserNotification::send(VolunteerHour::reviewersFor($user->id, Organization::current()->id), "{$user->name} logged {$log->hours} hrs for {$log->activity}", "hours/{$log->id}");
 
-        return response()->json($log->load('user')->toFrontend(), 201);
+        return response()->json($log->load('user.membership')->toFrontend(), 201);
     }
 
     // PATCH /api/hours/{hour}  (officers approve or reject)
@@ -53,6 +49,8 @@ class HourController extends Controller
     {
         $this->officerOnly($request);
         abort_if($hour->user_id === $request->user()->id, 403, 'Another officer has to review your own hours.');
+        abort_unless(VolunteerHour::reviewersFor($hour->user_id, Organization::current()->id)->contains($request->user()->id), 403,
+            "Only the President, VPs and Secretary review an officer's hours.");
         abort_unless($hour->status === 'Pending', 422, "This log was already {$hour->status}.");
         $data = $request->validated();
 
@@ -70,7 +68,7 @@ class HourController extends Controller
             "hours/{$hour->id}"
         );
 
-        return $hour->load('user')->toFrontend();
+        return $hour->load('user.membership')->toFrontend();
     }
 
     // DELETE /api/hours/{hour}  (members can delete their own pending logs)

@@ -76,4 +76,34 @@ class HoursTest extends TestCase
             ->assertJsonPath('0.id', $member->id)
             ->assertJsonPath('0.hours', 3);
     }
+
+    public function test_officers_log_their_own_hours_and_only_the_president_vps_and_secretary_review_them(): void
+    {
+        $org = $this->compSoc();
+        $treasurer = $this->person($org, 'officer', 'Active', ['name' => 'Tess Treasurer'], 'Treasurer');
+        $auditor = $this->person($org, 'officer', 'Active', [], 'Auditor');
+        $vp = $this->person($org, 'officer', 'Active', [], 'VP Internal');
+        $president = $this->person($org, 'officer');
+        $member = $this->person($org);
+
+        $logId = $this->logHours($treasurer, $org);
+        // Only the managers hear about it
+        $this->assertDatabaseHas('user_notifications', ['user_id' => $president->id, 'message' => 'Tess Treasurer logged 2 hrs for Lab cleanup']);
+        $this->assertDatabaseMissing('user_notifications', ['user_id' => $auditor->id, 'message' => 'Tess Treasurer logged 2 hrs for Lab cleanup']);
+        // The officer sees just their own with ?mine=1, marked as an officer's log
+        $this->actingIn($treasurer, $org)->getJson('/api/hours?mine=1')->assertJsonCount(1)->assertJsonPath('0.byOfficer', true);
+
+        $this->actingIn($treasurer, $org)->patchJson("/api/hours/{$logId}", ['status' => 'Approved'])->assertForbidden();
+        $this->actingIn($auditor, $org)->patchJson("/api/hours/{$logId}", ['status' => 'Approved'])
+            ->assertForbidden()->assertJsonPath('message', "Only the President, VPs and Secretary review an officer's hours.");
+        $this->actingIn($vp, $org)->patchJson("/api/hours/{$logId}", ['status' => 'Approved'])->assertOk();
+
+        // The President's own hours: a VP or the Secretary reviews them
+        $presidentLog = $this->logHours($president, $org);
+        $this->actingIn($vp, $org)->patchJson("/api/hours/{$presidentLog}", ['status' => 'Approved'])->assertOk();
+
+        // A member's hours: any other officer, as before
+        $memberLog = $this->logHours($member, $org);
+        $this->actingIn($auditor, $org)->patchJson("/api/hours/{$memberLog}", ['status' => 'Approved'])->assertOk();
+    }
 }

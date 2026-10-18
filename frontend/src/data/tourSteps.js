@@ -264,7 +264,7 @@ const OFFICER = [
         click: '[data-tour="tab-hours"]',
         target: '[data-tour="hours-tabs"]',
         title: "Hours, members and requests",
-        body: "Hour logs to verify and the member roster. The President, Vice Presidents and Secretary also see membership applications and reactivation requests here.",
+        body: "Hour logs to verify, your own hours (My Hours: officers log theirs too, and the President, VPs or Secretary approve them), and the member roster. The President, VPs and Secretary also see membership applications and reactivation requests here.",
       },
       {
         page: "hours",

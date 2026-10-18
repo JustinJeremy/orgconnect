@@ -59,7 +59,8 @@ function OfficerView({ data, loading, hours: hourActions, members: memberActions
   const [status, setStatus] = useState("Pending");
   const [search, setSearch] = useState("");
 
-  const pendingLogs = hours.filter((h) => h.status === "Pending").length;
+  // Logs this officer can act on (an officer's own: the President, VPs and Secretary)
+  const pendingLogs = hours.filter((h) => h.status === "Pending" && h.userId !== user.id && (!h.byOfficer || user.canManageMembers)).length;
   const pendingApps = applications.filter((a) => a.status === "Pending").length + reactivations.length;
   const query = search.trim();
   // One page of hour logs from the API; reloads when a log is approved, rejected or deleted
@@ -90,6 +91,7 @@ function OfficerView({ data, loading, hours: hourActions, members: memberActions
           onChange={setTab}
           items={[
             { key: "hours", label: "Hour Logs", count: pendingLogs },
+            { key: "mine", label: "My Hours" },
             { key: "members", label: "Members" },
             ...(user.canManageMembers ? [{ key: "applications", label: "Requests", count: pendingApps }] : []),
           ]}
@@ -129,12 +131,15 @@ function OfficerView({ data, loading, hours: hourActions, members: memberActions
                 text={status === "Pending" && !query ? "New submissions from members will appear here." : "Try another status or search."}
               />
             ) : (
-              <HoursTable rows={list.items} isOfficer userId={user.id} onDecide={hourActions.decide} highlightId={highlightId} />
+              <HoursTable rows={list.items} isOfficer canReviewOfficers={user.canManageMembers} userId={user.id} onDecide={hourActions.decide} onDelete={hourActions.remove} highlightId={highlightId} />
             )}
           </section>
           <Pagination page={list.page} totalPages={list.totalPages} onChange={list.setPage} />
         </>
       )}
+
+      {/* Officers log their own hours too; the President, VPs or Secretary approve them */}
+      {tab === "mine" && <MyHours data={data} loading={loading} hours={hourActions} officer />}
 
       {tab === "members" && <MemberList members={members} onSave={memberActions.save} onRemove={memberActions.remove} />}
 
@@ -195,12 +200,21 @@ function ReactivationList({ requests, onDecide }) {
 
 /* ---------- Member ---------- */
 
-function MemberView({ data, loading, hours: hourActions, focus, onFocusDone }) {
+function MemberView(props) {
+  return (
+    <div className="page">
+      <MyHours {...props} />
+    </div>
+  );
+}
+
+// Your own hours: the log form, your totals and your logs (members' page; officers' My Hours tab)
+function MyHours({ data, loading, hours: hourActions, focus = null, onFocusDone, officer = false }) {
   const { user } = useAuth();
   const [status, setStatus] = useState("All");
   const mine = data.hours.filter((h) => h.userId === user.id);
   // The table loads one page of your logs from the API; the totals above use all of them
-  const list = usePagedList(hoursApi.page, { status }, PER_PAGE, data.hours);
+  const list = usePagedList(hoursApi.page, { status, mine: officer ? 1 : null }, PER_PAGE, data.hours);
 
   // From a notification: show logs of every status, then scroll to that log and highlight it
   useEffect(() => {
@@ -210,12 +224,12 @@ function MemberView({ data, loading, hours: hourActions, focus, onFocusDone }) {
 
   const stats = [
     { label: "Approved hours", value: sumHours(mine.filter((h) => h.status === "Approved")), note: "Counted toward your record" },
-    { label: "Pending review", value: sumHours(mine.filter((h) => h.status === "Pending")), note: "Hours waiting for an officer" },
+    { label: "Pending review", value: sumHours(mine.filter((h) => h.status === "Pending")), note: officer ? "For the President, VPs or Secretary" : "Hours waiting for an officer" },
     { label: "Logs submitted", value: mine.length, note: `${mine.filter((h) => h.status === "Rejected").length} rejected` },
   ];
 
   return (
-    <div className="page">
+    <>
       <StatRow items={stats} loading={loading} />
 
       <div className="dash-grid">
@@ -244,7 +258,7 @@ function MemberView({ data, loading, hours: hourActions, focus, onFocusDone }) {
           )}
         </Panel>
       </div>
-    </div>
+    </>
   );
 }
 

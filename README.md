@@ -32,6 +32,8 @@ by connecting students, officers and orgs).
   extra is entered when creating the event or session; the code is made the first time it's shown,
   and *New code* stops an old one working
 - Approve or reject volunteer hours and tutoring requests (never their own)
+- Log their own volunteer hours (My Hours tab); an officer's hours are approved by the President, a VP or
+  the Secretary, so they count on the leaderboard like everyone else's
 - Manage the member roster, approve applications and reactivation requests, and export hours as CSV
 - Post announcements and upload the org's logo
 
@@ -59,7 +61,7 @@ no two orgs share a color. A guided tour
 | Using it again after being made inactive | You see the officer's reason, send a reactivation request, and an officer approves it |
 | A certificate | You RSVP (or just turn up), check in with the QR code or an officer ticks you in Attendance, and the event is completed |
 | Checking in with a QR code | From a day before the event starts until it's finished (completed, or the end of its day); the QR icon only shows then. Tutoring: a meeting day, with a confirmed request |
-| Hours counting on the leaderboard | An officer approves your log |
+| Hours counting on the leaderboard | An officer approves your log (an officer's own log: the President, a VP or the Secretary) |
 | Being friends | You send a request (People page or their profile) and they accept it; friends see each other's email |
 | A place on "Most helpful" | You tutor a session and mark the request completed |
 | Messaging someone | You're both active members of the org you have open (the OrgConnect admin: you're an officer there) |

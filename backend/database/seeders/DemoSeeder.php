@@ -111,6 +111,7 @@ class DemoSeeder extends Seeder
         $this->platformAnnouncement($day);
         $this->messages($day);
         $this->extras($day);
+        $this->everyTutorHelped($day);
         $this->attachPosters();
     }
 
@@ -230,6 +231,9 @@ class DemoSeeder extends Seeder
                 ['ryan.castillo@orgconnect.test', 'Intro to Python for first years', 'Programming', 'Saturdays, 10:00 AM', 'Google Meet', 6,
                     'Variables, if-else, loops and functions, with short exercises each week.', ['Python', 'Programming basics', 'Loops'],
                     [['patricia.lim@orgconnect.test', 'Confirmed']]],
+                ['officer@orgconnect.test', 'Capstone project planning', 'Programming', 'Wednesdays, 1:30 PM', 'CCS Building, Room 304', 4,
+                    'Turning a capstone idea into a scope, a timeline and a first demo, from someone who just went through it.', ['Capstone', 'Project planning', 'Scope'],
+                    [['mark.delarosa@orgconnect.test', 'Confirmed']]],
             ],
             'resources' => [
                 // sharer, title, subject, type, url, description
@@ -641,6 +645,35 @@ class DemoSeeder extends Seeder
                 $when = Carbon::parse(config('app.demo_day'))->subDays(20 + $this->hash($email, "when{$s->id}") % 60);
                 $row->timestamps = false;
                 $row->forceFill(['created_at' => $when, 'updated_at' => $when])->save();
+            }
+        }
+    }
+
+    // Every session a sample account tutors (in every org, including ones made while testing) has at
+    // least two finished requests, so the tutor has numbers under "Your tutoring" and a rank in
+    // "Most helpful". Students are picked the same way each run, from the org's active sample members.
+    private function everyTutorHelped(Carbon $day): void
+    {
+        foreach (Organization::where('status', 'Active')->pluck('id') as $orgId) {
+            $members = MembershipRecord::where('organization_id', $orgId)->where('status', 'Active')->with('user')->get()
+                ->filter(fn ($m) => $m->user && str_ends_with($m->user->email, '@orgconnect.test'))->pluck('user');
+            $sessions = TutoringSession::withoutGlobalScopes()->where('organization_id', $orgId)
+                ->whereHas('tutor', fn ($q) => $q->where('email', 'like', '%@orgconnect.test'))->get();
+            foreach ($sessions as $s) {
+                $requests = TutoringRequest::withoutGlobalScopes()->where('tutoring_session_id', $s->id);
+                $missing = 2 - (clone $requests)->where('status', 'Completed')->count();
+                if ($missing <= 0) {
+                    continue;
+                }
+                $asked = (clone $requests)->pluck('user_id');
+                $students = $members->reject(fn ($u) => $u->id === $s->tutor_id || $asked->contains($u->id))
+                    ->sortBy(fn ($u) => $this->hash($u->email, "helped{$s->id}"))->take($missing);
+                foreach ($students as $i => $u) {
+                    $when = $day->copy()->subDays(14 + $this->hash($u->email, "helped-when{$s->id}") % 40);
+                    $row = new TutoringRequest(['tutoring_session_id' => $s->id, 'user_id' => $u->id, 'status' => 'Completed']);
+                    $row->timestamps = false;
+                    $row->forceFill(['created_at' => $when, 'updated_at' => $when])->save();
+                }
             }
         }
     }
