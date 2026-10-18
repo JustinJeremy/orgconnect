@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CheckinController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\HourController;
 use App\Http\Controllers\MemberController;
@@ -55,6 +56,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/conversations/{conversation}/messages', [MessageController::class, 'send'])->middleware('throttle:60,1');
     Route::post('/conversations/org/{organization}', [MessageController::class, 'org']);
     Route::post('/conversations/request/{organization}', [MessageController::class, 'request']);
+    Route::get('/conversations/{conversation}/status', [MessageController::class, 'status']);   // who's typing, who has seen
+    Route::post('/conversations/{conversation}/typing', [MessageController::class, 'typing'])->middleware('throttle:60,1');
+    // QR check-in: the scanned link says which org, so this works whichever org is selected
+    Route::post('/checkin', [CheckinController::class, 'scan'])->middleware('throttle:30,1');
     // Org colors to pick from, and which ones other orgs already have
     Route::get('/org-themes', fn () => OrgThemes::options(Organization::current()?->id));
     Route::post('/org-requests', [OrgRequestController::class, 'store'])->middleware('throttle:register');
@@ -102,6 +107,8 @@ Route::middleware(['auth:sanctum', 'org.member'])->group(function () {
     Route::delete('/events/{event}/rsvp', [EventController::class, 'cancelRsvp']);
     Route::put('/events/{event}/attendance', [EventController::class, 'attendance']);
     Route::get('/events/{event}/certificate', [EventController::class, 'certificate']);
+    Route::get('/events/{event}/checkin', [CheckinController::class, 'event']);   // the QR code and who has checked in
+    Route::post('/events/{event}/checkin/reset', [CheckinController::class, 'resetEvent']);
     Route::get('/certificates', [EventController::class, 'certificates']);
     Route::get('/my-history', [ProfileController::class, 'history']);   // Profile: your hours, events and certificates
     Route::post('/events/{event}/poster', [EventController::class, 'uploadPoster']);
@@ -148,6 +155,8 @@ Route::middleware(['auth:sanctum', 'org.member'])->group(function () {
     Route::post('/tutoring-sessions', [TutoringController::class, 'storeSession']);
     Route::put('/tutoring-sessions/{session}', [TutoringController::class, 'updateSession']);
     Route::delete('/tutoring-sessions/{session}', [TutoringController::class, 'destroySession']);
+    Route::get('/tutoring-sessions/{session}/checkin', [CheckinController::class, 'session']);
+    Route::post('/tutoring-sessions/{session}/checkin/reset', [CheckinController::class, 'resetSession']);
     Route::get('/tutoring-requests', [TutoringController::class, 'requests']);
     Route::post('/tutoring-requests', [TutoringController::class, 'storeRequest']);
     Route::patch('/tutoring-requests/{tutoringRequest}', [TutoringController::class, 'decideRequest']);

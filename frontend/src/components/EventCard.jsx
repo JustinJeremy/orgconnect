@@ -2,12 +2,14 @@ import { useState } from "react";
 import Icon from "./Icon.jsx";
 import ModeTag from "./ModeTag.jsx";
 import { EventDetails } from "./ItemDetails.jsx";
+import CheckinQr from "./CheckinQr.jsx";
 import { attendedCount, dateParts, formatTime, isCompleted, isPast, myRegistration, percent } from "../utils/format.js";
 
 // layout "row": thumbnail on the left (members); "box": date badge beside the title (officers)
 export default function EventCard({ event, userId, isOfficer, actions, layout = "row", highlighted = false }) {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false); // the details pop-up
+  const [qrOpen, setQrOpen] = useState(false); // officers: the check-in QR code
   const done = isCompleted(event);
   // Over, but attendance isn't recorded yet
   const passed = !done && isPast(event.date, event.time);
@@ -95,6 +97,12 @@ export default function EventCard({ event, userId, isOfficer, actions, layout = 
           </div>
           {isOfficer && (
             <div className="card-tools">
+              {/* The check-in QR code: only while check-in is open (a day before until the event is finished) */}
+              {event.checkinOpen && (
+                <button type="button" className="icon-btn sm checkin-btn" aria-label={`Check-in QR for ${event.title}`} title="Check-in QR" onClick={() => setQrOpen(true)}>
+                  <Icon name="qr" size={16} />
+                </button>
+              )}
               <button type="button" className="icon-btn sm" aria-label={`Edit ${event.title}`} onClick={() => actions.edit(event)}>
                 <Icon name="edit" size={16} />
               </button>
@@ -140,6 +148,7 @@ export default function EventCard({ event, userId, isOfficer, actions, layout = 
       </div>
     </article>
     {open && <EventDetails event={event} footer={action} onClose={() => setOpen(false)} />}
+    {qrOpen && <CheckinQr type="event" item={event} onClose={() => setQrOpen(false)} />}
     </>
   );
 }

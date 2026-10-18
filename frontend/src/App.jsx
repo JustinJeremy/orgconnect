@@ -1,23 +1,25 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "./context/AuthContext.jsx";
 import { useOrg } from "./context/OrgContext.jsx";
 import Landing from "./pages/Landing.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
-import Events from "./pages/Events.jsx";
-import VolunteerHours from "./pages/VolunteerHours.jsx";
-import Tutoring from "./pages/Tutoring.jsx";
-import Announcements from "./pages/Announcements.jsx";
-import JoinOrg from "./pages/JoinOrg.jsx";
-import RegisterOrg from "./pages/RegisterOrg.jsx";
-import AdminApp from "./pages/AdminApp.jsx";
+// Loaded only when opened, so the first visit downloads just the landing page and the dashboard
+// (members never download the admin console, messages or registration until they use them)
+const Events = lazy(() => import("./pages/Events.jsx"));
+const VolunteerHours = lazy(() => import("./pages/VolunteerHours.jsx"));
+const Tutoring = lazy(() => import("./pages/Tutoring.jsx"));
+const Announcements = lazy(() => import("./pages/Announcements.jsx"));
+const People = lazy(() => import("./pages/People.jsx"));
+const MessagesPage = lazy(() => import("./pages/MessagesPage.jsx"));
+const Profile = lazy(() => import("./pages/Profile.jsx"));
+const Notifications = lazy(() => import("./pages/Notifications.jsx"));
+const JoinOrg = lazy(() => import("./pages/JoinOrg.jsx"));
+const RegisterOrg = lazy(() => import("./pages/RegisterOrg.jsx"));
+const AdminApp = lazy(() => import("./pages/AdminApp.jsx"));
 import useUrlPage from "./hooks/useUrlPage.js";
 import RejectApplicationDialog from "./components/RejectApplicationDialog.jsx";
 import ReasonDialog from "./components/ReasonDialog.jsx";
 import { ADMIN_THEME, applyTheme } from "./utils/theme.js";
-import Profile from "./pages/Profile.jsx";
-import Notifications from "./pages/Notifications.jsx";
-import People from "./pages/People.jsx";
-import MessagesPage from "./pages/MessagesPage.jsx";
 import { PeopleProvider } from "./context/PeopleContext.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 import Topbar from "./components/Topbar.jsx";
@@ -27,6 +29,7 @@ import ConfirmDialog from "./components/ConfirmDialog.jsx";
 import TemporaryPasswordDialog from "./components/TemporaryPasswordDialog.jsx";
 import Tour from "./components/Tour.jsx";
 import AvatarPicker from "./components/AvatarPicker.jsx";
+import CheckinScreen, { CheckinPendingNote, clearCheckin, pendingCheckin } from "./components/CheckinScreen.jsx";
 import { buildTour, tourSections } from "./data/tourSteps.js";
 import { errorMessage } from "./api/client.js";
 import { notificationTarget } from "./utils/notificationTarget.js";
@@ -100,6 +103,15 @@ const OFFICER_LOADERS = {
 const EMPTY_DATA = Object.fromEntries(
   [...Object.keys(LOADERS), ...Object.keys(OFFICER_LOADERS)].map((key) => [key, []])
 );
+
+// While a page's code downloads (a moment, the first time it's opened)
+function PageLoading() {
+  return (
+    <div className="page" aria-busy="true" aria-label="Loading">
+      <div className="panel"><div className="skeleton-list" aria-hidden="true"><span /><span /><span /></div></div>
+    </div>
+  );
+}
 
 function MainApp() {
   const { user, startOrgRegistration } = useAuth();
@@ -565,6 +577,7 @@ function MainApp() {
           <>
             {topbar}
             {errorBanner}
+            <Suspense fallback={<PageLoading />}>
             {page === "events" && <Events key={pageReset} {...pageProps} actions={events} focus={focusFor("events")} onFocusDone={clearFocus} />}
             {page === "hours" && <VolunteerHours key={pageReset} {...pageProps} hours={hours} members={members} focus={focusFor("hours")} onFocusDone={clearFocus} />}
             {page === "tutoring" && <Tutoring key={pageReset} {...pageProps} actions={tutoring} focus={focusFor("tutoring")} onFocusDone={clearFocus} />}
@@ -573,6 +586,7 @@ function MainApp() {
             {page === "people" && <People key={pageReset} {...pageProps} focus={focusFor("people")} onFocusDone={clearFocus} onOpenSession={openSession} />}
             {page === "profile" && <Profile key={pageReset} {...pageProps} />}
             {page === "notifications" && <Notifications key={pageReset} {...pageProps} onOpen={openNotification} onMarkAllRead={markNotificationsRead} />}
+            </Suspense>
           </>
         )}
       </main>
@@ -639,12 +653,22 @@ function MainApp() {
 }
 
 function App() {
-  const { current, loading: orgsLoading, error: orgsError, reload } = useOrg();
+  const { current, loading: orgsLoading, error: orgsError, reload, selectOrg } = useOrg();
   const { user, checking, registeringOrg, setAvatar } = useAuth();
   const isAdmin = Boolean(user?.isAdmin);
   // "Skip for now" on the avatar picker is remembered on this browser; Profile can still set one
   const skipKey = user ? `orgconnect_avatar_skipped_${user.id}` : null;
   const [avatarSkipped, setAvatarSkipped] = useState(false);
+  // A scanned check-in QR code, sent once you're signed in
+  const [checkin, setCheckin] = useState(pendingCheckin);
+  const finishCheckin = (slug, page) => {
+    clearCheckin();
+    setCheckin(null);
+    if (slug) {
+      window.history.replaceState(null, "", `/${page || "dashboard"}`);
+      selectOrg(slug);
+    }
+  };
   const skippedBefore = () => {
     try {
       return Boolean(skipKey && localStorage.getItem(skipKey));
@@ -675,14 +699,22 @@ function App() {
       </div>
     );
   }
-  if (!user) return <Landing />;
+  if (!user) {
+    return (
+      <>
+        <Landing />
+        {checkin && <CheckinPendingNote />}
+      </>
+    );
+  }
+  if (checkin) return <CheckinScreen scan={checkin} onDone={finishCheckin} />;
   // Platform admins have their own console; they don't belong to any org
-  if (isAdmin) return <AdminApp />;
+  if (isAdmin) return <Suspense fallback={loadingScreen}><AdminApp /></Suspense>;
   // Registering a new org (from the landing page or the org menu)
-  if (registeringOrg) return <RegisterOrg />;
+  if (registeringOrg) return <Suspense fallback={loadingScreen}><RegisterOrg /></Suspense>;
   if (user.orgSlug !== current.slug) return loadingScreen; // switching orgs
   // Not a member yet, still under review, or inactive: the org's own screen instead of the app
-  if (user.membershipStatus !== "Active") return <JoinOrg />;
+  if (user.membershipStatus !== "Active") return <Suspense fallback={loadingScreen}><JoinOrg /></Suspense>;
   // First time in after being approved: pick an avatar
   if (!user.avatar && !avatarSkipped && !skippedBefore()) {
     return <AvatarPicker user={user} orgName={current.shortName} onSave={setAvatar} onSkip={skipAvatar} />;

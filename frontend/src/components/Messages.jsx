@@ -30,11 +30,16 @@ export function ConversationView({ id, onBack, onSent, onRead, onOpenPerson, com
   const lastCount = useRef(0);
   // Where your unread messages started when you opened it (a notification lands you right there)
   const [newFrom, setNewFrom] = useState(undefined);
+  // Who else is typing, and how far the others have read ({ id, name, lastReadId })
+  const [typing, setTyping] = useState([]);
+  const [seen, setSeen] = useState([]);
+  const lastTypingPing = useRef(0);
 
   const load = useCallback(async () => {
     try {
       const next = await messagesApi.show(id);
       setData(next);
+      setSeen(next.seen || []);
       setNewFrom((before) => (before === undefined ? next.firstUnreadId || null : before));
       setError("");
       onRead?.();
@@ -47,11 +52,45 @@ export function ConversationView({ id, onBack, onSent, onRead, onOpenPerson, com
   useEffect(() => {
     setData(null);
     setNewFrom(undefined);
+    setTyping([]);
+    setSeen([]);
     lastCount.current = 0;
     load();
-    const timer = setInterval(load, 8000);
-    return () => clearInterval(timer);
   }, [load]);
+
+  // Every few seconds while it's open: who's typing, who has seen what, and new messages (loaded only
+  // when there are some)
+  const newestShown = data?.messages.at(-1)?.id || 0;
+  useEffect(() => {
+    if (!data) return undefined;
+    let active = true;
+    const check = async () => {
+      try {
+        const status = await messagesApi.status(id);
+        if (!active) return;
+        setTyping(status.typing);
+        setSeen(status.seen);
+        if (status.latestId > newestShown) load();
+      } catch {
+        // Try again on the next tick
+      }
+    };
+    const timer = setInterval(check, 2500);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, newestShown, !data]);
+
+  // Tell the others you're typing (at most every 3 seconds; it fades on their side after 5)
+  const onType = (value) => {
+    setText(value);
+    if (value.trim() && Date.now() - lastTypingPing.current > 3000) {
+      lastTypingPing.current = Date.now();
+      messagesApi.typing(id).catch(() => {});
+    }
+  };
 
   // Opening: go to the first unread message (or the newest). Later: follow new messages as they arrive.
   useEffect(() => {
@@ -73,6 +112,7 @@ export function ConversationView({ id, onBack, onSent, onRead, onOpenPerson, com
       const message = await messagesApi.send(id, body);
       setData((d) => ({ ...d, messages: [...d.messages, message] }));
       setText("");
+      lastTypingPing.current = 0;
       onSent?.();
     } catch (err) {
       setError(errorMessage(err));
@@ -84,6 +124,10 @@ export function ConversationView({ id, onBack, onSent, onRead, onOpenPerson, com
   if (error && !data) return <div className="msg-thread"><div className="alert alert-error" role="alert">{error}</div></div>;
   if (!data) return <div className="msg-thread"><div className="skeleton-list padded" aria-hidden="true"><span /><span /><span /></div></div>;
   const { conversation: c, messages } = data;
+  // "Seen" goes under your latest message: "Seen" in a chat with one person, "Seen by ..." in a group
+  const lastMine = messages.findLast((m) => m.mine);
+  const readers = lastMine ? seen.filter((s) => s.lastReadId >= lastMine.id).map((s) => s.name) : [];
+  const seenText = !readers.length ? "" : c.kind === "direct" ? "Seen" : `Seen by ${readers.length > 3 ? `${readers.slice(0, 3).join(", ")} and ${readers.length - 3} more` : readers.join(", ")}`;
 
   return (
     <section className={`msg-thread ${compact ? "is-compact" : ""}`} aria-label={`Conversation with ${c.title}`}>
@@ -130,10 +174,17 @@ export function ConversationView({ id, onBack, onSent, onRead, onOpenPerson, com
                       <time dateTime={m.createdAt}>{time(m.createdAt)}</time>
                     </div>
                   </div>
+                  {m === lastMine && seenText && <p className="msg-seen"><Icon name="check" size={12} /> {seenText}</p>}
                 </li>
               );
             })}
           </ol>
+        )}
+        {typing.length > 0 && (
+          <p className="msg-typing" aria-live="polite">
+            <span className="typing-dots" aria-hidden="true"><i /><i /><i /></span>
+            {typing.length > 1 ? `${typing.slice(0, 2).join(" and ")}${typing.length > 2 ? " and others" : ""} are typing…` : c.kind === "direct" ? "typing…" : `${typing[0]} is typing…`}
+          </p>
         )}
         <span ref={endRef} />
       </div>
@@ -151,7 +202,7 @@ export function ConversationView({ id, onBack, onSent, onRead, onOpenPerson, com
             maxLength={2000}
             placeholder="Write a message"
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => onType(e.target.value)}
             onKeyDown={(e) => {
               // Enter sends, Shift+Enter adds a line
               if (e.key === "Enter" && !e.shiftKey) {

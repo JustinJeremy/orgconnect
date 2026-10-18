@@ -15,7 +15,7 @@ return [
         ->map(fn ($u) => trim($u))->first(fn ($u) => $u !== '' && $u !== '*') ?? 'http://localhost:5173',
     'demo_day' => env('DEMO_DAY', '2026-10-20'),
 
-    'timezone' => env('APP_TIMEZONE', 'UTC'),
+    'timezone' => env('APP_TIMEZONE', 'Asia/Manila'),   // event days, check-in windows and "today" follow Philippine time
 
     'locale' => env('APP_LOCALE', 'en'),
 

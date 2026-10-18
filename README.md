@@ -9,7 +9,10 @@ by connecting students, officers and orgs).
 ## What it does
 
 *Members*
-- RSVP to events, see them on a calendar, and download a certificate for events they attended
+- RSVP to events, see them on a calendar, add them to Google Calendar or a phone calendar, and download
+  a certificate for events they attended
+- *QR check-in:* at an event or a tutoring session, scan the code the officers or the tutor show with
+  the phone camera to be marked present (signing in first if needed)
 - Log volunteer hours for an officer to approve, and see the leaderboard
 - Book peer tutoring sessions and open shared learning resources
 - Read, like and comment on announcements in the dashboard feed
@@ -18,10 +21,16 @@ by connecting students, officers and orgs).
   attended, what they tutor, students helped), add friends, and see the most helpful tutors
 - *Messages:* message anyone in the same org (someone in another org is messaged from that org);
   officers also have a conversation with the OrgConnect admin (the President, VPs and Secretary write
-  in it, the other officers read along). New messages show a count and a notification
+  in it, the other officers read along). New messages show a count and a notification; chats show
+  *Seen* under your latest message and *typing…* while the other side writes
 
 *Officers*
 - Create events (with posters), record attendance and mark events completed
+- Show an event's check-in QR code at the venue (the square icon on the card): members scan it and are
+  marked present, with names appearing as they scan. The icon shows from a day before the event until
+  it's finished, then goes away. Tutors do the same for their sessions on meeting days. Nothing
+  extra is entered when creating the event or session; the code is made the first time it's shown,
+  and *New code* stops an old one working
 - Approve or reject volunteer hours and tutoring requests (never their own)
 - Manage the member roster, approve applications and reactivation requests, and export hours as CSV
 - Post announcements and upload the org's logo
@@ -48,7 +57,8 @@ no two orgs share a color. A guided tour
 | A new org on OrgConnect | A student sends a registration request and the admin approves it; the student becomes its President |
 | Using an org | You apply (sign up, or "Apply to join") and an officer approves you; until then you see "under review" |
 | Using it again after being made inactive | You see the officer's reason, send a reactivation request, and an officer approves it |
-| A certificate | You RSVP, attend, and an officer records attendance and completes the event |
+| A certificate | You RSVP (or just turn up), check in with the QR code or an officer ticks you in Attendance, and the event is completed |
+| Checking in with a QR code | From a day before the event starts until it's finished (completed, or the end of its day); the QR icon only shows then. Tutoring: a meeting day, with a confirmed request |
 | Hours counting on the leaderboard | An officer approves your log |
 | Being friends | You send a request (People page or their profile) and they accept it; friends see each other's email |
 | A place on "Most helpful" | You tutor a session and mark the request completed |
@@ -170,8 +180,8 @@ php artisan test
 
 The tests use a separate in-memory SQLite database, so they never touch your MySQL data.
 They cover sign-in and sign-up, officer vs member access, events and RSVPs, volunteer hours,
-peer tutoring, members and passwords, profiles, the paged lists, the feed, pending and inactive
-members, and registering a new org with the platform admin's review (`backend/tests/Feature`).
+peer tutoring, QR check-in, messages (with Seen and typing), members and passwords, profiles, the paged
+lists, the feed, pending and inactive members, and registering a new org with the platform admin's review (`backend/tests/Feature`).
 
 ## After pulling changes
 

@@ -24,6 +24,7 @@ You need: the GitHub repo, a Railway account and a Vercel account (sign in to bo
    | `APP_KEY` | run `php artisan key:generate --show` in `backend` on your laptop and paste the result |
    | `APP_URL` | the backend's address from step 6, e.g. `https://orgconnect-backend.up.railway.app` |
    | `FRONTEND_URL` | the Vercel address from part 2, e.g. `https://orgconnect.vercel.app` (no slash at the end) |
+   | `APP_TIMEZONE` | `Asia/Manila` (event times, and when QR check-in opens, are Philippine time) |
    | `DB_CONNECTION` | `mysql` |
    | `DB_HOST` | `${{MySQL.MYSQLHOST}}` |
    | `DB_PORT` | `${{MySQL.MYSQLPORT}}` |
@@ -80,3 +81,12 @@ Notifications inside the app work either way.
 Each deploy re-runs the sample data: the sample items go back to how they started (e.g. a sample
 hour log you approved during a demo is pending again), and anything people created stays. After the
 presentation you can stop this by removing `&& php artisan db:seed --force` from `backend/railway.json`.
+
+## QR check-in on a phone
+
+QR check-in needs the deployed site: a phone can't open `localhost`. On the deployed site, an officer
+opens an event's QR icon on a laptop; a member scans it with the phone camera, which opens the
+Vercel address, signs in, and shows "You're checked in". It works from a day before the event starts
+until the event is finished (completed, or the end of its day); the QR icon only shows in that window
+(`APP_TIMEZONE` decides the times).
+

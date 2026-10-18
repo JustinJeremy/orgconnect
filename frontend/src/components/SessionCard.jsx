@@ -5,6 +5,7 @@ import { parseSchedule, weeklyDates } from "../utils/schedule.js";
 import { UserAvatar } from "./Avatars.jsx";
 import { usePeople } from "../context/PeopleContext.jsx";
 import { SessionDetails } from "./ItemDetails.jsx";
+import CheckinQr from "./CheckinQr.jsx";
 
 // The next date a weekly session meets, e.g. "Fri, Oct 23" (today counts until its start time)
 function nextMeeting(schedule) {
@@ -20,6 +21,7 @@ function nextMeeting(schedule) {
 export default function SessionCard({ session, myRequest, canManage, canRequest, onRequest, onEdit, onDelete, highlighted }) {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false); // the details pop-up
+  const [qrOpen, setQrOpen] = useState(false); // the tutor and officers: the check-in QR code
   const { openPerson } = usePeople();
   const next = nextMeeting(session.schedule);
 
@@ -54,6 +56,12 @@ export default function SessionCard({ session, myRequest, canManage, canRequest,
         </div>
         {canManage && (
           <div className="card-tools">
+            {/* The check-in QR code: only on the session's meeting days */}
+            {session.checkinOpen && (
+              <button type="button" className="icon-btn sm checkin-btn" aria-label={`Check-in QR for ${session.subject}`} title="Check-in QR" onClick={() => setQrOpen(true)}>
+                <Icon name="qr" size={16} />
+              </button>
+            )}
             <button type="button" className="icon-btn sm" aria-label={`Edit ${session.subject}`} onClick={() => onEdit(session)}>
               <Icon name="edit" size={16} />
             </button>
@@ -89,6 +97,7 @@ export default function SessionCard({ session, myRequest, canManage, canRequest,
       </div>
     </article>
     {open && <SessionDetails session={session} next={next} footer={action} onClose={() => setOpen(false)} />}
+    {qrOpen && <CheckinQr type="session" item={session} onClose={() => setQrOpen(false)} />}
     </>
   );
 }

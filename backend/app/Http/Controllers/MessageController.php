@@ -10,6 +10,7 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Models\UserNotification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 // Messages: members of the same org with each other (inside that org), an org's officers with the
 // OrgConnect admin, and someone registering an org with the admin (including "Ask for changes").
@@ -47,8 +48,58 @@ class MessageController extends Controller
         return [
             'conversation' => $conversation->toFrontend($user),
             'firstUnreadId' => $firstUnread,
+            'seen' => $this->seen($conversation, $user),
             'messages' => $conversation->messages()->with('user')->orderBy('id')->get()->map(fn ($m) => $m->toFrontend($user)),
         ];
+    }
+
+    // GET /api/conversations/{conversation}/status -> { typing: [names], seen: [...], latestId }
+    // Polled every few seconds while a chat is open: who is typing, how far the others have read, and the
+    // newest message (when it's newer than what's shown, the app loads the messages again).
+    public function status(Request $request, Conversation $conversation)
+    {
+        $user = $request->user();
+        abort_unless($conversation->canSee($user), 404);
+
+        return [
+            'typing' => $conversation->audience($user)->map(fn ($id) => Cache::get($this->typingKey($conversation, $id)))->filter()->unique()->values(),
+            'seen' => $this->seen($conversation, $user),
+            'latestId' => (int) $conversation->messages()->max('id'),
+        ];
+    }
+
+    // POST /api/conversations/{conversation}/typing -> you're typing (shows for a few seconds)
+    public function typing(Request $request, Conversation $conversation)
+    {
+        $user = $request->user();
+        abort_if($conversation->cantWrite($user), 403);
+        Cache::put($this->typingKey($conversation, $user->id), $this->speaker($user), now()->addSeconds(5));
+
+        return response()->noContent();
+    }
+
+    private function typingKey(Conversation $conversation, int $userId): string
+    {
+        return "typing:{$conversation->id}:{$userId}";
+    }
+
+    // How someone shows in "Seen by" and "is typing": the admin is "OrgConnect admin"
+    private function speaker(User $user): string
+    {
+        return $user->is_admin ? 'OrgConnect admin' : $user->name;
+    }
+
+    // Read receipts: the others in the conversation and the last message each has read
+    // [{ id, name, lastReadId }]. People who haven't opened it aren't listed; admins count as one.
+    private function seen(Conversation $conversation, User $viewer): array
+    {
+        $reads = ConversationRead::where('conversation_id', $conversation->id)->whereIn('user_id', $conversation->audience($viewer))
+            ->where('last_read_message_id', '>', 0)->get();
+        $people = User::whereIn('id', $reads->pluck('user_id'))->get()->keyBy('id');
+
+        return $reads->filter(fn ($r) => $people->has($r->user_id))
+            ->map(fn ($r) => ['id' => $r->user_id, 'name' => $this->speaker($people[$r->user_id]), 'lastReadId' => $r->last_read_message_id])
+            ->groupBy('name')->map(fn ($same) => $same->sortByDesc('lastReadId')->first())->values()->all();
     }
 
     // POST /api/conversations/{conversation}/messages  { body }
@@ -147,6 +198,7 @@ class MessageController extends Controller
         $message = $conversation->messages()->create(['user_id' => $user->id, 'body' => $body]);
         $conversation->update(['last_message_at' => $message->created_at]);
         $conversation->markRead($user);
+        Cache::forget($this->typingKey($conversation, $user->id));
 
         if ($notify) {
             $from = $user->is_admin ? 'the OrgConnect admin' : $user->name;
