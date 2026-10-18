@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Modal from "./Modal.jsx";
+import Icon from "./Icon.jsx";
+import { ATTACH_TYPES, attachmentProblem, fileSize } from "../utils/format.js";
 import { ANNOUNCEMENT_CATEGORIES } from "../data/constants.js";
 
 const MAX_LENGTH = 1000;
 const EMPTY = { title: "", category: ANNOUNCEMENT_CATEGORIES[0], content: "", pinned: false };
 
-// Create / edit an announcement
+// Create / edit an announcement, with an optional photo or file.
+// onSave(form, { file, removeFile }): file is a new attachment; removeFile drops the current one
 export default function AnnouncementForm({ initial, onSave, onCancel }) {
   const [formData, setFormData] = useState(() =>
     initial
@@ -14,6 +17,19 @@ export default function AnnouncementForm({ initial, onSave, onCancel }) {
   );
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const [file, setFile] = useState(null);
+  const [removeFile, setRemoveFile] = useState(false);
+  const fileRef = useRef(null);
+  const current = initial?.attachment && !removeFile ? initial.attachment : null;
+
+  const pickFile = (e) => {
+    const chosen = e.target.files?.[0];
+    e.target.value = "";
+    if (!chosen) return;
+    const problem = attachmentProblem(chosen);
+    setErrors({ ...errors, file: problem || undefined });
+    if (!problem) setFile(chosen);
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -30,7 +46,7 @@ export default function AnnouncementForm({ initial, onSave, onCancel }) {
     setErrors(found);
     if (Object.keys(found).length > 0) return;
     setSaving(true);
-    await onSave({ ...formData, title: formData.title.trim(), content: formData.content.trim() });
+    await onSave({ ...formData, title: formData.title.trim(), content: formData.content.trim() }, { file, removeFile });
     setSaving(false);
   };
 
@@ -95,6 +111,31 @@ export default function AnnouncementForm({ initial, onSave, onCancel }) {
             {errors.content ? <span className="field-error">{errors.content}</span> : <span />}
             <span className={`char-count ${remaining < 0 ? "over" : ""}`}>{remaining}</span>
           </div>
+        </div>
+
+        <div className="field span-2">
+          <span className="field-label">Photo or file <span className="muted">(optional)</span></span>
+          {file || current ? (
+            <div className="msg-attach-chip ann-attach-chip">
+              <Icon name={(file ? file.type.startsWith("image/") : current.type === "image") ? "image" : "file"} size={15} />
+              <span className="msg-attach-name">{file ? file.name : current.name}</span>
+              <span className="muted small">{fileSize(file ? file.size : current.size)}</span>
+              <button
+                type="button"
+                className="icon-btn xs"
+                aria-label="Remove the attachment"
+                onClick={() => (file ? setFile(null) : setRemoveFile(true))}
+              >
+                <Icon name="close" size={13} />
+              </button>
+            </div>
+          ) : (
+            <button type="button" className="btn btn-outline btn-sm ann-attach-btn" onClick={() => fileRef.current?.click()}>
+              <Icon name="clip" size={15} /> Attach a photo or file
+            </button>
+          )}
+          <input ref={fileRef} type="file" accept={ATTACH_TYPES} className="sr-only" tabIndex={-1} onChange={pickFile} aria-hidden="true" />
+          {errors.file ? <span className="field-error">{errors.file}</span> : <span className="field-hint">PNG or JPG photos show in the post; PDF, Word, Excel, PowerPoint and other files can be downloaded. Up to 10 MB.</span>}
         </div>
       </div>
     </Modal>

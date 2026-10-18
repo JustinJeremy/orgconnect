@@ -56,12 +56,10 @@ export default function SessionCard({ session, myRequest, canManage, canRequest,
         </div>
         {canManage && (
           <div className="card-tools">
-            {/* The check-in QR code: only on the session's meeting days */}
-            {session.checkinOpen && (
-              <button type="button" className="icon-btn sm checkin-btn" aria-label={`Check-in QR for ${session.subject}`} title="Check-in QR" onClick={() => setQrOpen(true)}>
-                <Icon name="qr" size={16} />
-              </button>
-            )}
+            {/* The check-in QR code (scanning works on the session's meeting days) */}
+            <button type="button" className="icon-btn sm checkin-btn" aria-label={`Check-in QR for ${session.subject}`} title="Check-in QR" onClick={() => setQrOpen(true)}>
+              <Icon name="qr" size={16} />
+            </button>
             <button type="button" className="icon-btn sm" aria-label={`Edit ${session.subject}`} onClick={() => onEdit(session)}>
               <Icon name="edit" size={16} />
             </button>

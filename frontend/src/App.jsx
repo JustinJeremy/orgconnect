@@ -28,6 +28,7 @@ import AttendanceModal from "./components/AttendanceModal.jsx";
 import ConfirmDialog from "./components/ConfirmDialog.jsx";
 import TemporaryPasswordDialog from "./components/TemporaryPasswordDialog.jsx";
 import Tour from "./components/Tour.jsx";
+import SearchPalette from "./components/SearchPalette.jsx";
 import AvatarPicker from "./components/AvatarPicker.jsx";
 import CheckinScreen, { CheckinPendingNote, clearCheckin, pendingCheckin } from "./components/CheckinScreen.jsx";
 import { buildTour, tourSections } from "./data/tourSteps.js";
@@ -115,6 +116,7 @@ function PageLoading() {
 
 function MainApp() {
   const { user, startOrgRegistration } = useAuth();
+  const { current: currentOrg } = useOrg();
   const isOfficer = user.role === "officer";
   // The page is in the address bar (/events, /hours...): refresh, Back and new tabs work
   const [page, setPage] = useUrlPage(APP_PAGES, "dashboard");
@@ -442,8 +444,14 @@ function MainApp() {
 
   // ---- Announcements ----
   const announcements = {
-    save: (id, form) =>
-      run(async () => upsert("announcements", id ? await announcementsApi.update(id, form) : await announcementsApi.create(form)), id ? "Announcement updated" : "Announcement posted"),
+    // attachment: { file, removeFile } from the form (a photo or file to add, or the current one to drop)
+    save: (id, form, attachment = {}) =>
+      run(async () => {
+        let post = id ? await announcementsApi.update(id, form) : await announcementsApi.create(form);
+        if (attachment.file) post = await announcementsApi.attach(post.id, attachment.file);
+        else if (attachment.removeFile && post.attachment) post = await announcementsApi.detach(post.id);
+        upsert("announcements", post);
+      }, id ? "Announcement updated" : "Announcement posted"),
     remove: async (post) => {
       const ok = await confirm({
         title: "Delete announcement?",
@@ -501,6 +509,29 @@ function MainApp() {
     }
   };
 
+  // Search everything (sidebar Search, Ctrl+K): open a result on its page, highlighted
+  const [searching, setSearching] = useState(false);
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearching(true);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+  const openFromSearch = (kind, item) => {
+    const target = {
+      event: { page: "events", eventId: item.id, eventTitle: item.title },
+      session: { page: "tutoring", kind: "session", id: item.id, search: item.subject },
+      announcement: { page: "announcements", kind: "post", id: item.id, search: item.title },
+      chat: { page: "messages", id: item.id },
+    }[kind];
+    setPage(target.page);
+    setFocus({ ...target, key: Date.now() });
+  };
+
   // Dashboard calendar: open Peer Tutoring on that session
   const openSession = (session) => {
     setPage("tutoring");
@@ -556,6 +587,7 @@ function MainApp() {
         collapsed={collapsed}
         onToggleCollapse={toggleCollapsed}
         badges={{ messages: unreadMessages }}
+        onSearch={() => setSearching(true)}
       />
 
       <main className={`main ${page === "dashboard" ? "main-dashboard" : ""}`}>
@@ -645,6 +677,8 @@ function MainApp() {
       {tempPassword && <TemporaryPasswordDialog {...tempPassword} onClose={() => setTempPassword(null)} />}
 
       {tourSteps && <Tour steps={tourSteps} page={page} onNavigate={setPage} onClose={() => setTourSteps(null)} />}
+
+      {searching && <SearchPalette orgName={currentOrg?.shortName || "this org"} onOpen={openFromSearch} onClose={() => setSearching(false)} />}
 
       <Toast toast={toast} />
     </div>

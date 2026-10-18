@@ -52,9 +52,9 @@ class CheckinTest extends TestCase
             'location' => 'Hall', 'mode' => 'F2F', 'capacity' => 50, 'description' => 'x', 'status' => 'upcoming', 'created_by' => $officer->id]));
         $scan = fn ($code) => $this->actingIn($member, $org)->postJson('/api/checkin', ['type' => 'event', 'id' => $event->id, 'code' => $code]);
 
-        // Two days before: closed, and the card has no QR button
+        // Two days before: the QR code can be shown, but scanning it doesn't work yet
         $this->travelTo(now()->setDate(2026, 10, 18)->setTime(13, 0));
-        $this->actingIn($officer, $org)->getJson('/api/events')->assertJsonPath('0.checkinOpen', false);
+        $this->actingIn($officer, $org)->getJson('/api/events')->assertJsonPath('0.checkinOpen', false)->assertJsonPath('0.finished', false);
         $code = $this->actingIn($officer, $org)->getJson("/api/events/{$event->id}/checkin")->assertJsonPath('open', false)->json('code');
         $scan($code)->assertStatus(422)->assertJsonPath('message', 'Check-in opens a day before the event (Oct 19, 1:00 PM).');
 
@@ -65,7 +65,7 @@ class CheckinTest extends TestCase
 
         // Completed: closed, and the QR button goes away
         $event->update(['status' => 'completed']);
-        $this->actingIn($officer, $org)->getJson('/api/events?tab=past')->assertJsonPath('0.checkinOpen', false);
+        $this->actingIn($officer, $org)->getJson('/api/events?tab=past')->assertJsonPath('0.checkinOpen', false)->assertJsonPath('0.finished', true);
         $scan($code)->assertStatus(422)->assertJsonPath('message', 'This event is finished, so check-in is closed.');
 
         // Not marked completed but its day is over: closed too

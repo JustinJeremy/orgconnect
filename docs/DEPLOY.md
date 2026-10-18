@@ -87,6 +87,6 @@ presentation you can stop this by removing `&& php artisan db:seed --force` from
 QR check-in needs the deployed site: a phone can't open `localhost`. On the deployed site, an officer
 opens an event's QR icon on a laptop; a member scans it with the phone camera, which opens the
 Vercel address, signs in, and shows "You're checked in". It works from a day before the event starts
-until the event is finished (completed, or the end of its day); the QR icon only shows in that window
-(`APP_TIMEZONE` decides the times).
+until the event is finished (completed, or the end of its day). Officers can show the QR code any time
+before the event is finished (`APP_TIMEZONE` decides the times).
 

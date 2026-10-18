@@ -80,13 +80,34 @@ export const orgRequestsApi = {
 };
 
 // Messages: friends, an org's officers and the OrgConnect admin, a requester and the admin
+// FormData with these fields plus a "file"
+function withFile(fields, file) {
+  const body = new FormData();
+  Object.entries(fields).forEach(([key, value]) => value != null && body.append(key, value));
+  body.append("file", file);
+  return body;
+}
+
+// Group chats in the selected org: any member starts one and adds people from the org
+export const groupsApi = {
+  create: (name, memberIds) => post("/groups", { name, memberIds }), // -> the new conversation
+  members: (id) => get(`/groups/${id}/members`), // -> [{ id, name, avatar, position, creator }]
+  add: (id, memberIds) => post(`/groups/${id}/members`, { memberIds }),
+  rename: (id, name) => put(`/groups/${id}`, { name }),
+  leave: (id) => del(`/groups/${id}/members/me`),
+};
+
+// Search everything in the selected org -> { people, events, sessions, announcements, resources, chats }
+export const searchApi = { search: (q) => get(`/search?q=${encodeURIComponent(q)}`) };
+
 export const messagesApi = {
   list: () => get("/conversations"), // -> yours, latest first: { id, kind, title, subtitle, who, lastMessage, unread, cantWrite }
   unread: () => get("/messages/unread"), // -> { count }
   show: (id) => get(`/conversations/${id}/messages`), // -> { conversation, messages, firstUnreadId, seen } (marks it read)
   status: (id) => get(`/conversations/${id}/status`), // -> { typing: [names], seen: [{ id, name, lastReadId }], latestId }
   typing: (id) => post(`/conversations/${id}/typing`), // you're typing (shows for a few seconds)
-  send: (id, body) => post(`/conversations/${id}/messages`, { body }),
+  // file: an optional photo or file (sent as multipart form data)
+  send: (id, body, file = null) => post(`/conversations/${id}/messages`, file ? withFile({ body }, file) : { body }),
   direct: (userId) => post(`/conversations/direct/${userId}`), // someone in the selected org
   contacts: (search = "") => get(`/messages/contacts?search=${encodeURIComponent(search)}`), // who you can message in this org
   org: (orgId) => post(`/conversations/org/${orgId}`), // an org's officers and the admin
@@ -195,6 +216,8 @@ export const announcementsApi = {
   create: (data) => post("/announcements", data),
   update: (id, data) => put(`/announcements/${id}`, data),
   remove: (id) => del(`/announcements/${id}`),
+  attach: (id, file) => post(`/announcements/${id}/attachment`, withFile({}, file)), // a photo or file -> updated announcement
+  detach: (id) => del(`/announcements/${id}/attachment`),
   markRead: (id) => post(`/announcements/${id}/read`),
   markAllRead: () => post("/announcements/read-all"),
   // Likes and comments on the dashboard feed

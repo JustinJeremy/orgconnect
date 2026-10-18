@@ -6,14 +6,17 @@ use App\Models\Conversation;
 use App\Models\ConversationRead;
 use App\Models\Friendship;
 use App\Models\MembershipRecord;
+use App\Models\Message;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\UserNotification;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 
-// Messages: members of the same org with each other (inside that org), an org's officers with the
-// OrgConnect admin, and someone registering an org with the admin (including "Ask for changes").
+// Messages: members of the same org with each other (inside that org), group chats in an org (see
+// GroupController), an org's officers with the OrgConnect admin, and someone registering an org with
+// the admin (including "Ask for changes"). A message can carry one photo or file.
 class MessageController extends Controller
 {
     // GET /api/conversations -> yours, latest message first
@@ -102,15 +105,18 @@ class MessageController extends Controller
             ->groupBy('name')->map(fn ($same) => $same->sortByDesc('lastReadId')->first())->values()->all();
     }
 
-    // POST /api/conversations/{conversation}/messages  { body }
+    // POST /api/conversations/{conversation}/messages  { body, file? } (multipart when there's a file)
     public function send(Request $request, Conversation $conversation)
     {
         $user = $request->user();
         abort_unless($conversation->canSee($user), 404);
         abort_if($reason = $conversation->cantWrite($user), 403, $reason);
-        $data = $request->validate(['body' => 'required|string|max:2000']);
+        $data = $request->validate([
+            'body' => 'nullable|string|max:2000|required_without:file',
+            'file' => Message::ATTACHMENT_RULES,
+        ], ['file.mimes' => 'Send a photo (PNG or JPG) or a PDF, Word, Excel, PowerPoint, text, CSV or ZIP file.', 'file.max' => 'Files can be up to 10 MB.']);
 
-        return response()->json($this->post($conversation, $user, trim($data['body']))->toFrontend($user), 201);
+        return response()->json($this->post($conversation, $user, trim((string) ($data['body'] ?? '')), file: $request->file('file'))->toFrontend($user), 201);
     }
 
     // POST /api/conversations/direct/{person} -> your conversation with someone in the selected org
@@ -193,9 +199,12 @@ class MessageController extends Controller
     }
 
     // Saves a message and tells everyone else in the conversation (once per unread stretch, not every message)
-    private function post(Conversation $conversation, User $user, string $body, bool $notify = true)
+    private function post(Conversation $conversation, User $user, string $body, bool $notify = true, ?UploadedFile $file = null)
     {
-        $message = $conversation->messages()->create(['user_id' => $user->id, 'body' => $body]);
+        $message = $conversation->messages()->create(['user_id' => $user->id, 'body' => $body !== '' ? $body : null]);
+        if ($file) {
+            $message->attach($file, 'message-files');
+        }
         $conversation->update(['last_message_at' => $message->created_at]);
         $conversation->markRead($user);
         Cache::forget($this->typingKey($conversation, $user->id));
@@ -205,6 +214,7 @@ class MessageController extends Controller
             $about = match ($conversation->kind) {
                 'org' => " ({$conversation->organization?->short_name} officers)",
                 'request' => " about the {$conversation->organization?->short_name} request",
+                'group' => " in {$conversation->name}",
                 default => '',
             };
             foreach ($conversation->audience($user) as $userId) {

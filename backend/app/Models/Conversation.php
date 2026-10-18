@@ -5,17 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 
-// A conversation (see the messaging migration for the three kinds and who is in each):
+// A conversation (see the messaging migrations for the kinds and who is in each):
 //   direct  - two members of the same org, inside that org (organization_id): they write while both are
 //             active members there. Someone in another org is messaged from that org.
+//   group   - a named chat inside one org (committees, study groups): its members (conversation_members)
+//             write while they're active members of the org; any member adds others from the org
 //   org     - the org's officers read it; its President, VPs and Secretary and the admin write
 //   request - the person registering an org and the admin
 class Conversation extends Model
 {
-    protected $fillable = ['kind', 'organization_id', 'user_one_id', 'user_two_id', 'last_message_at'];
+    protected $fillable = ['kind', 'name', 'organization_id', 'user_one_id', 'user_two_id', 'created_by', 'last_message_at'];
 
     protected function casts(): array
     {
@@ -30,6 +33,17 @@ class Conversation extends Model
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    // A group's members
+    public function members(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'conversation_members')->withPivot('added_by')->withTimestamps();
+    }
+
+    public function isMember(User $user): bool
+    {
+        return $this->members()->where('users.id', $user->id)->exists();
     }
 
     public function userOne(): BelongsTo
@@ -69,6 +83,7 @@ class Conversation extends Model
     {
         return match ($this->kind) {
             'direct' => in_array($user->id, [$this->user_one_id, $this->user_two_id], true),
+            'group' => $this->isMember($user),
             'org' => $user->is_admin || (bool) $this->officerIn($user),
             'request' => $user->is_admin || $this->organization?->requested_by === $user->id,
             default => false,
@@ -85,6 +100,8 @@ class Conversation extends Model
         return match ($this->kind) {
             'direct' => $this->activeIn($this->user_one_id) && $this->activeIn($this->user_two_id)
                 ? null : "You can only message people while you're both active members of {$this->organization?->short_name}.",
+            'group' => $this->activeIn($user->id)
+                ? null : "You can write here while you're an active member of {$this->organization?->short_name}.",
             'org' => $user->is_admin || $this->isManager($this->officerIn($user))
                 ? null : 'Only the President, VPs and Secretary can write to the OrgConnect admin.',
             'request' => in_array($this->organization?->status, ['Pending', 'Rejected'], true)
@@ -103,6 +120,7 @@ class Conversation extends Model
     {
         $ids = match ($this->kind) {
             'direct' => collect([$this->user_one_id, $this->user_two_id]),
+            'group' => $this->members()->pluck('users.id'),
             'org' => MembershipRecord::where('organization_id', $this->organization_id)->where('status', 'Active')->where('role', 'officer')->pluck('user_id')
                 ->merge(User::where('is_admin', true)->pluck('id')),
             'request' => collect([$this->organization?->requested_by])->merge(User::where('is_admin', true)->pluck('id')),
@@ -127,6 +145,8 @@ class Conversation extends Model
         return $query->where(fn ($q) => $q
             ->where(fn ($q) => $q->where('kind', 'direct')->where('organization_id', $org)
                 ->where(fn ($q) => $q->where('user_one_id', $user->id)->orWhere('user_two_id', $user->id)))
+            ->orWhere(fn ($q) => $q->where('kind', 'group')->where('organization_id', $org)
+                ->whereHas('members', fn ($q) => $q->where('users.id', $user->id)))
             ->orWhere(fn ($q) => $q->where('kind', 'org')->where('organization_id', $officerHere ? $org : 0))
             ->orWhere(fn ($q) => $q->where('kind', 'request')->whereIn('organization_id', $requested)));
     }
@@ -135,7 +155,7 @@ class Conversation extends Model
     {
         $read = (int) ConversationRead::where('conversation_id', $this->id)->where('user_id', $user->id)->value('last_read_message_id');
 
-        return $this->messages()->where('user_id', '!=', $user->id)->where('id', '>', $read)->count();
+        return $this->messages()->where('user_id', '!=', $user->id)->where('notice', false)->where('id', '>', $read)->count();
     }
 
     public function markRead(User $user): void
@@ -152,6 +172,7 @@ class Conversation extends Model
 
         [$title, $subtitle, $who] = match ($this->kind) {
             'direct' => [$other?->name, $this->describe($other, $viewer), ['name' => $other?->name, ...($other?->avatarData() ?? [])]],
+            'group' => [$this->name, ($count = $this->members()->count()).' '.($count === 1 ? 'member' : 'members'), ['name' => $this->name, 'group' => true]],
             'org' => $viewer->is_admin
                 ? [$org?->name, 'Officers', ['name' => $org?->short_name]]
                 : ['OrgConnect admin', "{$org?->short_name} officers", ['name' => 'OrgConnect']],
@@ -167,10 +188,16 @@ class Conversation extends Model
             'title' => $title,
             'subtitle' => $subtitle,
             'who' => $who,
-            'isAdminSide' => $this->kind !== 'direct' && ! $viewer->is_admin,   // the other side is the admin
+            'isAdminSide' => in_array($this->kind, ['org', 'request'], true) && ! $viewer->is_admin,   // the other side is the admin
             'otherUserId' => $other?->id,
             'organizationId' => $this->organization_id,
-            'lastMessage' => $last ? ['body' => $last->body, 'at' => $last->created_at->format('Y-m-d\TH:i:s'), 'mine' => $last->user_id === $viewer->id] : null,
+            'lastMessage' => $last ? [
+                'body' => $last->body ?: ($last->attachment_type === 'image' ? 'Sent a photo' : ($last->attachment_name ? "Sent a file: {$last->attachment_name}" : '')),
+                'at' => $last->created_at->format('Y-m-d\TH:i:s'),
+                'mine' => $last->user_id === $viewer->id && ! $last->notice,
+                // In a group: who wrote it ("Maria: ...")
+                'by' => $this->kind === 'group' && ! $last->notice && $last->user_id !== $viewer->id ? strtok((string) $last->user?->name, ' ') : null,
+            ] : null,
             'unread' => $this->unreadFor($viewer),
             'cantWrite' => $this->cantWrite($viewer),
         ];

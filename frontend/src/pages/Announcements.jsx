@@ -14,6 +14,7 @@ import useFocusItem from "../hooks/useFocusItem.js";
 import { announcementsApi } from "../api/services.js";
 import { ANNOUNCEMENT_CATEGORIES } from "../data/constants.js";
 import { formatDate, relativeDate } from "../utils/format.js";
+import PostAttachment from "../components/PostAttachment.jsx";
 
 const PER_PAGE = 8;
 
@@ -32,6 +33,7 @@ function AnnouncementDetails({ post, isOfficer, memberCount, onClose }) {
           {post.pinned && <span className="post-pinned"><Icon name="pushpin" size={13} /> Pinned</span>}
         </div>
         <p className="detail-text">{post.content}</p>
+        <PostAttachment file={post.attachment} />
         {isOfficer && (
           <p className="muted small">Read by {post.readCount ?? 0}{memberCount ? ` of ${memberCount}` : ""} members</p>
         )}
@@ -76,6 +78,7 @@ function Post({ post, isOfficer, memberCount, actions, onEdit, highlighted = fal
 
       <h3><button type="button" className="card-title-btn" onClick={openPost}>{post.title}</button></h3>
       <p className="post-body">{post.content}</p>
+      <PostAttachment file={post.attachment} />
 
       <footer className="post-foot">
         <span className="muted small">
@@ -149,8 +152,8 @@ export default function Announcements({ data, loading, actions, focus, onFocusDo
   }, [focus?.key]);
   const highlightId = useFocusItem({ focus, kind: "post", items: list.items, ready: list.loaded, onDone: onFocusDone });
 
-  const handleSave = async (values) => {
-    const ok = await actions.save(form.post?.id, values);
+  const handleSave = async (values, attachment) => {
+    const ok = await actions.save(form.post?.id, values, attachment);
     if (ok) setForm(null);
   };
 

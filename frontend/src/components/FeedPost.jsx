@@ -4,6 +4,7 @@ import { announcementsApi } from "../api/services.js";
 import { relativeDate } from "../utils/format.js";
 import { UserAvatar } from "./Avatars.jsx";
 import CommentThread from "./CommentThread.jsx";
+import PostAttachment from "./PostAttachment.jsx";
 
 // One announcement in the member dashboard feed (Figma), with Like and Comment (comments and replies:
 // CommentThread.jsx)
@@ -57,6 +58,7 @@ export default function FeedPost({ post }) {
       <div className="feed-cat">{post.category}</div>
       <h3 className="feed-title">{post.title}</h3>
       {post.content && <p className="feed-body">{post.content}</p>}
+      <PostAttachment file={post.attachment} />
 
       <footer className="feed-actions">
         <span className="feed-count" aria-label={`${likes} likes`}>{likes}</span>

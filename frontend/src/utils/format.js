@@ -58,6 +58,22 @@ export function relativeDate(value) {
   return formatDate(iso);
 }
 
+// 1536000 -> "1.5 MB", 20480 -> "20 KB"
+export function fileSize(bytes = 0) {
+  if (bytes >= 1048576) return `${(bytes / 1048576).toFixed(1).replace(/\.0$/, "")} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+// What can be attached to a message or an announcement (the server checks this too)
+export const ATTACH_TYPES = ".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip";
+export const ATTACH_MAX = 10 * 1024 * 1024;
+export function attachmentProblem(file) {
+  const ext = `.${file.name.split(".").pop().toLowerCase()}`;
+  if (!ATTACH_TYPES.split(",").includes(ext)) return "Attach a photo (PNG or JPG) or a PDF, Word, Excel, PowerPoint, text, CSV or ZIP file.";
+  if (file.size > ATTACH_MAX) return "Files can be up to 10 MB.";
+  return "";
+}
+
 export const percent = (part, whole) => (whole ? Math.round((part / whole) * 100) : 0);
 
 export const plural = (n, word, many = `${word}s`) => `${n} ${n === 1 ? word : many}`;

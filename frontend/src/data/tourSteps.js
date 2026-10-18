@@ -112,6 +112,18 @@ const MESSAGES = {
       title: "Start a conversation",
       body: "Search anyone in the org. Friends you haven't messaged yet come first. You can also press Message on someone's profile or card on the People page.",
     },
+    {
+      page: "messages",
+      target: '[data-tour="messages-new"]',
+      title: "Group chats",
+      body: "New, then New group: name it and pick people from this org, for a committee or a study group. Anyone in the group can add more people, rename it or leave (Members, at the top of the chat). Everyone added gets a notification.",
+    },
+    {
+      page: "messages",
+      target: ['[data-tour="messages-attach"]', '[data-tour="messages"]'],
+      title: "Photos and files",
+      body: "The paperclip beside the message box sends a photo (PNG or JPG, shown in the chat) or a file like a PDF, Word, Excel or PowerPoint, up to 10 MB. Officers can attach one to an announcement too.",
+    },
   ],
 };
 
@@ -124,6 +136,12 @@ const OFFICER = [
         page: "dashboard",
         title: "Welcome to OrgConnect",
         body: "This tour shows everything officers can do, page by page. Use Next and Back (or the arrow keys); Esc leaves the tour.",
+      },
+      {
+        page: "dashboard",
+        target: ['[data-tour="search"]', ".topbar"],
+        title: "Search everything",
+        body: "Search (or Ctrl+K anywhere) finds people, events, tutoring sessions, announcements, learning resources and your chats in this org. Use the arrow keys and Enter to open a result.",
       },
       {
         page: "dashboard",
@@ -201,7 +219,7 @@ const OFFICER = [
         click: '[data-tour="tab-upcoming"]',
         target: [".page .event-card:not(.skeleton-card) .checkin-btn", ".page .event-card:not(.skeleton-card)", ".page .empty-state"],
         title: "QR check-in",
-        body: "From a day before the event until it's finished, the QR icon shows the check-in code. Show it at the venue: members scan it with their phone camera and are marked present, even walk-ins. Names appear as they scan.",
+        body: "The QR icon shows the event's check-in code until the event is finished; scanning works from a day before it starts. Show it at the venue: members scan it with their phone camera and are marked present, even walk-ins. Names appear as they scan.",
       },
       {
         page: "events",
@@ -314,7 +332,7 @@ const OFFICER = [
         page: "announcements",
         target: '[data-tour="announcement-create"]',
         title: "Post an announcement",
-        body: "Write an update with a category (General, Event, Deadline, Urgent). Every member is notified.",
+        body: "Write an update with a category (General, Event, Deadline, Urgent), and attach a photo or a file if you like (a poster, a map, the minutes). Every member is notified.",
       },
       {
         page: "announcements",
@@ -336,6 +354,12 @@ const MEMBER = [
         page: "dashboard",
         title: "Welcome to OrgConnect",
         body: "This tour shows everything you can do as a member, page by page. Use Next and Back (or the arrow keys); Esc leaves the tour.",
+      },
+      {
+        page: "dashboard",
+        target: ['[data-tour="search"]', ".topbar"],
+        title: "Search everything",
+        body: "Search (or Ctrl+K anywhere) finds people, events, tutoring sessions, announcements, learning resources and your chats in this org. Use the arrow keys and Enter to open a result.",
       },
       {
         page: "dashboard",
