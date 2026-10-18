@@ -60,6 +60,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/messages/unread', [MessageController::class, 'unread']);
     Route::get('/conversations/{conversation}/messages', [MessageController::class, 'show']);
     Route::post('/conversations/{conversation}/messages', [MessageController::class, 'send'])->middleware('throttle:60,1');
+    Route::patch('/conversations/{conversation}/messages/{message}', [MessageController::class, 'update']);   // your own: edit
+    Route::delete('/conversations/{conversation}/messages/{message}', [MessageController::class, 'destroy']);   // your own: delete
     Route::post('/conversations/org/{organization}', [MessageController::class, 'org']);
     Route::post('/conversations/request/{organization}', [MessageController::class, 'request']);
     Route::get('/conversations/{conversation}/status', [MessageController::class, 'status']);   // who's typing, who has seen

@@ -22,7 +22,8 @@ by connecting students, officers and orgs).
 - *Messages:* message anyone in the same org (someone in another org is messaged from that org);
   officers also have a conversation with the OrgConnect admin (the President, VPs and Secretary write
   in it, the other officers read along). New messages show a count and a notification; chats show
-  *Seen* under your latest message and *typing…* while the other side writes
+  *Seen* under your latest message and *typing…* while the other side writes; you can edit or delete
+  your own messages (others see *edited*, or *This message was deleted*)
 - *Group chats:* start a group for a committee or study group with people from the same org; anyone in
   it can add more people, rename it or leave, and people who are added get a notification
 - *Photos and files* in messages (PNG/JPG photos show in the chat; PDF, Word, Excel, PowerPoint, text,
@@ -101,6 +102,17 @@ php artisan key:generate
 php artisan migrate --seed
 php artisan serve           # http://127.0.0.1:8000
 ```
+
+PHP lets files up to 2 MB through by default. To upload bigger posters (up to 5 MB) and message files
+(up to 10 MB) on your laptop, start the backend with the app's upload settings
+(`backend/php/uploads.ini`):
+
+```bash
+PHP_INI_SCAN_DIR=";$(pwd -W)/php" php artisan serve      # Windows (Git Bash)
+PHP_INI_SCAN_DIR=":$(pwd)/php" php artisan serve         # Mac / Linux
+```
+
+Without it, bigger files are turned away with "That file is too large to upload".
 
 ### 3. Frontend (terminal 2)
 

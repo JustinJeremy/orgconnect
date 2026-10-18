@@ -157,6 +157,20 @@ class DemoSeeder extends Seeder
             ['paolo.reyes@orgconnect.test', "Of course. I'll prepare the scoring sheet tonight", 5, 11],
             ['andrea.lim@orgconnect.test', 'Thanks! Bea will print the ballots', 5, 11],
         ]],
+        [['data-science-society', 'bea.navarro@orgconnect.test', 'gabriel.aquino@orgconnect.test'], [
+            ['gabriel.aquino@orgconnect.test', 'Hi Bea! Can I still submit a dashboard for the showcase?', 3, 14],
+            ['bea.navarro@orgconnect.test', 'Yes, until Monday 5 PM. Send it as a link or a PDF.', 3, 15],
+            ['gabriel.aquino@orgconnect.test', 'Thank you! Sending it tonight.', 2, 19],
+        ]],
+        [['data-science-society', 'miguel.ramos@orgconnect.test', 'denise.tan@orgconnect.test'], [
+            ['denise.tan@orgconnect.test', 'Is your scikit-learn session okay for beginners?', 4, 16],
+            ['miguel.ramos@orgconnect.test', 'Yes! We start from the basics. Request a slot on Peer Tutoring.', 4, 17],
+        ]],
+        [['data-science-society', 'andrea.lim@orgconnect.test', 'member@orgconnect.test'], [
+            ['andrea.lim@orgconnect.test', 'Welcome to DSS, Juan! Join the stats study group if you like.', 5, 10],
+            ['member@orgconnect.test', 'Thank you, Andrea! I will check it out.', 5, 12],
+            ['andrea.lim@orgconnect.test', 'See you at the showcase on Tuesday!', 1, 9],
+        ]],
         [['data-science-society', 'sofia.garcia@orgconnect.test', 'carlo.mendoza@orgconnect.test'], [
             ['sofia.garcia@orgconnect.test', 'Carlo, is your SQL joins session still open for this Monday?', 2, 15],
             ['carlo.mendoza@orgconnect.test', 'Yes, 3 slots left. Bring your laptop with MySQL installed', 2, 16],
@@ -225,6 +239,9 @@ class DemoSeeder extends Seeder
                 ['angela.rivera@orgconnect.test', 'Photos from the Coastal Cleanup are up', 'General',
                     'Thank you to the 22 volunteers who joined the Manila Bay cleanup! The photos are in the CompSoc Drive. Volunteer hours for it are approved.', 9,
                     [['bianca.torres@orgconnect.test', 'That was so fun, let us do it again next semester!', null, null]]],
+                ['angela.rivera@orgconnect.test', 'Minutes: October general assembly', 'General',
+                    'The minutes from the October general assembly are attached: the hackathon plans, the Org Day booth and the renewal timeline. Comment here if anything needs fixing.', 5,
+                    [['mark.delarosa@orgconnect.test', 'Thanks for posting these, Angela!', null, null]]],
             ],
             'sessions' => [
                 // tutor, subject, area, schedule, location, slots, description, topics, [requester, status]
@@ -254,6 +271,9 @@ class DemoSeeder extends Seeder
                     'We have 15 free DataCamp licenses until December. Reply here with the course you want to take and we will send the invite to your school email.', 7,
                     [['sofia.garcia@orgconnect.test', 'Intro to Power BI please!', null, null],
                         ['carlo.mendoza@orgconnect.test', 'Joining Data in SQL for me', null, null]]],
+                ['bea.navarro@orgconnect.test', 'Showcase judging rubric', 'Event',
+                    'Here is the rubric the judges will use on Tuesday: insight, design, clarity and the story your dashboard tells. Good luck to all teams!', 3,
+                    [['denise.tan@orgconnect.test', 'This helps a lot, thank you!', 'bea.navarro@orgconnect.test', 'You are welcome! See you there.']]],
             ],
             'sessions' => [
                 ['sofia.garcia@orgconnect.test', 'Charts with matplotlib and seaborn', 'Data Visualization', 'Wednesdays, 2:00 PM', 'Analytics Lab', 5,
@@ -360,6 +380,34 @@ class DemoSeeder extends Seeder
                 [$admin->id, 'Friday is fine. Thanks for the update!', 3, 9],
             ] as [$userId, $text, $daysAgo, $hour]) {
                 $reply = $announcement->replies()->create(['organization_id' => $compsoc->id, 'user_id' => $userId, 'text' => $text]);
+                $when = $day->copy()->subDays($daysAgo)->setTime($hour, 0);
+                $reply->timestamps = false;
+                $reply->forceFill(['created_at' => $when, 'updated_at' => $when])->save();
+            }
+        }
+
+        // Presidents only: Org Fair booth slots, with a reply thread from each org
+        $dss = Organization::where('slug', 'data-science-society')->first();
+        $andrea = User::where('email', 'andrea.lim@orgconnect.test')->first();
+        $fair = PlatformAnnouncement::firstOrCreate(['title' => 'Org Fair booth slots are open'], [
+            'user_id' => $admin->id,
+            'content' => 'The CCS Org Fair is on November 6. Reply here with the booth size you need (small or large) and whether you need a power outlet. First come, first served!',
+            'audience' => 'presidents',
+            'organization_ids' => null,
+        ]);
+        $fairAt = $day->copy()->subDays(2)->setTime(10, 0);
+        $fair->timestamps = false;
+        $fair->forceFill(['created_at' => $fairAt, 'updated_at' => $fairAt])->save();
+        if (! $fair->replies()->exists()) {
+            foreach ([
+                [$compsoc, $president, 'CompSoc would like a large booth with a power outlet, please.', 2, 13],
+                [$compsoc, $admin, 'Noted! Large booth with power for CompSoc.', 1, 9],
+                [$dss, $andrea, 'DSS: a small booth is enough, and we need one outlet for the monitor.', 1, 11],
+            ] as [$org, $who, $text, $daysAgo, $hour]) {
+                if (! $org || ! $who) {
+                    continue;
+                }
+                $reply = $fair->replies()->create(['organization_id' => $org->id, 'user_id' => $who->id, 'text' => $text]);
                 $when = $day->copy()->subDays($daysAgo)->setTime($hour, 0);
                 $reply->timestamps = false;
                 $reply->forceFill(['created_at' => $when, 'updated_at' => $when])->save();
@@ -682,7 +730,7 @@ class DemoSeeder extends Seeder
     }
 
     // Batch 23: group chats in both orgs (committees and study groups), with photos and files.
-    //   name, slug, started by, members, [from, text, days before the demo day, hour, attachment?]
+    //   name, slug, started by, members, [from, text, days before the demo day, hour, attachment?, edited|deleted?]
     //   attachment: "poster:<file in seeders/posters>" (a photo) or "pdf:<name>" / "csv:<name>" (made here)
     private const GROUPS = [
         ['CompSoc Org Day booth crew', 'computer-society', 'officer@orgconnect.test',
@@ -713,6 +761,34 @@ class DemoSeeder extends Seeder
                 ['andrea.lim@orgconnect.test', 'Practice problems on hypothesis testing, answers at the bottom.', 5, 20, 'csv:Hypothesis-testing-practice.csv'],
                 ['isabel.cruz@orgconnect.test', 'Thank you! Library at 4 PM tomorrow?', 1, 18, null],
             ]],
+        ['CompSoc officers', 'computer-society', 'officer@orgconnect.test',
+            ['leo.manalo@orgconnect.test', 'angela.rivera@orgconnect.test', 'nico.fernandez@orgconnect.test'], [
+                ['officer@orgconnect.test', 'Agenda for Monday: hackathon budget, Org Day booth, renewal papers.', 3, 8, 'pdf:Officers-meeting-agenda.pdf'],
+                ['nico.fernandez@orgconnect.test', 'Budget so far: 12,500 of 20,000 pesos used. Receipts are in the Drive.', 3, 9, null, 'edited'],
+                ['angela.rivera@orgconnect.test', 'Minutes from the last meeting.', 2, 10, 'pdf:Minutes-October-12.pdf'],
+                ['leo.manalo@orgconnect.test', 'I will send the mentor list for the clinic tonight.', 1, 11, null],
+            ]],
+        ['Web dev study group', 'computer-society', 'patricia.lim@orgconnect.test',
+            ['bianca.torres@orgconnect.test', 'ryan.castillo@orgconnect.test', 'member@orgconnect.test', 'angela.rivera@orgconnect.test'], [
+                ['patricia.lim@orgconnect.test', 'My Flexbox notes for Thursday!', 4, 17, 'pdf:Flexbox-notes.pdf'],
+                ['ryan.castillo@orgconnect.test', 'Wrong chat, sorry', 4, 18, null, 'deleted'],
+                ['bianca.torres@orgconnect.test', 'Can we do CSS Grid next week?', 3, 19, null],
+                ['angela.rivera@orgconnect.test', 'Yes! I will bring examples from the CompSoc site.', 2, 20, null],
+            ]],
+        ['DSS officers', 'data-science-society', 'andrea.lim@orgconnect.test',
+            ['paolo.reyes@orgconnect.test', 'bea.navarro@orgconnect.test', 'marco.villareal@orgconnect.test'], [
+                ['andrea.lim@orgconnect.test', 'Officers meeting on Thursday, 5 PM, Room 210.', 5, 9, null],
+                ['marco.villareal@orgconnect.test', 'Showcase budget sheet attached.', 4, 10, 'csv:Showcase-budget.csv'],
+                ['bea.navarro@orgconnect.test', 'Room 210 confirmed for Thursday and for the showcase.', 3, 11, null, 'edited'],
+                ['paolo.reyes@orgconnect.test', 'I will email the judges today.', 1, 9, null],
+            ]],
+        ['Kaggle team', 'data-science-society', 'miguel.ramos@orgconnect.test',
+            ['carlo.mendoza@orgconnect.test', 'isabel.cruz@orgconnect.test', 'member@orgconnect.test'], [
+                ['miguel.ramos@orgconnect.test', 'Team for the Titanic challenge! Here is our plan.', 6, 20, 'pdf:Kaggle-team-plan.pdf'],
+                ['carlo.mendoza@orgconnect.test', 'I will do the feature engineering.', 5, 21, null],
+                ['isabel.cruz@orgconnect.test', 'Our score went up to 0.79!', 2, 19, null],
+                ['member@orgconnect.test', 'Nice! Let us try a random forest next.', 1, 20, null],
+            ]],
     ];
 
     private function groups(Carbon $day): void
@@ -732,11 +808,19 @@ class DemoSeeder extends Seeder
             }
             $first = $day->copy()->subDays($lines[0][2])->setTime($lines[0][3], 0)->subMinutes(5);
             $this->seedMessage($group, $by, "{$by->name} created the group", $first, true);
-            foreach ($lines as [$from, $body, $daysBefore, $hour, $file]) {
+            foreach ($lines as $line) {
+                [$from, $body, $daysBefore, $hour, $file] = $line;
+                $at = $day->copy()->subDays($daysBefore)->setTime($hour, 0);
                 if ($sender = $user($from)) {
-                    $message = $this->seedMessage($group, $sender, $body, $day->copy()->subDays($daysBefore)->setTime($hour, 0));
+                    $message = $this->seedMessage($group, $sender, $body, $at);
                     if ($file) {
                         $this->seedFile($message, 'message-files', $file);
+                    }
+                    // Shown as "edited", or as "This message was deleted"
+                    $flag = $line[5] ?? null;
+                    if ($flag) {
+                        $message->timestamps = false;
+                        $message->forceFill($flag === 'edited' ? ['edited_at' => $at->copy()->addMinutes(4)] : ['body' => null, 'deleted_at' => $at->copy()->addMinute()])->save();
                     }
                 }
             }
@@ -772,6 +856,8 @@ class DemoSeeder extends Seeder
         'Hackathon teams: final call' => 'pdf:Hackathon-team-registration.pdf',
         'Showcase voting opens at 10 AM' => 'poster:data-visualization-showcase.jpg',
         'Free DataCamp licenses for members' => 'csv:DataCamp-courses.csv',
+        'Minutes: October general assembly' => 'pdf:Minutes-October-general-assembly.pdf',
+        'Showcase judging rubric' => 'pdf:Showcase-judging-rubric.pdf',
     ];
 
     private function announcementFiles(): void

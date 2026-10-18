@@ -25,6 +25,7 @@ You need: the GitHub repo, a Railway account and a Vercel account (sign in to bo
    | `APP_URL` | the backend's address from step 6, e.g. `https://orgconnect-backend.up.railway.app` |
    | `FRONTEND_URL` | the Vercel address from part 2, e.g. `https://orgconnect.vercel.app` (no slash at the end) |
    | `APP_TIMEZONE` | `Asia/Manila` (event times, and when QR check-in opens, are Philippine time) |
+   | `PHP_INI_SCAN_DIR` | `:/app/php` (loads `backend/php/uploads.ini`, so files up to 10 MB and posters up to 5 MB can be uploaded; PHP's default is 2 MB) |
    | `DB_CONNECTION` | `mysql` |
    | `DB_HOST` | `${{MySQL.MYSQLHOST}}` |
    | `DB_PORT` | `${{MySQL.MYSQLPORT}}` |
@@ -89,4 +90,15 @@ opens an event's QR icon on a laptop; a member scans it with the phone camera, w
 Vercel address, signs in, and shows "You're checked in". It works from a day before the event starts
 until the event is finished (completed, or the end of its day). Officers can show the QR code any time
 before the event is finished (`APP_TIMEZONE` decides the times).
+
+## Checking the upload limit
+
+After the first deploy, open the backend service on Railway, then *Settings → Console* (or `railway ssh`), and run:
+
+```bash
+php -r 'echo ini_get("upload_max_filesize"), PHP_EOL;'
+```
+
+It should print `12M`. If it prints `2M`, check that `PHP_INI_SCAN_DIR` is exactly `:/app/php` (with the colon) and redeploy.
+Until then, files over 2 MB are turned away with "That file is too large to upload".
 

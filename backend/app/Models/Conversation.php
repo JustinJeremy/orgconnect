@@ -155,7 +155,7 @@ class Conversation extends Model
     {
         $read = (int) ConversationRead::where('conversation_id', $this->id)->where('user_id', $user->id)->value('last_read_message_id');
 
-        return $this->messages()->where('user_id', '!=', $user->id)->where('notice', false)->where('id', '>', $read)->count();
+        return $this->messages()->where('user_id', '!=', $user->id)->where('notice', false)->whereNull('deleted_at')->where('id', '>', $read)->count();
     }
 
     public function markRead(User $user): void
@@ -192,7 +192,7 @@ class Conversation extends Model
             'otherUserId' => $other?->id,
             'organizationId' => $this->organization_id,
             'lastMessage' => $last ? [
-                'body' => $last->body ?: ($last->attachment_type === 'image' ? 'Sent a photo' : ($last->attachment_name ? "Sent a file: {$last->attachment_name}" : '')),
+                'body' => $last->deleted_at ? 'Message deleted' : ($last->body ?: ($last->attachment_type === 'image' ? 'Sent a photo' : ($last->attachment_name ? "Sent a file: {$last->attachment_name}" : ''))),
                 'at' => $last->created_at->format('Y-m-d\TH:i:s'),
                 'mine' => $last->user_id === $viewer->id && ! $last->notice,
                 // In a group: who wrote it ("Maria: ...")

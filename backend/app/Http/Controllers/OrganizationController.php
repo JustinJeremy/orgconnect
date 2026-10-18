@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\OfficerOnly;
 use App\Models\MembershipRecord;
 use App\Models\Organization;
 use App\Models\UserNotification;
+use App\Support\Uploads;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -156,7 +157,9 @@ class OrganizationController extends Controller
     {
         $this->officerOnly($request);
         // No SVG: it can carry scripts
-        $request->validate(['logo' => ['required', 'image', 'mimes:png,jpg,jpeg', 'max:2048']]);
+        Uploads::ensureArrived($request, 'logo', 'Logos can be up to 2 MB.');
+        $request->validate(['logo' => ['required', 'image', 'mimes:png,jpg,jpeg', 'max:2048']],
+            ['logo.max' => 'The logo must be 2 MB or smaller.', 'logo.uploaded' => 'That logo is too large to upload. Logos can be up to 2 MB.']);
 
         $organization = Organization::current();
         $old = $organization->logo_path;

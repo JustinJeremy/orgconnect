@@ -42,6 +42,37 @@ function Attachment({ file }) {
   );
 }
 
+// Your own message: "..." opens Edit and Delete
+function MessageMenu({ onEdit, onDelete, canEdit }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = (e) => !ref.current?.contains(e.target) && setOpen(false);
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+  return (
+    <div className={`msg-menu ${open ? "is-open" : ""}`} ref={ref}>
+      <button type="button" className="msg-menu-btn" aria-label="Message options" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <Icon name="dots" size={16} />
+      </button>
+      {open && (
+        <div className="msg-menu-list" role="menu">
+          {canEdit && (
+            <button type="button" role="menuitem" onClick={() => (setOpen(false), onEdit())}>
+              <Icon name="edit" size={14} /> Edit
+            </button>
+          )}
+          <button type="button" role="menuitem" className="is-danger" onClick={() => (setOpen(false), onDelete())}>
+            <Icon name="trash" size={14} /> Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Pick people from the org: for a new group (with its name) or to add to a group.
 // loadPeople(search) -> [{ id, name, avatar, position, course, yearLevel }]; skipIds: already in it
 function PeoplePicker({ title, loadPeople, skipIds = [], withName = false, submitLabel, onSubmit, onClose }) {
@@ -259,6 +290,9 @@ export function ConversationView({ id, onBack, onSent, onRead, onOpenPerson, loa
   const [file, setFile] = useState(null); // a photo or file to send with the message
   const [sending, setSending] = useState(false);
   const [info, setInfo] = useState(false); // the group's members pop-up
+  const [editing, setEditing] = useState(null); // { id, text }: your message being edited
+  const [deleting, setDeleting] = useState(null); // your message to delete (asks first)
+  const lastChange = useRef(null); // the newest edit or delete seen, from the status check
   const endRef = useRef(null);
   const fileRef = useRef(null);
   const lastCount = useRef(0);
@@ -305,7 +339,10 @@ export function ConversationView({ id, onBack, onSent, onRead, onOpenPerson, loa
         if (!active) return;
         setTyping(status.typing);
         setSeen(status.seen);
-        if (status.latestId > newestShown) load();
+        // New messages, or someone edited or deleted one: load the chat again
+        const changed = lastChange.current !== null && status.changedAt !== lastChange.current;
+        lastChange.current = status.changedAt;
+        if (status.latestId > newestShown || changed) load();
       } catch {
         // Try again on the next tick
       }
@@ -337,6 +374,32 @@ export function ConversationView({ id, onBack, onSent, onRead, onOpenPerson, loa
     }
     lastCount.current = count;
   }, [data, newFrom]);
+
+  const replace = (message) => setData((d) => ({ ...d, messages: d.messages.map((m) => (m.id === message.id ? message : m)) }));
+
+  const saveEdit = async () => {
+    const body = editing.text.trim();
+    const original = data.messages.find((m) => m.id === editing.id);
+    if (!body && !original?.attachment) return;
+    try {
+      replace(await messagesApi.edit(id, editing.id, body));
+      setEditing(null);
+      onSent?.();
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  };
+
+  const confirmDelete = async () => {
+    try {
+      replace(await messagesApi.remove(id, deleting.id));
+      onSent?.();
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   const pickFile = (e) => {
     const chosen = e.target.files?.[0];
@@ -371,7 +434,7 @@ export function ConversationView({ id, onBack, onSent, onRead, onOpenPerson, loa
   if (!data) return <div className="msg-thread"><div className="skeleton-list padded" aria-hidden="true"><span /><span /><span /></div></div>;
   const { conversation: c, messages } = data;
   // "Seen" goes under your latest message: "Seen" in a chat with one person, "Seen by ..." in a group
-  const lastMine = messages.findLast((m) => m.mine && !m.notice);
+  const lastMine = messages.findLast((m) => m.mine && !m.notice && !m.deleted);
   const readers = lastMine ? seen.filter((s) => s.lastReadId >= lastMine.id).map((s) => s.name) : [];
   const seenText = !readers.length ? "" : c.kind === "direct" ? "Seen" : `Seen by ${readers.length > 3 ? `${readers.slice(0, 3).join(", ")} and ${readers.length - 3} more` : readers.join(", ")}`;
   const isGroup = c.kind === "group";
@@ -433,12 +496,48 @@ export function ConversationView({ id, onBack, onSent, onRead, onOpenPerson, loa
                         {!sameAuthor && (m.isAdmin ? <span className="avatar xs msg-admin-avatar"><Icon name="megaphone" size={12} /></span> : <UserAvatar user={{ name: m.userName, ...m.userAvatar }} className="xs" />)}
                       </span>
                     )}
-                    <div className={`msg-bubble ${m.attachment?.type === "image" ? "has-photo" : ""}`}>
-                      {!m.mine && !sameAuthor && c.kind !== "direct" && <span className="msg-name">{m.userName}</span>}
-                      {m.attachment && <Attachment file={m.attachment} />}
-                      {m.body && <p>{m.body}</p>}
-                      <time dateTime={m.createdAt}>{time(m.createdAt)}</time>
-                    </div>
+                    {m.mine && !m.deleted && !c.cantWrite && editing?.id !== m.id && (
+                      <MessageMenu canEdit onEdit={() => setEditing({ id: m.id, text: m.body || "" })} onDelete={() => setDeleting(m)} />
+                    )}
+                    {m.deleted ? (
+                      <div className="msg-bubble is-deleted">
+                        {!m.mine && !sameAuthor && c.kind !== "direct" && <span className="msg-name">{m.userName}</span>}
+                        <p><Icon name="trash" size={13} /> {m.mine ? "You deleted this message" : "This message was deleted"}</p>
+                        <time dateTime={m.createdAt}>{time(m.createdAt)}</time>
+                      </div>
+                    ) : editing?.id === m.id ? (
+                      <div className="msg-bubble is-editing">
+                        <label htmlFor={`edit-${m.id}`} className="sr-only">Edit your message</label>
+                        <textarea
+                          id={`edit-${m.id}`}
+                          className="input"
+                          rows="2"
+                          maxLength={2000}
+                          value={editing.text}
+                          autoFocus
+                          onChange={(e) => setEditing({ ...editing, text: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === "Escape") setEditing(null);
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              saveEdit();
+                            }
+                          }}
+                        />
+                        <div className="msg-edit-actions">
+                          <span>Enter to save · Esc to cancel</span>
+                          <button type="button" className="btn btn-outline btn-sm" onClick={() => setEditing(null)}>Cancel</button>
+                          <button type="button" className="btn btn-primary btn-sm" onClick={saveEdit} disabled={!editing.text.trim() && !m.attachment}>Save</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={`msg-bubble ${m.attachment?.type === "image" ? "has-photo" : ""}`}>
+                        {!m.mine && !sameAuthor && c.kind !== "direct" && <span className="msg-name">{m.userName}</span>}
+                        {m.attachment && <Attachment file={m.attachment} />}
+                        {m.body && <p>{m.body}</p>}
+                        <time dateTime={m.createdAt}>{m.edited && <span className="msg-edited">edited · </span>}{time(m.createdAt)}</time>
+                      </div>
+                    )}
                   </div>
                   {m === lastMine && seenText && <p className="msg-seen"><Icon name="check" size={12} /> {seenText}</p>}
                 </li>
@@ -497,6 +596,16 @@ export function ConversationView({ id, onBack, onSent, onRead, onOpenPerson, loa
             </button>
           </div>
         </form>
+      )}
+
+      {deleting && (
+        <ConfirmDialog
+          title="Delete this message?"
+          message="It's removed for everyone in the chat (with its photo or file). They'll see that a message was deleted."
+          confirmLabel="Delete"
+          onCancel={() => setDeleting(null)}
+          onConfirm={confirmDelete}
+        />
       )}
 
       {info && isGroup && (

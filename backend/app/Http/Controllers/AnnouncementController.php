@@ -9,6 +9,7 @@ use App\Models\Announcement;
 use App\Models\AnnouncementComment;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Support\Uploads;
 use Illuminate\Http\Request;
 
 class AnnouncementController extends Controller
@@ -66,8 +67,10 @@ class AnnouncementController extends Controller
     public function attach(Request $request, Announcement $announcement)
     {
         $this->officerOnly($request);
+        Uploads::ensureArrived($request, 'file', 'Files can be up to 10 MB.');
         $request->validate(['file' => ['required', ...array_slice(Announcement::ATTACHMENT_RULES, 1)]],
-            ['file.mimes' => 'Attach a photo (PNG or JPG) or a PDF, Word, Excel, PowerPoint, text, CSV or ZIP file.', 'file.max' => 'Files can be up to 10 MB.']);
+            ['file.mimes' => 'Attach a photo (PNG or JPG) or a PDF, Word, Excel, PowerPoint, text, CSV or ZIP file.', 'file.max' => 'Files can be up to 10 MB.',
+                'file.uploaded' => 'That file is too large to upload. Files can be up to 10 MB.']);
         $announcement->attach($request->file('file'), 'announcement-files');
 
         return $announcement->fresh()->toFrontend($request->user());
