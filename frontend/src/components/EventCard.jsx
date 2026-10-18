@@ -97,8 +97,8 @@ export default function EventCard({ event, userId, isOfficer, actions, layout = 
           </div>
           {isOfficer && (
             <div className="card-tools">
-              {/* The check-in QR code: only while check-in is open (a day before until the event is finished) */}
-              {event.checkinOpen && (
+              {/* The check-in QR code, until the event is finished (scanning works from a day before it) */}
+              {!event.finished && (
                 <button type="button" className="icon-btn sm checkin-btn" aria-label={`Check-in QR for ${event.title}`} title="Check-in QR" onClick={() => setQrOpen(true)}>
                   <Icon name="qr" size={16} />
                 </button>

@@ -48,7 +48,7 @@ class TutoringSession extends Model
             'location' => $this->location,
             'slots' => $this->slots,
             'description' => $this->description,
-            'checkinOpen' => $this->meetsToday(),
+            'checkinOpen' => $this->meetsToday(),   // scanning works today (the QR button always shows)
         ];
     }
 }

@@ -34,16 +34,23 @@ class Event extends Model
     }
 
     // QR check-in is open from a day before the event starts until it's finished: marked completed, or
-    // the end of its day at the latest (events have no end time). The QR button shows only then.
+    // the end of its day at the latest (events have no end time). Officers can show the QR code any time
+    // before it's finished; scanning it only works in that window.
     public function checkinOpensAt(): Carbon
     {
         return $this->startsAt()->subDay();
     }
 
+    // Marked completed, or its day is over: check-in is closed for good (the QR button goes away)
+    public function isFinished(): bool
+    {
+        return $this->status === 'completed' || now()->gt($this->date->copy()->endOfDay());
+    }
+
     // null when check-in is open, otherwise why it isn't
     public function checkinClosed(): ?string
     {
-        if ($this->status === 'completed' || now()->gt($this->date->copy()->endOfDay())) {
+        if ($this->isFinished()) {
             return 'This event is finished, so check-in is closed.';
         }
         if (now()->lt($this->checkinOpensAt())) {
@@ -71,7 +78,8 @@ class Event extends Model
             // ?v= changes when the poster is replaced so browsers don't show the old one
             'posterUrl' => $this->poster_path ? url("/api/events/{$this->id}/poster").'?v='.$this->updated_at?->timestamp : null,
             'status' => $this->status,
-            'checkinOpen' => $this->checkinClosed() === null,
+            'checkinOpen' => $this->checkinClosed() === null,   // scanning works now
+            'finished' => $this->isFinished(),   // completed, or its day is over: no QR button
             'registrations' => $this->registrations->map(fn ($r) => [
                 'id' => $r->id,
                 'userId' => $r->user_id,
