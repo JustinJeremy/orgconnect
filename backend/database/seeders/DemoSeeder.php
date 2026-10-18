@@ -804,7 +804,18 @@ class DemoSeeder extends Seeder
             $people = collect($members)->map($user)->filter()->push($by);
             $group->members()->syncWithoutDetaching($people->mapWithKeys(fn ($u) => [$u->id => ['added_by' => $by->id]])->all());
             if ($group->messages()->exists()) {
-                continue;   // already seeded (or used): leave its chat as it is
+                // Already seeded (or used): leave its chat as it is, but put back a sample photo or file
+                // whose file is gone (e.g. written where the storage volume wasn't attached)
+                foreach ($lines as $line) {
+                    $file = $line[4];
+                    $name = $file ? explode(':', $file, 2)[1] : null;
+                    $message = $name ? $group->messages()->where('attachment_name', $name)->first() : null;
+                    if ($message && ! ($message->attachment_path && Storage::disk('public')->exists($message->attachment_path))) {
+                        $this->seedFile($message, 'message-files', $file);
+                    }
+                }
+
+                continue;
             }
             $first = $day->copy()->subDays($lines[0][2])->setTime($lines[0][3], 0)->subMinutes(5);
             $this->seedMessage($group, $by, "{$by->name} created the group", $first, true);
