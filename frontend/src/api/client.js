@@ -37,7 +37,28 @@ const sessionChannel = typeof BroadcastChannel === "undefined" ? null : new Broa
 sessionChannel?.addEventListener("message", (e) => {
   const token = sessionStorage.getItem(TOKEN_KEY);
   if (e.data?.type === "need-token" && token) sessionChannel.postMessage({ type: "token", token });
+  // Another tab is signing out: say so if this tab is still using the same sign-in
+  if (e.data?.type === "token-in-use?" && e.data.token && getToken() === e.data.token) {
+    sessionChannel.postMessage({ type: "token-in-use", token: e.data.token });
+  }
 });
+
+// Signing out: is another open tab still using this sign-in? (A tab opened while signed in shares it.)
+// If so, the sign-out only forgets it here, so that tab keeps working as its account.
+export function tokenUsedElsewhere(token, timeout = 300) {
+  return new Promise((resolve) => {
+    if (!sessionChannel || !token) return resolve(false);
+    const finish = (used) => {
+      sessionChannel.removeEventListener("message", onMessage);
+      clearTimeout(timer);
+      resolve(used);
+    };
+    const onMessage = (e) => e.data?.type === "token-in-use" && e.data.token === token && finish(true);
+    sessionChannel.addEventListener("message", onMessage);
+    const timer = setTimeout(() => finish(false), timeout);
+    sessionChannel.postMessage({ type: "token-in-use?", token });
+  });
+}
 
 // Resolves with a token from another open tab, or null if none answers in time
 export function borrowSessionToken(timeout = 300) {
@@ -88,6 +109,17 @@ api.interceptors.request.use((config) => {
   const org = getOrgSlug();
   if (org) config.headers["X-Organization"] = org;
   return config;
+});
+
+// The server no longer accepts this tab's sign-in (signed out elsewhere, or it expired):
+// AuthContext hears this and shows the sign-in screen instead of empty pages
+export const SIGNED_OUT_EVENT = "orgconnect:signed-out";
+api.interceptors.response.use(undefined, (error) => {
+  const sent = error.config?.headers?.Authorization;
+  if (error.response?.status === 401 && sent && sent === `Bearer ${getToken()}`) {
+    window.dispatchEvent(new Event(SIGNED_OUT_EVENT));
+  }
+  return Promise.reject(error);
 });
 
 // Laravel API Resources wrap results in { data: ... }; unwrap them
