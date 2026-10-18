@@ -11,12 +11,23 @@ const TOKEN_KEY = "orgconnect_token";
 const ORG_KEY = "orgconnect_org";
 
 // "Remember me" keeps the token in localStorage (survives closing the browser);
-// otherwise sessionStorage (forgotten when the browser closes)
-export const getToken = () => localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
+// otherwise sessionStorage (forgotten when the browser closes).
+// Each tab also keeps the account it signed in with (TAB_TOKEN_KEY, this tab's sessionStorage):
+// signing in as someone else in another tab replaces the shared localStorage token, and without
+// this the first tab would keep showing its account while asking the server as the new one.
+const TAB_TOKEN_KEY = "orgconnect_tab_token";
+export const getToken = () => sessionStorage.getItem(TAB_TOKEN_KEY) || localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
+if (!sessionStorage.getItem(TAB_TOKEN_KEY) && getToken()) sessionStorage.setItem(TAB_TOKEN_KEY, getToken());
 export const setToken = (token, remember = true) => {
-  localStorage.removeItem(TOKEN_KEY);
+  // Signing out here leaves another tab's newer sign-in alone
+  const mine = sessionStorage.getItem(TAB_TOKEN_KEY);
+  if (token || !mine || localStorage.getItem(TOKEN_KEY) === mine) localStorage.removeItem(TOKEN_KEY);
   sessionStorage.removeItem(TOKEN_KEY);
-  if (token) (remember ? localStorage : sessionStorage).setItem(TOKEN_KEY, token);
+  sessionStorage.removeItem(TAB_TOKEN_KEY);
+  if (token) {
+    (remember ? localStorage : sessionStorage).setItem(TOKEN_KEY, token);
+    sessionStorage.setItem(TAB_TOKEN_KEY, token);
+  }
 };
 
 // "Remember me" off: the token is in this tab's sessionStorage only, so a new tab (Ctrl-click,
