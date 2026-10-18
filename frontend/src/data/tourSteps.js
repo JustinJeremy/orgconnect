@@ -104,7 +104,7 @@ const MESSAGES = {
       page: "messages",
       target: '[data-tour="messages"]',
       title: "Messages",
-      body: "Message anyone in this org (to reach someone in another org, switch to that org first). Officers also have a conversation with the OrgConnect admin: the President, VPs and Secretary write in it and the other officers read along. New messages show a number beside Messages and a notification that opens the chat.",
+      body: "Message anyone in this org (to reach someone in another org, switch to that org first). Officers also have a conversation with the OrgConnect admin: the President, VPs and Secretary write in it and the other officers read along. New messages show a number beside Messages and a notification that opens the chat. Hover over your own message and press ⋯ to edit or delete it.",
     },
     {
       page: "messages",

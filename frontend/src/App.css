@@ -4136,3 +4136,25 @@ a.org-option { text-decoration: none; }
   .msg-group-btn-label { display: none; }
 }
 
+/* Batch 23.1: edit and delete your own messages */
+.msg.is-mine .msg-row { align-items: center; }
+.msg-menu { position: relative; flex: none; opacity: 0; transition: opacity 0.15s; }
+.msg:hover .msg-menu, .msg-menu.is-open, .msg-menu:focus-within { opacity: 1; }
+@media (hover: none) { .msg-menu { opacity: 1; } }
+.msg-menu-btn { display: grid; place-items: center; width: 1.875rem; height: 1.875rem; border: none; border-radius: 50%; background: transparent; color: var(--muted); cursor: pointer; transition: background 0.15s, color 0.15s; }
+.msg-menu-btn:hover, .msg-menu.is-open .msg-menu-btn { background: var(--tint); color: var(--navy); }
+.msg-menu-list { position: absolute; right: 0; bottom: calc(100% + 0.25rem); z-index: 5; display: flex; flex-direction: column; min-width: 8.5rem; padding: 0.25rem; border: 1px solid var(--line); border-radius: 0.75rem; background: var(--surface); box-shadow: 0 12px 32px rgba(21, 43, 84, 0.16); animation: calendar-pop-in 0.15s ease-out; }
+.msg-menu-list button { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.625rem; border: none; border-radius: 0.5rem; background: transparent; color: var(--ink); font: inherit; font-size: 0.875rem; text-align: left; cursor: pointer; }
+.msg-menu-list button:hover { background: var(--tint); }
+.msg-menu-list button.is-danger { color: var(--red); }
+.msg-menu-list button.is-danger:hover { background: var(--red-soft); }
+.msg-bubble.is-deleted { background: transparent; border: 1px dashed var(--line); box-shadow: none; color: var(--muted); }
+.msg.is-mine .msg-bubble.is-deleted { background: transparent; color: var(--muted); }
+.msg-bubble.is-deleted p { display: flex; align-items: center; gap: 0.375rem; font-style: italic; }
+.msg-bubble.is-editing { width: min(26rem, 100%); background: var(--surface); color: var(--ink); border: 1px solid var(--navy); }
+.msg.is-mine .msg-bubble.is-editing { background: var(--surface); color: var(--ink); }
+.msg-bubble.is-editing textarea { width: 100%; min-height: 3.5rem; resize: vertical; }
+.msg-edit-actions { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
+.msg-edit-actions span { flex: 1; color: var(--muted); font-size: 0.6875rem; }
+.msg-edited { font-style: italic; }
+

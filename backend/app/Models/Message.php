@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 // One message in a conversation: text, a photo or file, or both. A notice ("Juan added Maria") is a
-// line about the group, shown in the middle of the chat.
+// line about the group, shown in the middle of the chat. Its writer can edit the text (it then shows
+// "edited") or delete it (it stays as "This message was deleted", without its text or file).
 class Message extends Model
 {
     use HasAttachment;
@@ -16,12 +17,18 @@ class Message extends Model
 
     protected function casts(): array
     {
-        return ['notice' => 'boolean'];
+        return ['notice' => 'boolean', 'edited_at' => 'datetime', 'deleted_at' => 'datetime'];
     }
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function remove(): void
+    {
+        $this->deleteAttachment();
+        $this->forceFill(['body' => null, 'deleted_at' => now()])->save();
     }
 
     public function toFrontend(User $viewer): array
@@ -31,6 +38,8 @@ class Message extends Model
             'body' => $this->body,
             'notice' => $this->notice,
             'attachment' => $this->attachmentData('files.message'),
+            'edited' => (bool) $this->edited_at,
+            'deleted' => (bool) $this->deleted_at,
             'userId' => $this->user_id,
             'mine' => $this->user_id === $viewer->id,
             'userName' => $this->user?->is_admin ? 'OrgConnect admin' : $this->user?->name,

@@ -10,6 +10,7 @@ use App\Models\Message;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Support\Uploads;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
@@ -68,6 +69,10 @@ class MessageController extends Controller
             'typing' => $conversation->audience($user)->map(fn ($id) => Cache::get($this->typingKey($conversation, $id)))->filter()->unique()->values(),
             'seen' => $this->seen($conversation, $user),
             'latestId' => (int) $conversation->messages()->max('id'),
+            // Changes whenever a message is edited or deleted, so the open chat reloads (a fingerprint, not
+            // a time: sample messages can be dated after "now")
+            'changedAt' => md5($conversation->messages()->where(fn ($q) => $q->whereNotNull('edited_at')->orWhereNotNull('deleted_at'))
+                ->get(['id', 'edited_at', 'deleted_at'])->toJson()),
         ];
     }
 
@@ -111,12 +116,48 @@ class MessageController extends Controller
         $user = $request->user();
         abort_unless($conversation->canSee($user), 404);
         abort_if($reason = $conversation->cantWrite($user), 403, $reason);
+        Uploads::ensureArrived($request, 'file', 'Files can be up to 10 MB.');
         $data = $request->validate([
             'body' => 'nullable|string|max:2000|required_without:file',
             'file' => Message::ATTACHMENT_RULES,
-        ], ['file.mimes' => 'Send a photo (PNG or JPG) or a PDF, Word, Excel, PowerPoint, text, CSV or ZIP file.', 'file.max' => 'Files can be up to 10 MB.']);
+        ], ['file.mimes' => 'Send a photo (PNG or JPG) or a PDF, Word, Excel, PowerPoint, text, CSV or ZIP file.', 'file.max' => 'Files can be up to 10 MB.',
+            'file.uploaded' => 'That file is too large to upload. Files can be up to 10 MB.']);
 
         return response()->json($this->post($conversation, $user, trim((string) ($data['body'] ?? '')), file: $request->file('file'))->toFrontend($user), 201);
+    }
+
+    // PATCH /api/conversations/{conversation}/messages/{message}  { body } -> your own message, edited
+    public function update(Request $request, Conversation $conversation, Message $message)
+    {
+        $user = $this->ownMessage($request, $conversation, $message);
+        $data = $request->validate(['body' => ($message->attachment_path ? 'nullable' : 'required').'|string|max:2000']);
+        $body = trim((string) ($data['body'] ?? ''));
+        if ($body !== (string) $message->body) {
+            $message->forceFill(['body' => $body !== '' ? $body : null, 'edited_at' => now()])->save();
+        }
+
+        return $message->load('user')->toFrontend($user);
+    }
+
+    // DELETE /api/conversations/{conversation}/messages/{message} -> your own message shows as deleted
+    public function destroy(Request $request, Conversation $conversation, Message $message)
+    {
+        $user = $this->ownMessage($request, $conversation, $message);
+        $message->remove();
+
+        return $message->load('user')->toFrontend($user);
+    }
+
+    // Only the writer edits or deletes, while they can still write in the conversation
+    private function ownMessage(Request $request, Conversation $conversation, Message $message): User
+    {
+        $user = $request->user();
+        abort_unless($message->conversation_id === $conversation->id && $conversation->canSee($user), 404);
+        abort_unless($message->user_id === $user->id && ! $message->notice, 403, 'You can only change your own messages.');
+        abort_if((bool) $message->deleted_at, 422, 'This message was already deleted.');
+        abort_if($reason = $conversation->cantWrite($user), 403, $reason);
+
+        return $user;
     }
 
     // POST /api/conversations/direct/{person} -> your conversation with someone in the selected org

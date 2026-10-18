@@ -116,4 +116,64 @@ class GroupsFilesSearchTest extends TestCase
             ->assertJsonPath('chats.0.title', 'Hackathon committee');
         $this->actingIn($me, $org)->getJson('/api/search?q=h')->assertStatus(422);
     }
+
+    public function test_people_edit_and_delete_their_own_messages(): void
+    {
+        Storage::fake('public');
+        $org = $this->compSoc();
+        $juan = $this->person($org, 'member', 'Active', ['name' => 'Juan']);
+        $isa = $this->person($org, 'member', 'Active', ['name' => 'Isa']);
+        $id = $this->actingIn($juan, $org)->postJson("/api/conversations/direct/{$isa->id}")->json('id');
+        $mine = $this->actingIn($juan, $org)->postJson("/api/conversations/{$id}/messages", ['body' => 'Meet at 3?'])->json('id');
+        $theirs = $this->actingIn($isa, $org)->postJson("/api/conversations/{$id}/messages", ['body' => 'Sure'])->json('id');
+        $before = $this->actingIn($isa, $org)->getJson("/api/conversations/{$id}/status")->json('changedAt');
+
+        // Edit: shows "edited", and the other side's open chat sees a change
+        $this->travel(2)->seconds();
+        $this->actingIn($juan, $org)->patchJson("/api/conversations/{$id}/messages/{$mine}", ['body' => 'Meet at 4?'])
+            ->assertOk()->assertJsonPath('body', 'Meet at 4?')->assertJsonPath('edited', true);
+        $this->assertNotSame($before, $this->actingIn($isa, $org)->getJson("/api/conversations/{$id}/status")->json('changedAt'));
+
+        // Only your own
+        $this->actingIn($juan, $org)->patchJson("/api/conversations/{$id}/messages/{$theirs}", ['body' => 'Hacked'])->assertForbidden();
+        $this->actingIn($juan, $org)->deleteJson("/api/conversations/{$id}/messages/{$theirs}")->assertForbidden();
+
+        // Delete: stays in place as deleted, with its file gone
+        $photo = $this->actingIn($juan, $org)->post("/api/conversations/{$id}/messages", ['file' => $this->png('a.png')])->json('id');
+        $this->actingIn($juan, $org)->deleteJson("/api/conversations/{$id}/messages/{$photo}")
+            ->assertOk()->assertJsonPath('deleted', true)->assertJsonPath('attachment', null)->assertJsonPath('body', null);
+        $this->assertCount(0, Storage::disk('public')->allFiles('message-files'));
+        $this->actingIn($isa, $org)->getJson('/api/conversations')->assertJsonPath('0.lastMessage.body', 'Message deleted');
+        $this->actingIn($juan, $org)->patchJson("/api/conversations/{$id}/messages/{$photo}", ['body' => 'x'])->assertStatus(422);
+
+        // Another conversation's message can't be reached through this one
+        $other = $this->actingIn($isa, $org)->postJson("/api/conversations/direct/{$this->person($org)->id}")->json('id');
+        $elsewhere = $this->actingIn($isa, $org)->postJson("/api/conversations/{$other}/messages", ['body' => 'hi'])->json('id');
+        $this->actingIn($isa, $org)->deleteJson("/api/conversations/{$id}/messages/{$elsewhere}")->assertNotFound();
+    }
+
+    public function test_files_too_large_for_the_server_get_a_clear_message(): void
+    {
+        $org = $this->compSoc();
+        $juan = $this->person($org);
+        $id = $this->actingIn($juan, $org)->postJson("/api/conversations/direct/{$this->person($org)->id}")->json('id');
+
+        // PHP dropped the file (over upload_max_filesize)
+        $tmp = tempnam(sys_get_temp_dir(), 'big');
+        $dropped = new UploadedFile($tmp, 'big.pdf', 'application/pdf', UPLOAD_ERR_INI_SIZE, true);
+        $this->actingIn($juan, $org)->post("/api/conversations/{$id}/messages", ['file' => $dropped], ['Accept' => 'application/json'])
+            ->assertStatus(422)->assertJsonPath('errors.file.0', 'That file is too large to upload. Files can be up to 10 MB.');
+
+        // Same for an event poster (it would otherwise say the poster is required)
+        $officer = $this->person($org, 'officer');
+        $event = $this->inOrg($org, fn () => Event::create(['title' => 'Poster test', 'category' => 'Seminar', 'date' => now()->addWeek()->toDateString(), 'time' => '09:00',
+            'location' => 'Hall', 'mode' => 'F2F', 'capacity' => 10, 'description' => 'x', 'status' => 'upcoming', 'created_by' => $officer->id]));
+        $poster = new UploadedFile(tempnam(sys_get_temp_dir(), 'big'), 'poster.jpg', 'image/jpeg', UPLOAD_ERR_INI_SIZE, true);
+        $this->actingIn($officer, $org)->post("/api/events/{$event->id}/poster", ['poster' => $poster], ['Accept' => 'application/json'])
+            ->assertStatus(422)->assertJsonPath('errors.poster.0', 'That file is too large to upload. Posters can be up to 5 MB.');
+
+        // The whole request is over post_max_size
+        $this->actingIn($juan, $org)->call('POST', "/api/conversations/{$id}/messages", [], [], [], ['CONTENT_LENGTH' => 64 * 1024 * 1024, 'HTTP_ACCEPT' => 'application/json'])
+            ->assertStatus(413)->assertJsonPath('message', 'That file is too large to upload.');
+    }
 }

@@ -104,6 +104,8 @@ export const messagesApi = {
   list: () => get("/conversations"), // -> yours, latest first: { id, kind, title, subtitle, who, lastMessage, unread, cantWrite }
   unread: () => get("/messages/unread"), // -> { count }
   show: (id) => get(`/conversations/${id}/messages`), // -> { conversation, messages, firstUnreadId, seen } (marks it read)
+  edit: (id, messageId, body) => patch(`/conversations/${id}/messages/${messageId}`, { body }), // your own -> the edited message
+  remove: (id, messageId) => del(`/conversations/${id}/messages/${messageId}`), // your own -> shows as deleted
   status: (id) => get(`/conversations/${id}/status`), // -> { typing: [names], seen: [{ id, name, lastReadId }], latestId }
   typing: (id) => post(`/conversations/${id}/typing`), // you're typing (shows for a few seconds)
   // file: an optional photo or file (sent as multipart form data)
