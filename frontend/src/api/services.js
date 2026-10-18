@@ -83,7 +83,9 @@ export const orgRequestsApi = {
 export const messagesApi = {
   list: () => get("/conversations"), // -> yours, latest first: { id, kind, title, subtitle, who, lastMessage, unread, cantWrite }
   unread: () => get("/messages/unread"), // -> { count }
-  show: (id) => get(`/conversations/${id}/messages`), // -> { conversation, messages } (marks it read)
+  show: (id) => get(`/conversations/${id}/messages`), // -> { conversation, messages, firstUnreadId, seen } (marks it read)
+  status: (id) => get(`/conversations/${id}/status`), // -> { typing: [names], seen: [{ id, name, lastReadId }], latestId }
+  typing: (id) => post(`/conversations/${id}/typing`), // you're typing (shows for a few seconds)
   send: (id, body) => post(`/conversations/${id}/messages`, { body }),
   direct: (userId) => post(`/conversations/direct/${userId}`), // someone in the selected org
   contacts: (search = "") => get(`/messages/contacts?search=${encodeURIComponent(search)}`), // who you can message in this org
@@ -130,6 +132,8 @@ export const eventsApi = {
   saveAttendance: (id, attendees, completed) => put(`/events/${id}/attendance`, { attendees, completed }),
   certificate: (id) => api.get(`/events/${id}/certificate`, { responseType: "blob" }),
   certificates: () => get("/certificates"), // -> the signed-in member's certificates
+  checkin: (id) => get(`/events/${id}/checkin`), // officers: -> { code, open, opensAt, checkedIn }
+  resetCheckin: (id) => post(`/events/${id}/checkin/reset`), // a new code (the old QR stops working)
 };
 
 export const hoursApi = {
@@ -171,6 +175,8 @@ export const tutoringApi = {
   createSession: (data) => post("/tutoring-sessions", data),
   updateSession: (id, data) => put(`/tutoring-sessions/${id}`, data),
   removeSession: (id) => del(`/tutoring-sessions/${id}`),
+  checkin: (id) => get(`/tutoring-sessions/${id}/checkin`), // the tutor or officers: -> { code, open, checkedIn } for today
+  resetCheckin: (id) => post(`/tutoring-sessions/${id}/checkin/reset`),
   requests: () => get("/tutoring-requests"),
   requestsPage: getPage("/tutoring-requests"), // { view: received | sent, status, page, perPage }
   request: (sessionId) => post("/tutoring-requests", { sessionId }),
@@ -215,4 +221,7 @@ export const platformApi = {
 };
 
 // Org colors to pick from: [{ key, label, theme, taken }]
+// Scanning a check-in QR code: { type: event | session, id, code } -> { already, title, message, link, organization }
+export const checkinApi = { scan: (data) => post("/checkin", data) };
+
 export const themesApi = { list: () => get("/org-themes") };

@@ -70,6 +70,14 @@ const PATHS = {
   menu: <path d="M4 6h16M4 12h16M4 18h16" />,
   close: <path d="M6 6l12 12M18 6 6 18" />,
   check: <path d="M5 12.5l4.5 4.5L19 7" />,
+  qr: (
+    <>
+      <rect x="4" y="4" width="6" height="6" rx="1" />
+      <rect x="14" y="4" width="6" height="6" rx="1" />
+      <rect x="4" y="14" width="6" height="6" rx="1" />
+      <path d="M14 14h2v2M20 14v2M14 20h2M18 18h2v2" />
+    </>
+  ),
   users: (
     <>
       <circle cx="9" cy="8" r="3.5" />

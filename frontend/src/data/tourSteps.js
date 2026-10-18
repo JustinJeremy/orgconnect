@@ -198,6 +198,13 @@ const OFFICER = [
       },
       {
         page: "events",
+        click: '[data-tour="tab-upcoming"]',
+        target: [".page .event-card:not(.skeleton-card) .checkin-btn", ".page .event-card:not(.skeleton-card)", ".page .empty-state"],
+        title: "QR check-in",
+        body: "From a day before the event until it's finished, the QR icon shows the check-in code. Show it at the venue: members scan it with their phone camera and are marked present, even walk-ins. Names appear as they scan.",
+      },
+      {
+        page: "events",
         click: '[data-tour="tab-past"]',
         target: [".page .event-card:not(.skeleton-card)", ".page .empty-state"],
         title: "Attendance and certificates",
@@ -228,7 +235,7 @@ const OFFICER = [
         click: '[data-tour="tab-sessions"]',
         target: [".card-grid > .session-card:not(.skeleton-card)", ".page .empty-state"],
         title: "Session cards",
-        body: "Members request a slot here. Officers and the tutor can edit or delete the session.",
+        body: "Members request a slot here. Officers and the tutor can edit or delete the session, and show its check-in QR (the square icon) at each meeting.",
       },
       {
         page: "tutoring",
@@ -257,7 +264,7 @@ const OFFICER = [
         click: '[data-tour="tab-hours"]',
         target: '[data-tour="hours-tabs"]',
         title: "Hours, members and requests",
-        body: "Hour logs to verify and the member roster. The President, Vice Presidents and Secretary also see membership applications and reactivation requests here.",
+        body: "Hour logs to verify, your own hours (My Hours: officers log theirs too, and the President, VPs or Secretary approve them), and the member roster. The President, VPs and Secretary also see membership applications and reactivation requests here.",
       },
       {
         page: "hours",
@@ -380,7 +387,7 @@ const MEMBER = [
         click: '[data-tour="tab-upcoming"]',
         target: [".page .event-card:not(.skeleton-card)", ".page .empty-state"],
         title: "RSVP",
-        body: "Press RSVP to save your spot; press it again to cancel. Attend and you'll get a certificate.",
+        body: "Press RSVP to save your spot; press it again to cancel. At the event, scan the officers' QR code with your phone camera to check in, and you'll get a certificate.",
       },
     ],
   },
@@ -393,7 +400,7 @@ const MEMBER = [
         click: '[data-tour="tab-sessions"]',
         target: [".card-grid > .session-card:not(.skeleton-card)", ".page .empty-state"],
         title: "Book a peer tutor",
-        body: "Press Request session to ask for a slot. The tutor or an officer approves it and you're notified.",
+        body: "Press Request session to ask for a slot. The tutor or an officer approves it and you're notified. At the session, scan the tutor's QR code to check in.",
       },
       {
         page: "tutoring",

@@ -3,7 +3,8 @@ import { StatusBadge } from "./Badges.jsx";
 import { formatDate } from "../utils/format.js";
 
 // highlightId: a log to highlight (opened from a notification)
-export default function HoursTable({ rows, isOfficer, userId, onDecide, onDelete, highlightId }) {
+// canReviewOfficers: the President, VPs and Secretary, who review officers' own hours
+export default function HoursTable({ rows, isOfficer, canReviewOfficers = false, userId, onDecide, onDelete, highlightId }) {
   return (
     <div className="table-wrap">
       <table className="table">
@@ -19,8 +20,10 @@ export default function HoursTable({ rows, isOfficer, userId, onDecide, onDelete
         </thead>
         <tbody>
           {rows.map((log) => {
-            const canDecide = isOfficer && log.status === "Pending" && log.userId !== userId; // never your own
-            const canDelete = !isOfficer && log.userId === userId && log.status === "Pending";
+            // Never your own; another officer's only for the President, VPs and Secretary
+            const othersPending = isOfficer && log.status === "Pending" && log.userId !== userId;
+            const canDecide = othersPending && (!log.byOfficer || canReviewOfficers);
+            const canDelete = log.userId === userId && log.status === "Pending";
             return (
               <tr key={log.id} data-focus={`hour-${log.id}`} className={log.id === highlightId ? "is-focused" : undefined}>
                 {isOfficer && <td className="strong">{log.memberName}</td>}
@@ -42,6 +45,7 @@ export default function HoursTable({ rows, isOfficer, userId, onDecide, onDelete
                       </button>
                     </div>
                   )}
+                  {othersPending && !canDecide && <span className="muted small nowrap">For the President, VPs or Secretary</span>}
                   {canDelete && (
                     <button type="button" className="icon-btn sm danger" aria-label={`Delete log: ${log.activity}`} onClick={() => onDelete(log)}>
                       <Icon name="trash" size={16} />

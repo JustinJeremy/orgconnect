@@ -3911,6 +3911,15 @@ a.org-option { text-decoration: none; }
 .msg.is-mine .msg-bubble { border-radius: 1rem 1rem 0.25rem 1rem; background: var(--navy); color: #fff; }
 .msg-bubble p { margin: 0; white-space: pre-line; overflow-wrap: anywhere; line-height: 1.45; }
 .msg-bubble time { display: block; margin-top: 0.125rem; font-size: 0.6875rem; text-align: right; opacity: 0.65; }
+/* Batch 22: "Seen" under your latest message, and "typing..." while the other side writes */
+.msg-seen { display: flex; align-items: center; justify-content: flex-end; gap: 0.25rem; margin: 0.25rem 0.25rem 0; font-size: 0.6875rem; color: var(--muted); animation: auth-fade 0.25s ease-out; }
+.msg-typing { display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0 0 2.25rem; font-size: 0.75rem; color: var(--muted); animation: list-rise 0.2s ease-out; }
+.typing-dots { display: inline-flex; gap: 3px; padding: 0.5rem 0.625rem; border-radius: 1rem; background: var(--surface-2); }
+.typing-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: typing-dot 1.2s infinite ease-in-out; }
+.typing-dots i:nth-child(2) { animation-delay: 0.15s; }
+.typing-dots i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes typing-dot { 0%, 60%, 100% { transform: translateY(0); opacity: 0.45; } 30% { transform: translateY(-3px); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .typing-dots i { animation: none; } }
 .msg-name { display: block; font-size: 0.75rem; font-weight: 700; color: var(--navy); }
 @keyframes msg-in { from { opacity: 0; transform: translateY(6px) scale(0.98); } }
 .msg-compose { display: flex; align-items: flex-end; gap: 0.5rem; padding: 0.75rem; border-top: 1px solid var(--line-2); }
@@ -3988,3 +3997,50 @@ a.org-option { text-decoration: none; }
   .layout.is-collapsed .sidebar-user-btn { flex: none; margin: -0.375rem auto; padding: 0.375rem; }
   .layout.is-collapsed .sidebar-user-btn.active::before { left: -0.75rem; }   /* same place as the menu's marks */
 }
+
+/* ---------- Hover tints with room around the content (Batch 22) ----------
+   Rows that light up on hover get a little padding inside the tint, pulled back out with a negative
+   margin, so the text stays where it was but no longer touches the tint's edge. */
+.review-list li, .leaders li { padding-left: 0.625rem; padding-right: 0.625rem; margin-left: -0.625rem; margin-right: -0.625rem; }
+.review-list li:last-child, .leaders li:last-child { padding-bottom: 0.625rem; }
+.leaders li:first-child { padding-top: 0.5625rem; }
+.friend-row { padding: 0.5rem 0.625rem; margin: 0 -0.625rem; }
+/* Tables inside a padded card: the first and last columns get the same room */
+.panel:not(.flush) .table-wrap { margin-left: -0.625rem; margin-right: -0.625rem; }
+.panel:not(.flush) .table th:first-child, .panel:not(.flush) .table td:first-child { padding-left: 0.625rem; }
+.panel:not(.flush) .table th:last-child, .panel:not(.flush) .table td:last-child { padding-right: 0.625rem; }
+.table tbody tr td:first-child { border-top-left-radius: 0.5rem; border-bottom-left-radius: 0.5rem; }
+.table tbody tr td:last-child { border-top-right-radius: 0.5rem; border-bottom-right-radius: 0.5rem; }
+.dash-card .review-list li, .dash-rail .leaders li { padding-left: 0.625rem; padding-right: 0.625rem; }
+
+/* Event and session details: add to your calendar */
+.calendar-buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.calendar-buttons .btn { gap: 0.375rem; text-decoration: none; }
+
+/* Batch 22: QR check-in */
+.card-tools .checkin-btn { color: var(--navy); }
+.checkin-qr { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; text-align: center; }
+.checkin-qr-code { width: min(100%, 18rem); aspect-ratio: 1; padding: 0.75rem; border: 1px solid var(--line-2); border-radius: 1rem; background: #fff; box-shadow: 0 6px 20px rgba(21, 43, 84, 0.08); animation: avatar-pop 0.35s ease-out; }
+.checkin-qr-code img { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+.checkin-qr-placeholder { display: block; width: 100%; height: 100%; border-radius: 0.5rem; background: var(--surface-2); animation: pulse 1.4s infinite; }
+.checkin-qr-when { display: flex; align-items: center; justify-content: center; gap: 0.375rem; margin: 0; color: var(--muted); font-size: 0.875rem; }
+.checkin-qr-when.is-open { color: var(--success, #1f8a4c); font-weight: 600; }
+.checkin-qr-list { align-self: stretch; margin-top: 0.25rem; padding-top: 0.75rem; border-top: 1px solid var(--line-2); text-align: left; }
+.checkin-qr-list h3 { display: flex; align-items: center; gap: 0.5rem; margin: 0 0 0.5rem; font-size: 0.9375rem; }
+.checkin-count { min-width: 1.5rem; padding: 0.0625rem 0.5rem; border-radius: 999px; background: var(--sky-soft); color: var(--navy); font-size: 0.75rem; text-align: center; }
+.checkin-qr-list ul { display: flex; flex-direction: column; gap: 0.25rem; max-height: 12rem; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.checkin-qr-list li { display: flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.5rem; border-radius: 0.5rem; animation: list-rise 0.25s ease-out; transition: background 0.15s; }
+.checkin-qr-list li:hover { background: var(--tint); }
+.checkin-qr-list li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.checkin-screen { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 1.5rem 1rem; background: radial-gradient(ellipse at 50% 40%, var(--navy-2) 0%, var(--navy) 70%); animation: auth-fade 0.3s ease-out; }
+.checkin-card { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; width: min(100%, 26rem); padding: 2rem 1.5rem; border-radius: 1.25rem; background: var(--surface); color: var(--ink); text-align: center; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25); animation: signup-pop 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
+.checkin-card h1 { margin: 0.25rem 0 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.01em; }
+.checkin-card .btn { margin-top: 0.75rem; }
+.checkin-mark { display: grid; place-items: center; width: 4.5rem; height: 4.5rem; border-radius: 50%; background: var(--sky-soft); color: var(--navy); }
+.checkin-mark.is-busy { animation: pulse 1.2s infinite; }
+.checkin-card.is-ok .checkin-mark { background: #e3f6ea; color: #1f8a4c; animation: avatar-pop 0.45s ease-out; }
+.checkin-card.is-error .checkin-mark { background: #fdecea; color: #c0392b; }
+.checkin-eyebrow { margin: 0.25rem 0 0; font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+.checkin-msg { margin: 0; color: var(--muted); }
+.checkin-pending { position: fixed; left: 50%; bottom: 1.25rem; z-index: 150; display: flex; align-items: center; gap: 0.5rem; max-width: calc(100% - 2rem); margin: 0; padding: 0.625rem 1rem; border-radius: 999px; background: var(--navy); color: #fff; font-size: 0.875rem; font-weight: 600; box-shadow: 0 10px 30px rgba(21, 43, 84, 0.3); translate: -50% 0; animation: list-rise 0.3s ease-out; }
+

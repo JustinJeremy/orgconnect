@@ -3,6 +3,8 @@ import Modal from "./Modal.jsx";
 import ModeTag from "./ModeTag.jsx";
 import { UserAvatar } from "./Avatars.jsx";
 import { usePeople } from "../context/PeopleContext.jsx";
+import { useOrg } from "../context/OrgContext.jsx";
+import { downloadIcs, googleCalendarUrl } from "../utils/calendar.js";
 import { attendedCount, dateParts, formatDate, formatTime, isCompleted, isPast, percent, plural } from "../utils/format.js";
 
 // The full details of an event or tutoring session, opened by clicking its card.
@@ -18,6 +20,28 @@ export function TopicChips({ topics }) {
           <span key={t} className="person-chip">{t}</span>
         ))}
       </div>
+    </div>
+  );
+}
+
+// Save it to your own calendar: Google Calendar, or a .ics file for phone calendars and Outlook.
+// Sessions repeat weekly in the calendar too.
+function AddToCalendar({ item }) {
+  const { current: org } = useOrg();
+  const google = googleCalendarUrl(item, org?.shortName);
+  if (!google) return null;
+  return (
+    <div className="detail-section">
+      <h3>Add to your calendar</h3>
+      <div className="calendar-buttons">
+        <a className="btn btn-outline btn-sm" href={google} target="_blank" rel="noreferrer">
+          <Icon name="calendar" size={15} /> Google Calendar
+        </a>
+        <button type="button" className="btn btn-outline btn-sm" onClick={() => downloadIcs(item, org?.shortName)}>
+          <Icon name="download" size={15} /> Phone or Outlook (.ics)
+        </button>
+      </div>
+      {item.subject && <p className="muted small">Adds it every week, starting from its next meeting.</p>}
     </div>
   );
 }
@@ -80,6 +104,7 @@ export function EventDetails({ event, footer, onClose }) {
           </div>
         )}
         <TopicChips topics={event.topics} />
+        {!done && !passed && <AddToCalendar item={event} />}
 
         {people.length > 0 && (
           <div className="detail-section">
@@ -133,6 +158,7 @@ export function SessionDetails({ session, next, footer, onClose }) {
           </div>
         )}
         <TopicChips topics={session.topics} />
+        <AddToCalendar item={session} />
       </div>
     </Modal>
   );
