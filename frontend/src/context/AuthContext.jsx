@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { authApi, orgRequestsApi, orgsApi } from "../api/services.js";
-import { borrowSessionToken, errorMessage, getOrgSlug, getToken, setToken } from "../api/client.js";
+import { borrowSessionToken, errorMessage, getOrgSlug, getToken, setToken, SIGNED_OUT_EVENT, tokenUsedElsewhere } from "../api/client.js";
 import { useOrg } from "./OrgContext.jsx";
 
 // Holds the signed-in user (Laravel Sanctum token auth).
@@ -199,11 +199,16 @@ export function AuthProvider({ children }) {
   };
 
   // nextView: "signin" | "signup" to open that form right after signing out
-  const logout = async (nextView = null) => {
-    try {
-      await authApi.logout();
-    } catch {
-      // Sign out locally even if the request fails
+  //   serverToo: false when the server already refused this sign-in (nothing left to end there)
+  const logout = async (nextView = null, serverToo = true) => {
+    // A tab opened while signed in shares this sign-in: if one is still open, only forget it here
+    // (ending it on the server would sign that tab out too)
+    if (serverToo && !(await tokenUsedElsewhere(getToken()))) {
+      try {
+        await authApi.logout();
+      } catch {
+        // Sign out locally even if the request fails
+      }
     }
     setToken(null);
     setUser(null);
@@ -213,6 +218,16 @@ export function AuthProvider({ children }) {
     if (window.location.pathname === REGISTER_PATH) window.history.replaceState(null, "", "/");
     setAuthView(nextView);
   };
+
+  // The server refused this tab's sign-in (ended in another browser, or expired): back to the sign-in form
+  const signedIn = Boolean(user);
+  useEffect(() => {
+    if (!signedIn) return;
+    const onSignedOut = () => logout("signin", false);
+    window.addEventListener(SIGNED_OUT_EVENT, onSignedOut);
+    return () => window.removeEventListener(SIGNED_OUT_EVENT, onSignedOut);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signedIn]);
 
   return (
     <AuthContext.Provider

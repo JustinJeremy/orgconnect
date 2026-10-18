@@ -719,7 +719,8 @@ export default function Messages({ openId, onOpenedId, newOptions, loadPeople, o
   const [grouping, setGrouping] = useState(false); // "New group"
 
   const loadList = useCallback(() => {
-    messagesApi.list().then(setList).catch(() => setList([]));
+    // A failed refresh keeps the list it has (empty only if it never loaded)
+    messagesApi.list().then(setList).catch(() => setList((current) => current ?? []));
     onUnread?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
