@@ -4,8 +4,9 @@
     "builder": "RAILPACK"
   },
   "deploy": {
-    "preDeployCommand": ["php artisan migrate --force && php artisan db:seed --force"],
+    "startCommand": "sh -c \"php artisan migrate --force; php artisan db:seed --force; exec /start-container.sh\"",
     "healthcheckPath": "/up",
+    "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE"
   }
 }

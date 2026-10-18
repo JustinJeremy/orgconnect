@@ -10,8 +10,13 @@ You need: the GitHub repo, a Railway account and a Vercel account (sign in to bo
 1. On railway.com: *New Project → Deploy from GitHub repo → JustinJeremy/orgconnect*.
 2. Open the new service → *Settings*:
    - *Root Directory*: `backend`
-   - Railway reads `backend/railway.json`: it builds with Railpack and, before each deploy, runs
-     `php artisan migrate --force && php artisan db:seed --force` (tables and sample data).
+   - *Config-as-code* → Railway config file: `/backend/railway.json`. It builds with Railpack and,
+     each time the server starts, runs `php artisan migrate --force` and `php artisan db:seed --force`
+     (tables and sample data) before starting the web server. This happens at start, not in a
+     pre-deploy step, because a pre-deploy step runs without the storage volume, so sample posters
+     and files written there would be lost.
+   - Optional: *Settings → Scale* → region **Southeast Asia (Singapore)** for both this service and
+     MySQL (faster from the Philippines). Change it before the first deploy.
 3. Add the database: in the project, *+ New → Database → MySQL*.
 4. Back in the backend service → *Variables*, add:
 
@@ -77,11 +82,14 @@ Notifications inside the app work either way.
 | 500 errors from the API | `APP_KEY` is missing or wrong; check Railway's *Deploy Logs* |
 | Build fails asking for a newer PHP | `RAILPACK_PHP_VERSION=8.4` |
 | Photos and posters disappear after a redeploy | The volume isn't mounted at `/app/storage/app` |
+| Build fails with "temporary failure fetching", "failed to do request" or "context canceled" | A download on Railway's side timed out, or a second deploy canceled the first; wait a few minutes and deploy once (Ctrl+K → Deploy Latest Commit) |
+| Sample posters and files show as missing (404) | The sample data was written somewhere without the volume; redeploy (the start command puts missing sample files back) |
 | "Can't connect to the database" | The `DB_*` variables must use the `${{MySQL...}}` references, and the MySQL service must be running |
 
 Each deploy re-runs the sample data: the sample items go back to how they started (e.g. a sample
 hour log you approved during a demo is pending again), and anything people created stays. After the
-presentation you can stop this by removing `&& php artisan db:seed --force` from `backend/railway.json`.
+presentation you can stop this by removing `php artisan db:seed --force;` from the start command in
+`backend/railway.json`.
 
 ## QR check-in on a phone
 
