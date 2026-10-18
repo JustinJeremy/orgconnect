@@ -61,10 +61,32 @@ class AnnouncementController extends Controller
         return $announcement->fresh()->toFrontend($request->user());
     }
 
+    // POST /api/announcements/{announcement}/attachment  (officers; multipart "file") -> add or replace
+    // its photo or file
+    public function attach(Request $request, Announcement $announcement)
+    {
+        $this->officerOnly($request);
+        $request->validate(['file' => ['required', ...array_slice(Announcement::ATTACHMENT_RULES, 1)]],
+            ['file.mimes' => 'Attach a photo (PNG or JPG) or a PDF, Word, Excel, PowerPoint, text, CSV or ZIP file.', 'file.max' => 'Files can be up to 10 MB.']);
+        $announcement->attach($request->file('file'), 'announcement-files');
+
+        return $announcement->fresh()->toFrontend($request->user());
+    }
+
+    // DELETE /api/announcements/{announcement}/attachment  (officers)
+    public function detach(Request $request, Announcement $announcement)
+    {
+        $this->officerOnly($request);
+        $announcement->deleteAttachment();
+
+        return $announcement->fresh()->toFrontend($request->user());
+    }
+
     // DELETE /api/announcements/{announcement}  (officers)
     public function destroy(Request $request, Announcement $announcement)
     {
         $this->officerOnly($request);
+        $announcement->deleteAttachment();
         $announcement->delete();
 
         return ['ok' => true];

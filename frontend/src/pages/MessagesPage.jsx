@@ -43,6 +43,7 @@ export default function MessagesPage({ focus, onFocusDone, onUnread }) {
         openId={focus?.id || null}
         onOpenedId={onFocusDone}
         newOptions={newOptions}
+        loadPeople={messagesApi.contacts}
         onUnread={onUnread}
         onOpenPerson={openPerson}
         emptyText={user.role === "officer" ? `Message anyone in ${org.shortName}, or the OrgConnect admin.` : `Message anyone in ${org.shortName}, from here or from their profile.`}

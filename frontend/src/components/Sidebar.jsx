@@ -18,7 +18,8 @@ const NAV_ITEMS = [
 ];
 
 // badges: { [page]: count } shown beside a menu item (e.g. unread messages)
-export default function Sidebar({ page, onNavigate, open, onClose, collapsed, onToggleCollapse, badges = {} }) {
+// onSearch: opens Search everything (also Ctrl+K)
+export default function Sidebar({ page, onNavigate, open, onClose, collapsed, onToggleCollapse, badges = {}, onSearch }) {
   const { user, logout } = useAuth();
 
   const handleNavigate = (key) => {
@@ -61,6 +62,23 @@ export default function Sidebar({ page, onNavigate, open, onClose, collapsed, on
             <Icon name="sidebar" size={18} />
           </button>
         </div>
+
+        {onSearch && (
+          <button
+            type="button"
+            className="sidebar-search"
+            onClick={() => {
+              onClose();
+              onSearch();
+            }}
+            title={collapsed ? "Search (Ctrl+K)" : undefined}
+            data-tour="search"
+          >
+            <Icon name="search" size={18} />
+            <span className="nav-label">Search</span>
+            <kbd className="sidebar-search-kbd">Ctrl K</kbd>
+          </button>
+        )}
 
         <nav className="nav" aria-label="Main">
           {NAV_ITEMS.map((item) => (

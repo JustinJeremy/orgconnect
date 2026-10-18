@@ -23,19 +23,25 @@ by connecting students, officers and orgs).
   officers also have a conversation with the OrgConnect admin (the President, VPs and Secretary write
   in it, the other officers read along). New messages show a count and a notification; chats show
   *Seen* under your latest message and *typing…* while the other side writes
+- *Group chats:* start a group for a committee or study group with people from the same org; anyone in
+  it can add more people, rename it or leave, and people who are added get a notification
+- *Photos and files* in messages (PNG/JPG photos show in the chat; PDF, Word, Excel, PowerPoint, text,
+  CSV and ZIP files download), up to 10 MB each
+- *Search everything:* the Search box in the menu (or Ctrl+K) finds people, events, tutoring sessions,
+  announcements, learning resources and chats in the org
 
 *Officers*
 - Create events (with posters), record attendance and mark events completed
 - Show an event's check-in QR code at the venue (the square icon on the card): members scan it and are
-  marked present, with names appearing as they scan. The icon shows from a day before the event until
-  it's finished, then goes away. Tutors do the same for their sessions on meeting days. Nothing
+  marked present, with names appearing as they scan. The icon shows until the event is finished; scanning
+  works from a day before it starts. Tutors do the same for their sessions on meeting days. Nothing
   extra is entered when creating the event or session; the code is made the first time it's shown,
   and *New code* stops an old one working
 - Approve or reject volunteer hours and tutoring requests (never their own)
 - Log their own volunteer hours (My Hours tab); an officer's hours are approved by the President, a VP or
   the Secretary, so they count on the leaderboard like everyone else's
 - Manage the member roster, approve applications and reactivation requests, and export hours as CSV
-- Post announcements and upload the org's logo
+- Post announcements (with a photo or file if they like) and upload the org's logo
 
 *Platform admin*
 - Review requests to register new orgs: approve (with an optional message) or reject (with a reason).
@@ -60,11 +66,12 @@ no two orgs share a color. A guided tour
 | Using an org | You apply (sign up, or "Apply to join") and an officer approves you; until then you see "under review" |
 | Using it again after being made inactive | You see the officer's reason, send a reactivation request, and an officer approves it |
 | A certificate | You RSVP (or just turn up), check in with the QR code or an officer ticks you in Attendance, and the event is completed |
-| Checking in with a QR code | From a day before the event starts until it's finished (completed, or the end of its day); the QR icon only shows then. Tutoring: a meeting day, with a confirmed request |
+| Checking in with a QR code | From a day before the event starts until it's finished (completed, or the end of its day); officers can show the QR code any time before that. Tutoring: a meeting day, with a confirmed request |
 | Hours counting on the leaderboard | An officer approves your log (an officer's own log: the President, a VP or the Secretary) |
 | Being friends | You send a request (People page or their profile) and they accept it; friends see each other's email |
 | A place on "Most helpful" | You tutor a session and mark the request completed |
 | Messaging someone | You're both active members of the org you have open (the OrgConnect admin: you're an officer there) |
+| Being in a group chat | Someone in the group adds you (both active members of that org); you can leave any time |
 | A suspended org working again | The admin reactivates it |
 
 ## Folders
@@ -182,7 +189,7 @@ php artisan test
 
 The tests use a separate in-memory SQLite database, so they never touch your MySQL data.
 They cover sign-in and sign-up, officer vs member access, events and RSVPs, volunteer hours,
-peer tutoring, QR check-in, messages (with Seen and typing), members and passwords, profiles, the paged
+peer tutoring, QR check-in, messages (with Seen and typing, group chats, photos and files), search, members and passwords, profiles, the paged
 lists, the feed, pending and inactive members, and registering a new org with the platform admin's review (`backend/tests/Feature`).
 
 ## After pulling changes

@@ -6,6 +6,7 @@ use App\Models\Announcement;
 use App\Models\AnnouncementComment;
 use App\Models\Certificate;
 use App\Models\Conversation;
+use App\Models\ConversationRead;
 use App\Models\Event;
 use App\Models\Friendship;
 use App\Models\LearningResource;
@@ -112,6 +113,8 @@ class DemoSeeder extends Seeder
         $this->messages($day);
         $this->extras($day);
         $this->everyTutorHelped($day);
+        $this->groups($day);
+        $this->announcementFiles();
         $this->attachPosters();
     }
 
@@ -676,6 +679,158 @@ class DemoSeeder extends Seeder
                 }
             }
         }
+    }
+
+    // Batch 23: group chats in both orgs (committees and study groups), with photos and files.
+    //   name, slug, started by, members, [from, text, days before the demo day, hour, attachment?]
+    //   attachment: "poster:<file in seeders/posters>" (a photo) or "pdf:<name>" / "csv:<name>" (made here)
+    private const GROUPS = [
+        ['CompSoc Org Day booth crew', 'computer-society', 'officer@orgconnect.test',
+            ['angela.rivera@orgconnect.test', 'member@orgconnect.test', 'mark.delarosa@orgconnect.test', 'joanna.uy@orgconnect.test'], [
+                ['officer@orgconnect.test', 'Booth crew for Org Day! Here is the poster we are printing.', 3, 9, 'poster:compsoc-org-day-booth.jpg'],
+                ['angela.rivera@orgconnect.test', 'Looks great. I made the duty schedule, please check your slots.', 3, 10, 'csv:Org-Day-booth-duty.csv'],
+                ['member@orgconnect.test', 'I can take the 1 PM slot and bring the extension cords.', 2, 14, null],
+                ['mark.delarosa@orgconnect.test', 'I will set up the demo laptops by 2:30.', 2, 15, null],
+                ['joanna.uy@orgconnect.test', 'Can someone bring tape for the banner?', 1, 16, null],
+            ]],
+        ['Hackathon Team Byte Club', 'computer-society', 'joanna.uy@orgconnect.test',
+            ['member@orgconnect.test', 'mark.delarosa@orgconnect.test', 'leo.manalo@orgconnect.test'], [
+                ['joanna.uy@orgconnect.test', 'Team chat for the CCS Hackathon! Leo is our mentor.', 5, 18, null],
+                ['leo.manalo@orgconnect.test', 'Happy to help. Here are the judging criteria so you can plan.', 4, 19, 'pdf:Hackathon-judging-criteria.pdf'],
+                ['mark.delarosa@orgconnect.test', 'Idea: a lost-and-found app for the campus.', 4, 20, null],
+                ['member@orgconnect.test', 'Love it. I will draft the screens tonight.', 1, 21, null],
+            ]],
+        ['Showcase committee', 'data-science-society', 'andrea.lim@orgconnect.test',
+            ['bea.navarro@orgconnect.test', 'sofia.garcia@orgconnect.test', 'paolo.reyes@orgconnect.test'], [
+                ['andrea.lim@orgconnect.test', 'Committee chat for the Data Visualization Showcase.', 4, 10, null],
+                ['bea.navarro@orgconnect.test', 'Voting guidelines for the judges and members.', 3, 11, 'pdf:Showcase-voting-guidelines.pdf'],
+                ['sofia.garcia@orgconnect.test', 'I will print the QR codes for voting.', 2, 13, null],
+                ['paolo.reyes@orgconnect.test', 'Room 210 is booked for the whole afternoon.', 1, 15, null],
+            ]],
+        ['Stats study group', 'data-science-society', 'gabriel.aquino@orgconnect.test',
+            ['isabel.cruz@orgconnect.test', 'denise.tan@orgconnect.test', 'andrea.lim@orgconnect.test'], [
+                ['gabriel.aquino@orgconnect.test', 'Study group for the stats midterm. Andrea joined to help!', 6, 19, null],
+                ['andrea.lim@orgconnect.test', 'Practice problems on hypothesis testing, answers at the bottom.', 5, 20, 'csv:Hypothesis-testing-practice.csv'],
+                ['isabel.cruz@orgconnect.test', 'Thank you! Library at 4 PM tomorrow?', 1, 18, null],
+            ]],
+    ];
+
+    private function groups(Carbon $day): void
+    {
+        $user = fn ($email) => User::where('email', $email)->first();
+        foreach (self::GROUPS as [$name, $slug, $starter, $members, $lines]) {
+            $org = Organization::where('slug', $slug)->first();
+            $by = $user($starter);
+            if (! $org || ! $by) {
+                continue;
+            }
+            $group = Conversation::firstOrCreate(['kind' => 'group', 'organization_id' => $org->id, 'name' => $name], ['created_by' => $by->id]);
+            $people = collect($members)->map($user)->filter()->push($by);
+            $group->members()->syncWithoutDetaching($people->mapWithKeys(fn ($u) => [$u->id => ['added_by' => $by->id]])->all());
+            if ($group->messages()->exists()) {
+                continue;   // already seeded (or used): leave its chat as it is
+            }
+            $first = $day->copy()->subDays($lines[0][2])->setTime($lines[0][3], 0)->subMinutes(5);
+            $this->seedMessage($group, $by, "{$by->name} created the group", $first, true);
+            foreach ($lines as [$from, $body, $daysBefore, $hour, $file]) {
+                if ($sender = $user($from)) {
+                    $message = $this->seedMessage($group, $sender, $body, $day->copy()->subDays($daysBefore)->setTime($hour, 0));
+                    if ($file) {
+                        $this->seedFile($message, 'message-files', $file);
+                    }
+                }
+            }
+            // Everyone has read all but the newest message, which waits for them (with the notification
+            // the app would have sent)
+            $last = $group->messages()->latest('id')->first();
+            $sender = User::find($last->user_id);
+            foreach ($people as $u) {
+                ConversationRead::updateOrCreate(['conversation_id' => $group->id, 'user_id' => $u->id], ['last_read_message_id' => $u->id === $last->user_id ? $last->id : $last->id - 1]);
+                if ($u->id !== $last->user_id) {
+                    $note = UserNotification::firstOrNew(['user_id' => $u->id, 'organization_id' => $org->id, 'link' => "messages/{$group->id}"]);
+                    $note->forceFill(['message' => "New message from {$sender->name} in {$name}", 'is_read' => false, 'created_at' => $last->created_at, 'updated_at' => $last->created_at]);
+                    $note->timestamps = false;
+                    UserNotification::withoutEvents(fn () => $note->save());
+                }
+            }
+        }
+    }
+
+    private function seedMessage(Conversation $c, User $from, string $body, Carbon $at, bool $notice = false)
+    {
+        $message = $c->messages()->create(['user_id' => $from->id, 'body' => $body, 'notice' => $notice]);
+        $message->timestamps = false;
+        $message->forceFill(['created_at' => $at, 'updated_at' => $at])->save();
+        $c->update(['last_message_at' => $at]);
+
+        return $message;
+    }
+
+    // Photos and files on a few announcements
+    private const ANNOUNCEMENT_FILES = [
+        'Photos from the Coastal Cleanup are up' => 'poster:coastal-cleanup-with-manila-bay-advocates.jpg',
+        'Hackathon teams: final call' => 'pdf:Hackathon-team-registration.pdf',
+        'Showcase voting opens at 10 AM' => 'poster:data-visualization-showcase.jpg',
+        'Free DataCamp licenses for members' => 'csv:DataCamp-courses.csv',
+    ];
+
+    private function announcementFiles(): void
+    {
+        foreach (self::ANNOUNCEMENT_FILES as $title => $file) {
+            $post = Announcement::withoutGlobalScopes()->where('title', $title)->first();
+            if ($post && ! ($post->attachment_path && Storage::disk('public')->exists($post->attachment_path))) {
+                $this->seedFile($post, 'announcement-files', $file);
+            }
+        }
+    }
+
+    // "poster:x.jpg" copies a sample poster; "pdf:Name.pdf" and "csv:Name.csv" are written here
+    private function seedFile($model, string $folder, string $spec): void
+    {
+        [$kind, $name] = explode(':', $spec, 2);
+        if ($kind === 'poster') {
+            $source = database_path("seeders/posters/{$name}");
+            if (! File::exists($source)) {
+                return;
+            }
+            $contents = File::get($source);
+            $ext = 'jpg';
+        } else {
+            $title = str_replace(['-', '.pdf', '.csv'], [' ', '', ''], $name);
+            $contents = $kind === 'pdf' ? $this->samplePdf($title) : "Item,Who,When\n{$title},OrgConnect,".now()->format('M j')."\n";
+            $ext = $kind;
+        }
+        $path = $folder.'/'.Str::random(40).'.'.$ext;
+        Storage::disk('public')->put($path, $contents);
+        $model->forceFill(['attachment_path' => $path, 'attachment_name' => $name,
+            'attachment_size' => strlen($contents), 'attachment_type' => $kind === 'poster' ? 'image' : 'file'])->save();
+    }
+
+    // A one-page PDF with a title and a short note
+    private function samplePdf(string $title): string
+    {
+        $text = 'BT /F1 22 Tf 72 720 Td ('.addcslashes($title, '()\\').') Tj /F1 12 Tf 0 -32 Td (Sample file shared on OrgConnect.) Tj ET';
+        $objects = [
+            '<< /Type /Catalog /Pages 2 0 R >>',
+            '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+            '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',
+            '<< /Length '.strlen($text)." >>\nstream\n{$text}\nendstream",
+            '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+        ];
+        $pdf = "%PDF-1.4\n";
+        $offsets = [];
+        foreach ($objects as $i => $object) {
+            $offsets[] = strlen($pdf);
+            $pdf .= ($i + 1)." 0 obj\n{$object}\nendobj\n";
+        }
+        $xref = strlen($pdf);
+        $pdf .= 'xref
+0 '.(count($objects) + 1)."\n0000000000 65535 f \n";
+        foreach ($offsets as $offset) {
+            $pdf .= sprintf("%010d 00000 n \n", $offset);
+        }
+
+        return $pdf.'trailer << /Size '.(count($objects) + 1)." /Root 1 0 R >>\nstartxref\n{$xref}\n%%EOF\n";
     }
 
     // The sample accounts the presentation signs in with

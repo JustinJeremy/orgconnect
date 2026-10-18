@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToOrganization;
+use App\Models\Concerns\HasAttachment;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Announcement extends Model
 {
-    use BelongsToOrganization;
+    use BelongsToOrganization, HasAttachment;
 
     protected $fillable = ['user_id', 'title', 'category', 'content', 'pinned'];
 
@@ -50,6 +51,7 @@ class Announcement extends Model
             'category' => $this->category,
             'content' => $this->content,
             'pinned' => $this->pinned,
+            'attachment' => $this->attachmentData('files.announcement'),   // a photo or file, if it has one
             'authorName' => $this->author?->name,
             'authorAvatar' => $this->author?->avatarData(),
             'authorPosition' => $this->author?->membership->position,

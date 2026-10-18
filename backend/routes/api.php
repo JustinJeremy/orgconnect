@@ -5,6 +5,8 @@ use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CheckinController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\FileController;
+use App\Http\Controllers\GroupController;
 use App\Http\Controllers\HourController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\MessageController;
@@ -15,6 +17,7 @@ use App\Http\Controllers\OrgRequestController;
 use App\Http\Controllers\PeopleController;
 use App\Http\Controllers\PlatformAnnouncementController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\TutoringController;
 use App\Models\Organization;
 use App\Support\OrgThemes;
@@ -27,6 +30,9 @@ Route::get('/organizations', [OrganizationController::class, 'index']);
 Route::get('/organizations/{organization:slug}/logo', [OrganizationController::class, 'logo']);
 Route::get('/events/{event}/poster', [EventController::class, 'poster'])->whereNumber('event');
 Route::get('/users/{user}/avatar', [ProfileController::class, 'avatarImage'])->whereNumber('user');
+// Photos and files on messages and announcements: signed links (see HasAttachment), no sign-in needed
+Route::get('/files/messages/{id}', [FileController::class, 'message'])->whereNumber('id')->middleware('signed:relative')->name('files.message');
+Route::get('/files/announcements/{id}', [FileController::class, 'announcement'])->whereNumber('id')->middleware('signed:relative')->name('files.announcement');
 // Limited attempts per minute (see AppServiceProvider)
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:register');
@@ -124,6 +130,12 @@ Route::middleware(['auth:sanctum', 'org.member'])->group(function () {
     // Messages with people in this org: who you can message, and your chat with one of them
     Route::get('/messages/contacts', [MessageController::class, 'contacts']);
     Route::post('/conversations/direct/{person}', [MessageController::class, 'direct']);
+    // Group chats in this org
+    Route::post('/groups', [GroupController::class, 'store'])->middleware('throttle:20,1');
+    Route::put('/groups/{conversation}', [GroupController::class, 'rename']);
+    Route::get('/groups/{conversation}/members', [GroupController::class, 'members']);
+    Route::post('/groups/{conversation}/members', [GroupController::class, 'add']);
+    Route::delete('/groups/{conversation}/members/me', [GroupController::class, 'leave']);
 
     // Announcements from the OrgConnect admin, and this org's replies to them
     Route::get('/platform-announcements', [PlatformAnnouncementController::class, 'index']);
@@ -131,6 +143,8 @@ Route::middleware(['auth:sanctum', 'org.member'])->group(function () {
     Route::post('/platform-announcements/{announcement}/replies', [PlatformAnnouncementController::class, 'reply']);
 
     // People: the directory, profiles, the most helpful tutors, and friends
+    // Search everything in this org (sidebar search, Ctrl+K)
+    Route::get('/search', [SearchController::class, 'index'])->middleware('throttle:60,1');
     Route::get('/people', [PeopleController::class, 'index']);
     Route::get('/people/helpful', [PeopleController::class, 'helpful']);
     Route::get('/people/{person}', [PeopleController::class, 'show'])->whereNumber('person');
@@ -172,6 +186,8 @@ Route::middleware(['auth:sanctum', 'org.member'])->group(function () {
     Route::post('/announcements/read-all', [AnnouncementController::class, 'markAllRead']);
     Route::put('/announcements/{announcement}', [AnnouncementController::class, 'update']);
     Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy']);
+    Route::post('/announcements/{announcement}/attachment', [AnnouncementController::class, 'attach']);   // a photo or file
+    Route::delete('/announcements/{announcement}/attachment', [AnnouncementController::class, 'detach']);
     Route::post('/announcements/{announcement}/read', [AnnouncementController::class, 'markRead']);
     Route::post('/announcements/{announcement}/like', [AnnouncementController::class, 'like']);
     Route::delete('/announcements/{announcement}/like', [AnnouncementController::class, 'unlike']);
