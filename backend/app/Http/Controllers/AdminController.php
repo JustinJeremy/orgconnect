@@ -205,12 +205,13 @@ class AdminController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
-            'studentId' => ['required', 'string', 'max:50', Rule::unique('users', 'student_id')->ignore($user->id)],
+            'studentId' => ['required', 'string', 'max:50', Rule::when($request->input('studentId') !== $user->student_id, 'regex:'.User::STUDENT_ID_FORMAT), Rule::unique('users', 'student_id')->ignore($user->id)],
             'course' => 'required|string|max:50',
             'yearLevel' => 'required|string|max:50',
         ], [
             'email.unique' => 'An account with this email already exists.',
             'studentId.unique' => 'This student ID is already registered.',
+            'studentId.regex' => 'Student IDs look like 2025-00142.',
         ]);
         $user->update([
             'name' => $data['name'], 'email' => $data['email'], 'student_id' => $data['studentId'],

@@ -83,4 +83,22 @@ class AuthTest extends TestCase
         $this->actingIn($user, $this->compSoc())->postJson('/api/logout')->assertOk();
         $this->assertSame(0, $user->tokens()->count());
     }
+
+    public function test_sign_up_only_accepts_a_student_id_like_2025_00142(): void
+    {
+        $org = $this->compSoc();
+        $body = [
+            'name' => 'Ana Reyes', 'email' => 'ana@school.edu.ph', 'course' => 'BSIT', 'yearLevel' => '1st year',
+            'password' => 'password123', 'password_confirmation' => 'password123',
+        ];
+
+        // Sign-ups are limited to 5 a minute, so 4 bad IDs and then a good one
+        foreach (['abc', '2025-abcde', '202500142', '2025-001422'] as $bad) {
+            $this->withHeader('X-Organization', $org->slug)->postJson('/api/register', ['studentId' => $bad] + $body)
+                ->assertStatus(422)->assertJsonValidationErrors('studentId');
+        }
+        $this->assertDatabaseMissing('users', ['email' => 'ana@school.edu.ph']);
+
+        $this->withHeader('X-Organization', $org->slug)->postJson('/api/register', ['studentId' => '2025-00142'] + $body)->assertCreated();
+    }
 }

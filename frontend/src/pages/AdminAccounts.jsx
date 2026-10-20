@@ -12,6 +12,7 @@ import { useOrg } from "../context/OrgContext.jsx";
 import { adminApi } from "../api/services.js";
 import { errorMessage } from "../api/client.js";
 import { COURSES, YEAR_LEVELS } from "../data/constants.js";
+import { STUDENT_ID, formatStudentId } from "../utils/format.js";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -28,7 +29,8 @@ function DetailsDialog({ account, onSaved, onClose }) {
   const [saving, setSaving] = useState(false);
   const courses = COURSES.includes(form.course) ? COURSES : [...COURSES, form.course];
   const change = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: name === "studentId" ? formatStudentId(value) : value });
     setError("");
   };
 
@@ -36,6 +38,7 @@ function DetailsDialog({ account, onSaved, onClose }) {
     e.preventDefault();
     const data = { ...form, name: form.name.trim(), email: form.email.trim(), studentId: form.studentId.trim() };
     if (!data.name || !data.email || !data.studentId) return setError("Name, student ID and email are required.");
+    if (data.studentId !== account.studentId && !STUDENT_ID.test(data.studentId)) return setError("Student IDs look like 2025-00142.");
     if (!EMAIL.test(data.email)) return setError("Enter a valid email address.");
     setSaving(true);
     try {
@@ -68,7 +71,7 @@ function DetailsDialog({ account, onSaved, onClose }) {
         </div>
         <div className="field">
           <label htmlFor="ad-id">Student ID</label>
-          <input id="ad-id" className="input" name="studentId" value={form.studentId} onChange={change} />
+          <input id="ad-id" className="input" name="studentId" value={form.studentId} onChange={change} placeholder="2025-00000" inputMode="numeric" maxLength={10} />
         </div>
         <div className="field">
           <label htmlFor="ad-email">School email</label>
