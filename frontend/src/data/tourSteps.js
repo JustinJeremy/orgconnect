@@ -246,7 +246,7 @@ const OFFICER = [
         click: '[data-tour="tab-sessions"]',
         target: '[data-tour="session-post"]',
         title: "Post a session",
-        body: "Any member can tutor. Give the subject, area, schedule, place and number of open slots.",
+        body: "Any member can tutor. Give the subject, area, date and time, format, room or meeting app and number of open slots.",
       },
       {
         page: "tutoring",

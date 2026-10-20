@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Icon from "./Icon.jsx";
 import { formatTime, isPast } from "../utils/format.js";
-import { parseSchedule, weeklyDates } from "../utils/schedule.js";
 
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
@@ -27,7 +26,7 @@ export default function EventCalendar({ events, sessions = [], requests = [], us
   const [hoverDay, setHoverDay] = useState(null); // "YYYY-MM-DD" being previewed
   const popRef = useRef(null);
 
-  // Your weekly tutoring, as dated entries from four weeks back to eight weeks ahead
+  // Your tutoring sessions (as the tutor, or a confirmed student), each on its date
   const tutoring = useMemo(() => {
     const mine = new Map();
     sessions.filter((s) => s.tutorId === userId).forEach((s) => mine.set(s.id, { session: s, role: "tutor" }));
@@ -37,13 +36,9 @@ export default function EventCalendar({ events, sessions = [], requests = [], us
         const s = sessions.find((x) => x.id === r.sessionId);
         if (s && !mine.has(s.id)) mine.set(s.id, { session: s, role: "student" });
       });
-    const from = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 28);
-    const to = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 56);
     const list = [];
     mine.forEach(({ session, role }) => {
-      const when = parseSchedule(session.schedule);
-      if (!when) return;
-      weeklyDates(when.weekday, from, to).forEach((date) => list.push({ id: `t${session.id}-${date}`, date, time: when.time, session, role }));
+      if (session.date) list.push({ id: `t${session.id}`, date: session.date, time: session.time, session, role });
     });
     return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -321,7 +321,15 @@ class DemoSeeder extends Seeder
             }
 
             foreach ($content['sessions'] as [$tutor, $subject, $area, $schedule, $location, $slots, $description, $topics, $requests]) {
-                if (TutoringSession::where('subject', $subject)->exists() || ! $id($tutor)) {
+                if ($existing = TutoringSession::where('subject', $subject)->first()) {
+                    // Sessions meet on one date: once a sample one's day is over, it moves to its next meeting day
+                    if ($existing->isFinished()) {
+                        $existing->update(['schedule' => $schedule]);
+                    }
+
+                    continue;
+                }
+                if (! $id($tutor)) {
                     continue;
                 }
                 $session = TutoringSession::create([
@@ -675,7 +683,7 @@ class DemoSeeder extends Seeder
             // has one), so their calendar shows events and tutoring on the same day
             $weekday = Carbon::parse(config('app.demo_day'))->format('l');
             if (in_array($email, self::DEMO_ACCOUNTS, true)) {
-                $booked = $options->first(fn ($s) => str_starts_with($s->schedule, "{$weekday}s")) ?? $booked;
+                $booked = $options->first(fn ($s) => $s->date?->format('l') === $weekday) ?? $booked;
             }
             $booked->requests()->updateOrCreate(['user_id' => $m->user_id], ['status' => 'Confirmed']);
 

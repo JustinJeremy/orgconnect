@@ -10,7 +10,7 @@ import api, { unwrap } from "./client.js";
 // Member        { id, name, email, position, joinDate, status: "Active"|"Inactive", approvedHours,
 //                 temporaryPassword (only right after adding a brand-new account) }
 // Application   { id, name, email, studentId, course, yearLevel, appliedAt, message, status }
-// Session       { id, subject, area, tutorId, tutorName, schedule, location, slots, description }
+// Session       { id, subject, area, tutorId, tutorName, date, time, mode, schedule (label), location, slots (open), taken, finished, description }
 // Request       { id, sessionId, userId, requesterName, yearLevel, status: "Pending"|"Confirmed"|"Rejected"|"Completed" }
 // Resource      { id, title, subject, type, url, uploadedBy }
 // Announcement  { id, title, category, content, pinned, authorName, authorPosition, createdAt, isRead, readCount,
@@ -68,6 +68,8 @@ export const orgsApi = {
     return post("/organization/logo", body);
   },
   removeLogo: () => del("/organization/logo"),
+  // Officers: the rooms in the location dropdowns of events and tutoring -> updated org (with rooms)
+  updateRooms: (rooms) => put("/organization/rooms", { rooms }),
 };
 
 // Registering a new org (reviewed by a platform admin)

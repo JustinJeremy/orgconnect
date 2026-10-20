@@ -105,6 +105,8 @@ Route::middleware(['auth:sanctum', 'org.member'])->group(function () {
     Route::get('/organization/change-requests', [OrgChangeController::class, 'latest']);
     Route::post('/organization/change-requests', [OrgChangeController::class, 'store']);
     Route::delete('/organization/logo', [OrganizationController::class, 'removeLogo']);
+    // Rooms in the location dropdowns (officers)
+    Route::put('/organization/rooms', [OrganizationController::class, 'updateRooms']);
 
     // Events & attendance
     Route::get('/events', [EventController::class, 'index']);

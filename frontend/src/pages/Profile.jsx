@@ -9,6 +9,7 @@ import AvatarPicker from "../components/AvatarPicker.jsx";
 import ProfileHistory from "../components/ProfileHistory.jsx";
 import ReasonDialog from "../components/ReasonDialog.jsx";
 import OrgDetailsChange from "../components/OrgDetailsChange.jsx";
+import OrgRooms from "../components/OrgRooms.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
 import { orgsApi } from "../api/services.js";
@@ -368,6 +369,11 @@ export default function Profile({ data, loading, flash }) {
         >
           <MyOrganizations flash={flash} />
         </Panel>
+        {user.role === "officer" && (
+          <Panel title="Rooms and venues" subtitle="Offered in the location dropdown when posting events and tutoring sessions" className="span-12">
+            <OrgRooms flash={flash} />
+          </Panel>
+        )}
       </div>
       )}
       {pickingAvatar && (

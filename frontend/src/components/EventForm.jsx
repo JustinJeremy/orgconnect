@@ -4,6 +4,8 @@ import Modal from "./Modal.jsx";
 import { EVENT_CATEGORIES, EVENT_MODES } from "../data/constants.js";
 import { todayIso, isPast, splitTopics } from "../utils/format.js";
 import { textProblem } from "../utils/validation.js";
+import { useOrg } from "../context/OrgContext.jsx";
+import LocationPicker, { locationForMode, locationProblem } from "./LocationPicker.jsx";
 
 const EMPTY = {
   title: "",
@@ -22,6 +24,7 @@ const POSTER_MAX_MB = 5;
 
 // Create / edit an event
 export default function EventForm({ initial, onSave, onCancel }) {
+  const { current: org } = useOrg();
   const [formData, setFormData] = useState(() =>
     initial
       ? {
@@ -67,8 +70,16 @@ export default function EventForm({ initial, onSave, onCancel }) {
   };
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    setErrors({ ...errors, [e.target.name]: undefined });
+    const { name, value } = e.target;
+    // A new format keeps the part of the location that still fits (e.g. the room when Hybrid becomes F2F)
+    const location = name === "mode" ? locationForMode(formData.location, formData.mode, value) : formData.location;
+    setFormData({ ...formData, location, [name]: value });
+    setErrors({ ...errors, [name]: undefined, ...(name === "mode" ? { location: undefined } : {}) });
+  };
+
+  const setLocation = (location) => {
+    setFormData({ ...formData, location });
+    setErrors({ ...errors, location: undefined });
   };
 
   // Same rules the Laravel Form Request should enforce
@@ -83,8 +94,8 @@ export default function EventForm({ initial, onSave, onCancel }) {
       const rescheduled = !initial || formData.date !== initial.date || formData.time !== initial.time;
       if (rescheduled && isPast(formData.date, formData.time)) found.date = "Pick a date and time that has not passed yet.";
     }
-    if (!formData.location.trim()) found.location = "Location is required.";
-    else if (textProblem("words", formData.location, "Location")) found.location = textProblem("words", formData.location, "Location");
+    const where = locationProblem(formData.location, formData.mode) || textProblem("words", formData.location, "Location");
+    if (where) found.location = where;
     const capacity = Number(formData.capacity);
     if (!(capacity >= 1)) found.capacity = "Capacity must be at least 1.";
     else if (capacity < registered) found.capacity = `${registered} people have already registered.`;
@@ -163,20 +174,7 @@ export default function EventForm({ initial, onSave, onCancel }) {
           <input id="ev-time" type="time" className="input" name="time" value={formData.time} onChange={handleChange} />
         </div>
 
-        <div className="field">
-          <label htmlFor="ev-location">Location</label>
-          <input
-            id="ev-location"
-            className={fieldClass("location")}
-            name="location"
-            value={formData.location}
-            onChange={handleChange}
-            placeholder={formData.mode === "Online" ? "Zoom or Google Meet link" : formData.mode === "Hybrid" ? "Room + meeting link" : "Room or venue"}
-          />
-          {errors.location && <span className="field-error">{errors.location}</span>}
-        </div>
-
-        <div className="field">
+        <div className="field span-2">
           <label htmlFor="ev-mode">Format</label>
           <select id="ev-mode" className="input" name="mode" value={formData.mode} onChange={handleChange}>
             {Object.entries(EVENT_MODES).map(([value, label]) => (
@@ -184,6 +182,8 @@ export default function EventForm({ initial, onSave, onCancel }) {
             ))}
           </select>
         </div>
+
+        <LocationPicker idPrefix="ev" mode={formData.mode} value={formData.location} rooms={org.rooms} onChange={setLocation} error={errors.location} />
 
         <div className="field span-2">
           <label htmlFor="ev-description">

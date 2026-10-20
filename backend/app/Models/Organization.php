@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\OrgThemes;
+use App\Support\Schedule;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,12 +13,12 @@ class Organization extends Model
 {
     protected $fillable = [
         'slug', 'status', 'requested_by', 'proof_url', 'review_note', 'suspension_reason', 'reviewed_at', 'changes_requested_at', 'name', 'short_name', 'college', 'tagline', 'description', 'mission', 'vision', 'founded_year',
-        'adviser', 'email', 'facebook_url', 'office', 'meeting_schedule', 'membership_fee', 'courses', 'tutoring_areas', 'theme', 'logo_path',
+        'adviser', 'email', 'facebook_url', 'office', 'meeting_schedule', 'membership_fee', 'courses', 'tutoring_areas', 'rooms', 'theme', 'logo_path',
     ];
 
     protected function casts(): array
     {
-        return ['courses' => 'array', 'tutoring_areas' => 'array', 'theme' => 'array', 'founded_year' => 'integer', 'reviewed_at' => 'datetime'];
+        return ['courses' => 'array', 'tutoring_areas' => 'array', 'rooms' => 'array', 'theme' => 'array', 'founded_year' => 'integer', 'reviewed_at' => 'datetime'];
     }
 
     // Orgs people can see and use (not waiting for review, rejected or suspended)
@@ -81,6 +82,25 @@ class Organization extends Model
         return $this->tutoring_areas ?: self::DEFAULT_TUTORING_AREAS;
     }
 
+    // Rooms picked from the location dropdowns of events and tutoring ("Other" lets people type any place).
+    // Officers edit the list; until they do, it's the rooms the org's events and sessions already use.
+    public function rooms(): array
+    {
+        if ($this->rooms !== null) {
+            return $this->rooms;
+        }
+        $used = fn (string $model) => $model::withoutGlobalScopes()->where('organization_id', $this->id)->get(['location', 'mode']);
+        $rooms = $used(Event::class)->concat($used(TutoringSession::class))
+            ->map(fn ($item) => Schedule::room($item->location, $item->mode ?? 'F2F'))
+            ->filter()
+            ->unique(fn ($room) => mb_strtolower($room))
+            ->sort(SORT_NATURAL | SORT_FLAG_CASE)
+            ->values()
+            ->all();
+
+        return $rooms;
+    }
+
     public function memberships(): HasMany
     {
         return $this->hasMany(MembershipRecord::class);
@@ -107,6 +127,7 @@ class Organization extends Model
             'membershipFee' => $this->membership_fee,
             'courses' => $this->courses ?? [],
             'tutoringAreas' => $this->tutoringAreas(),
+            'rooms' => $this->rooms(),
             'theme' => $this->theme,
             'color' => OrgThemes::describe($this->theme),   // its name and swatch
             // ?v= changes on every upload so browsers don't keep showing the old logo

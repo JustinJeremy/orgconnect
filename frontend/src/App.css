@@ -3546,8 +3546,9 @@ a.btn { text-decoration: none; }
 .calendar-state.is-passed { background: var(--line-2); color: var(--muted); }
 .calendar-pop-event:has(.calendar-state) .calendar-pop-time { opacity: 0.6; }
 
-/* Tutoring session: its next actual date */
+/* Tutoring session: "Today" or "Ended" beside its date */
 .session-next { margin-left: 0.375rem; padding: 0.0625rem 0.5rem; border-radius: 999px; background: var(--sky-soft); color: var(--navy); font-weight: 700; font-size: 0.75rem; }
+.session-next.is-ended { background: var(--line); color: var(--muted); }
 
 /* ---------- Batch 15: menu items are links (so they can open in a new tab) ---------- */
 a.nav-item, a.sidebar-user-btn, a.logo-home { text-decoration: none; }
@@ -4158,3 +4159,9 @@ a.org-option { text-decoration: none; }
 .msg-edit-actions span { flex: 1; color: var(--muted); font-size: 0.6875rem; }
 .msg-edited { font-style: italic; }
 
+/* ---------- Batch 23.8: slots left, and the location dropdowns ---------- */
+.slots-left { color: var(--green-ink); font-weight: 600; }
+.slots-full { color: var(--red); font-weight: 700; }
+.session-card .event-card-foot .capacity { margin-right: 0.75rem; }
+.detail-facts .capacity { font-size: 0.875rem; }
+.location-other { margin-top: 0.5rem; }

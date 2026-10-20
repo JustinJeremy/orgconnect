@@ -6,6 +6,9 @@ export const EVENT_CATEGORIES = ["Workshop", "Seminar", "Community Service", "So
 // How people attend an event (value saved in the database -> label shown)
 export const EVENT_MODES = { F2F: "Face-to-face", Online: "Online", Hybrid: "Hybrid" };
 
+// Meeting apps in the location dropdown for Online and Hybrid (rooms are set per org: org.rooms)
+export const PLATFORMS = ["Google Meet", "Zoom", "Microsoft Teams"];
+
 export const ANNOUNCEMENT_CATEGORIES = ["General", "Event", "Deadline", "Urgent"];
 
 // Tutoring areas are set per org (org.tutoringAreas from the API)

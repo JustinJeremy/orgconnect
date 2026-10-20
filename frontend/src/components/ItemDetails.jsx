@@ -1,11 +1,12 @@
 import Icon from "./Icon.jsx";
 import Modal from "./Modal.jsx";
 import ModeTag from "./ModeTag.jsx";
+import { SlotMeter, sessionState } from "./SlotMeter.jsx";
 import { UserAvatar } from "./Avatars.jsx";
 import { usePeople } from "../context/PeopleContext.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
 import { downloadIcs, googleCalendarUrl } from "../utils/calendar.js";
-import { attendedCount, dateParts, formatDate, formatTime, isCompleted, isPast, percent, plural } from "../utils/format.js";
+import { attendedCount, dateParts, formatDate, formatTime, isCompleted, isPast, percent } from "../utils/format.js";
 
 // The full details of an event or tutoring session, opened by clicking its card.
 // footer: the card's own buttons (RSVP, Request session...), so they work here too.
@@ -93,7 +94,7 @@ export function EventDetails({ event, footer, onClose }) {
           <Fact icon="clock" label="Time">{formatTime(event.time)}</Fact>
           <Fact icon="pin" label="Where">{event.location}</Fact>
           <Fact icon="users" label={done ? "Attendance" : "Going"}>
-            {done ? `${attended} of ${registered} attended (${percent(attended, registered)}%)` : `${registered} of ${event.capacity} spots taken`}
+            {done ? `${attended} of ${registered} attended (${percent(attended, registered)}%)` : `${registered} of ${event.capacity} spots taken · ${event.capacity - registered > 0 ? `${event.capacity - registered} left` : "Full"}`}
           </Fact>
         </div>
 
@@ -125,7 +126,7 @@ export function EventDetails({ event, footer, onClose }) {
   );
 }
 
-export function SessionDetails({ session, next, footer, onClose }) {
+export function SessionDetails({ session, footer, onClose }) {
   const { openPerson } = usePeople();
 
   return (
@@ -142,13 +143,15 @@ export function SessionDetails({ session, next, footer, onClose }) {
 
         <div className="detail-tags">
           <span className="person-chip">{session.area}</span>
+          <ModeTag mode={session.mode} />
+          {sessionState(session) === "Ended" && <span className="event-state is-passed"><Icon name="clock" size={12} /> Ended</span>}
         </div>
 
         <div className="detail-facts">
-          <Fact icon="calendar" label="Schedule">{session.schedule}</Fact>
-          <Fact icon="clock" label="Next meeting">{next || "Not this week"}</Fact>
+          <Fact icon="calendar" label="Date">{session.date ? `${dateParts(session.date).weekday}, ${formatDate(session.date)}` : session.schedule}</Fact>
+          <Fact icon="clock" label="Time">{session.time ? formatTime(session.time) : "—"}</Fact>
           <Fact icon="pin" label="Where">{session.location}</Fact>
-          <Fact icon="users" label="Open slots">{plural(session.slots, "slot")}</Fact>
+          <Fact icon="users" label="Slots"><SlotMeter session={session} /></Fact>
         </div>
 
         {session.description && (
