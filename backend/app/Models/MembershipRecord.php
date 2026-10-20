@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MembershipRecord extends Model
 {
+    // Positions an officer can give (frontend/src/data/constants.js POSITIONS)
+    public const POSITIONS = ['Member', 'President', 'VP Academics', 'VP Externals', 'Secretary', 'Treasurer'];
+
     protected $fillable = [
         'user_id', 'organization_id', 'role', 'position', 'status', 'join_date',
         'inactive_reason', 'inactive_by', 'inactive_at', 'reactivation_message', 'reactivation_requested_at',

@@ -2,6 +2,7 @@ import { useState } from "react";
 import Modal from "./Modal.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
 import { RESOURCE_TYPES } from "../data/constants.js";
+import { textProblem } from "../utils/validation.js";
 
 const EMPTY = { title: "", subject: "", type: RESOURCE_TYPES[0], url: "", description: "" };
 
@@ -39,6 +40,8 @@ export default function ResourceForm({ initial, onSave, onCancel }) {
       setError("Enter a full link starting with http:// or https://");
       return;
     }
+    const problem = textProblem("words", formData.title, "Title") || textProblem("words", formData.description, "Description");
+    if (problem) return setError(problem);
     setSaving(true);
     await onSave({
       ...formData,

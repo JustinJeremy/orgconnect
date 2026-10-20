@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\TextFormat;
 use Illuminate\Foundation\Http\FormRequest;
 
 // Used to post (POST) and edit (PUT) an announcement.
@@ -15,9 +16,9 @@ class AnnouncementRequest extends FormRequest
         $required = $this->isMethod('post') ? 'required' : 'sometimes|required';
 
         return [
-            'title' => "$required|string|max:255",
+            'title' => [$required, 'string', 'max:255', TextFormat::words('Title')],
             'category' => "$required|in:".implode(',', self::CATEGORIES),
-            'content' => "$required|string|max:1000",
+            'content' => [$required, 'string', 'max:1000', TextFormat::words('The announcement')],
             'pinned' => 'sometimes|boolean',
         ];
     }

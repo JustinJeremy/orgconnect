@@ -2,6 +2,7 @@ import { useState } from "react";
 import Modal from "./Modal.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
 import { splitTopics } from "../utils/format.js";
+import { textProblem } from "../utils/validation.js";
 
 const EMPTY = { subject: "", area: "", schedule: "", location: "", slots: 3, description: "", topics: "" };
 
@@ -36,6 +37,13 @@ export default function SessionForm({ initial, onSave, onCancel }) {
       setError("Subject, schedule and location are required.");
       return;
     }
+    const problem =
+      textProblem("words", formData.subject, "Subject") ||
+      textProblem("words", formData.schedule, "Schedule") ||
+      textProblem("words", formData.location, "Location") ||
+      textProblem("words", formData.description, "Description") ||
+      splitTopics(formData.topics).map((t) => textProblem("words", t, "A topic")).find(Boolean);
+    if (problem) return setError(problem);
     setSaving(true);
     await onSave({
       ...formData,

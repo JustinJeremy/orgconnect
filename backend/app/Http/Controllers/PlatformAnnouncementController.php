@@ -7,6 +7,7 @@ use App\Models\Organization;
 use App\Models\PlatformAnnouncement;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Rules\TextFormat;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -42,8 +43,8 @@ class PlatformAnnouncementController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'title' => 'required|string|max:160',
-            'content' => 'required|string|max:5000',
+            'title' => ['required', 'string', 'max:160', TextFormat::words('Title')],
+            'content' => ['required', 'string', 'max:5000', TextFormat::words('The announcement')],
             'audience' => ['required', Rule::in(PlatformAnnouncement::AUDIENCES)],
             'organizationIds' => 'nullable|array|min:1',
             'organizationIds.*' => ['integer', Rule::exists('organizations', 'id')->where('status', 'Active')],

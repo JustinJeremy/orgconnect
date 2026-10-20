@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Rules\TextFormat;
 use App\Support\OrgThemes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -29,16 +30,16 @@ class OrgRequestController extends Controller
     private function validated(Request $request, ?Organization $org = null): array
     {
         return $request->validate([
-            'name' => ['required', 'string', 'max:120', Rule::unique('organizations', 'name')->ignore($org?->id)],
-            'shortName' => 'required|string|max:20',
-            'college' => 'required|string|max:120',
-            'tagline' => 'required|string|max:160',
-            'description' => 'required|string|max:2000',
-            'adviser' => 'required|string|max:120',
+            'name' => ['required', 'string', 'max:120', TextFormat::orgName(), Rule::unique('organizations', 'name')->ignore($org?->id)],
+            'shortName' => ['required', 'string', 'max:20', TextFormat::shortName()],
+            'college' => ['required', 'string', 'max:120', TextFormat::college()],
+            'tagline' => ['required', 'string', 'max:160', TextFormat::words('Tagline')],
+            'description' => ['required', 'string', 'max:2000', TextFormat::words('About the organization')],
+            'adviser' => ['required', 'string', 'max:120', TextFormat::personName('Adviser')],
             'email' => 'required|email|max:255',
             'courses' => 'required|array|min:1|max:20',
-            'courses.*' => 'required|string|max:20|distinct:ignore_case',
-            'proofUrl' => 'nullable|url|max:500',
+            'courses.*' => ['required', 'string', 'max:20', 'distinct:ignore_case', TextFormat::course()],
+            'proofUrl' => 'nullable|url:http,https|max:500',
             // One of the org colors no other org has (app/Support/OrgThemes.php); none: the default navy
             'themeKey' => ['nullable', Rule::in(array_keys(OrgThemes::PRESETS)), Rule::notIn(OrgThemes::taken($org?->id))],
         ], [

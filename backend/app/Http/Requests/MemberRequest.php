@@ -2,8 +2,11 @@
 
 namespace App\Http\Requests;
 
+use App\Models\MembershipRecord;
 use App\Models\User;
+use App\Rules\TextFormat;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 // Used to add (POST) and edit (PUT) a member on the roster
@@ -16,12 +19,12 @@ class MemberRequest extends FormRequest
         $adding = ! $this->route('member');
 
         return [
-            'name' => $adding ? 'required|string|max:255' : 'prohibited',
+            'name' => $adding ? ['required', 'string', 'max:255', TextFormat::personName('Full name')] : 'prohibited',
             'email' => $adding ? 'required|email|max:255' : 'prohibited',
-            'position' => 'required|string|max:50',
+            'position' => ['required', Rule::in(MembershipRecord::POSITIONS)],
             'status' => 'required|in:Active,Inactive',
             // Shown to the member when they open the org, so they know why and can ask to be reactivated
-            'inactiveReason' => 'required_if:status,Inactive|nullable|string|max:500',
+            'inactiveReason' => ['required_if:status,Inactive', 'nullable', 'string', 'max:500', TextFormat::words('The reason')],
         ];
     }
 
