@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\TextFormat;
 use Illuminate\Foundation\Http\FormRequest;
 
 class DecideTutoringRequest extends FormRequest
@@ -13,7 +14,7 @@ class DecideTutoringRequest extends FormRequest
             // Completed: how long the session was (logged as the tutor's volunteer hours)
             'hours' => 'nullable|numeric|min:0.5|max:8',
             // Rejecting needs a reason, so the member knows why
-            'reason' => 'required_if:status,Rejected|nullable|string|max:500',
+            'reason' => ['required_if:status,Rejected', 'nullable', 'string', 'max:500', TextFormat::words('The reason')],
         ];
     }
 }

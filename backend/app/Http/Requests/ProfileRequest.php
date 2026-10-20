@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\User;
+use App\Rules\TextFormat;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -15,14 +16,15 @@ class ProfileRequest extends FormRequest
         // The platform admin isn't a student: only name and email
         $student = $this->user()->is_admin ? 'sometimes' : 'required';
         // A new or changed student ID must match the format; an older saved one can be kept as it is
-        $changed = $this->input('studentId') !== $this->user()->student_id;
+        $user = $this->user();
+        $changed = fn ($field, $column) => $this->input($field) !== $user->{$column};
 
         return [
-            'name' => 'required|string|max:255',
-            'studentId' => [$student, 'string', 'max:50', Rule::when($changed, 'regex:'.User::STUDENT_ID_FORMAT), Rule::unique('users', 'student_id')->ignore($id)],
+            'name' => ['required', 'string', 'max:255', Rule::when($changed('name', 'name'), TextFormat::personName('Full name'))],
+            'studentId' => [$student, 'string', 'max:50', Rule::when($changed('studentId', 'student_id'), 'regex:'.User::STUDENT_ID_FORMAT), Rule::unique('users', 'student_id')->ignore($id)],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($id)],
-            'course' => "{$student}|string|max:50",
-            'yearLevel' => "{$student}|string|max:50",
+            'course' => [$student, 'string', 'max:50', Rule::when($changed('course', 'course'), TextFormat::course())],
+            'yearLevel' => [$student, 'string', 'max:50', Rule::when($changed('yearLevel', 'year_level'), Rule::in(TextFormat::YEAR_LEVELS))],
         ];
     }
 

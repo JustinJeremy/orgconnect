@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Modal from "./Modal.jsx";
+import { textProblem } from "../utils/validation.js";
 
 // Asks the officer why an application is rejected; the applicant sees the reason on their screen
 export default function RejectApplicationDialog({ applicant, onCancel, onReject }) {
@@ -9,6 +10,7 @@ export default function RejectApplicationDialog({ applicant, onCancel, onReject 
   const submit = (e) => {
     e.preventDefault();
     if (!reason.trim()) return setError("Give the applicant a reason.");
+    if (textProblem("words", reason, "The reason")) return setError(textProblem("words", reason, "The reason"));
     onReject(reason.trim());
   };
 

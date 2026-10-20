@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Organization;
+use App\Rules\TextFormat;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -14,11 +15,11 @@ class ResourceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title' => 'required|string|max:255',
+            'title' => ['required', 'string', 'max:255', TextFormat::words('Title')],
             'subject' => ['required', Rule::in(Organization::current()->tutoringAreas())],
             'type' => 'required|in:'.implode(',', self::TYPES),
             'url' => 'required|url:http,https|max:2048',
-            'description' => 'nullable|string|max:1000',
+            'description' => ['nullable', 'string', 'max:1000', TextFormat::words('Description')],
         ];
     }
 

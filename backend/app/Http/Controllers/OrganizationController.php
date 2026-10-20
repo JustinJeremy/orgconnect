@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\OfficerOnly;
 use App\Models\MembershipRecord;
 use App\Models\Organization;
 use App\Models\UserNotification;
+use App\Rules\TextFormat;
 use App\Support\Uploads;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -49,7 +50,7 @@ class OrganizationController extends Controller
     // PUT /api/organizations/{organization}/application  { message } -> add or change the note to the officers while pending
     public function updateApplication(Request $request, Organization $organization)
     {
-        $message = $request->validate(['message' => 'nullable|string|max:500'])['message'] ?? null;
+        $message = $request->validate(['message' => ['nullable', 'string', 'max:500', TextFormat::words('Your message')]])['message'] ?? null;
         $updated = $request->user()->memberships()
             ->where('organization_id', $organization->id)
             ->where('status', 'Pending')
@@ -64,7 +65,7 @@ class OrganizationController extends Controller
     // and they can apply again later. The President hands the role to someone else first.
     public function leave(Request $request, Organization $organization)
     {
-        $reason = trim($request->validate(['reason' => 'required|string|max:500'], ['reason.required' => 'Say why you are leaving.'])['reason']);
+        $reason = trim($request->validate(['reason' => ['required', 'string', 'max:500', TextFormat::words('The reason')]], ['reason.required' => 'Say why you are leaving.'])['reason']);
         $user = $request->user();
         $membership = $user->memberships()->where('organization_id', $organization->id)->whereIn('status', ['Active', 'Inactive'])->first();
         abort_unless($membership, 404, "You're not a member of this organization.");
@@ -86,7 +87,7 @@ class OrganizationController extends Controller
     // POST /api/organizations/{organization}/reactivation  { message } -> an inactive member asks to be active again
     public function requestReactivation(Request $request, Organization $organization)
     {
-        $message = trim($request->validate(['message' => 'required|string|max:1000'])['message']);
+        $message = trim($request->validate(['message' => ['required', 'string', 'max:1000', TextFormat::words('Your message')]])['message']);
         $user = $request->user();
         $membership = $user->memberships()->where('organization_id', $organization->id)->first();
         abort_unless($membership?->status === 'Inactive', 422, 'Only inactive members can ask to be reactivated.');
@@ -109,7 +110,7 @@ class OrganizationController extends Controller
     public function join(Request $request, Organization $organization)
     {
         abort_unless($organization->status === 'Active', 404);
-        $message = $request->validate(['message' => 'nullable|string|max:500'])['message'] ?? null;
+        $message = $request->validate(['message' => ['nullable', 'string', 'max:500', TextFormat::words('Your message')]])['message'] ?? null;
         $user = $request->user();
         $existing = $user->memberships()->where('organization_id', $organization->id)->first();
 

@@ -3,6 +3,7 @@ import Modal from "./Modal.jsx";
 import Icon from "./Icon.jsx";
 import { ATTACH_TYPES, attachmentProblem, fileSize } from "../utils/format.js";
 import { ANNOUNCEMENT_CATEGORIES } from "../data/constants.js";
+import { textProblem } from "../utils/validation.js";
 
 const MAX_LENGTH = 1000;
 const EMPTY = { title: "", category: ANNOUNCEMENT_CATEGORIES[0], content: "", pinned: false };
@@ -41,7 +42,9 @@ export default function AnnouncementForm({ initial, onSave, onCancel }) {
     e.preventDefault();
     const found = {};
     if (!formData.title.trim()) found.title = "Add a title.";
+    else if (textProblem("words", formData.title, "Title")) found.title = textProblem("words", formData.title, "Title");
     if (!formData.content.trim()) found.content = "Write a message.";
+    else if (textProblem("words", formData.content, "The announcement")) found.content = textProblem("words", formData.content, "The announcement");
     else if (formData.content.length > MAX_LENGTH) found.content = `Keep it under ${MAX_LENGTH} characters.`;
     setErrors(found);
     if (Object.keys(found).length > 0) return;

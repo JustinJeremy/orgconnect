@@ -11,6 +11,7 @@ import usePagedList from "../hooks/usePagedList.js";
 import { formatDate } from "../utils/format.js";
 import { UserAvatar } from "./Avatars.jsx";
 import { usePeople } from "../context/PeopleContext.jsx";
+import { keepAllowed, textProblem } from "../utils/validation.js";
 
 const PER_PAGE = 10;
 const EMPTY = { name: "", email: "", position: "Member", status: "Active" };
@@ -26,7 +27,8 @@ function MemberForm({ member, onSave, onCancel, isPresident }) {
   const [saving, setSaving] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: name === "name" ? keepAllowed("name", value) : value });
     setError("");
   };
 
@@ -34,9 +36,11 @@ function MemberForm({ member, onSave, onCancel, isPresident }) {
     e.preventDefault();
     if (!member) {
       if (!formData.name.trim() || !formData.email.trim()) return setError("Name and email are required.");
+      if (textProblem("name", formData.name, "Full name")) return setError(textProblem("name", formData.name, "Full name"));
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return setError("Enter a valid email address.");
     }
     if (formData.status === "Inactive" && !formData.inactiveReason?.trim()) return setError("Give a reason so the member knows why.");
+    if (formData.status === "Inactive" && textProblem("words", formData.inactiveReason, "The reason")) return setError(textProblem("words", formData.inactiveReason, "The reason"));
     setSaving(true);
     const inactiveReason = formData.status === "Inactive" ? formData.inactiveReason.trim() : null;
     // Editing changes only position and status: name and email stay as the person registered them
