@@ -71,7 +71,7 @@ export default function CheckinQr({ type, item, onClose }) {
       ? "Check-in is open. Members scan this with their phone camera."
       : type === "event"
         ? info.closed
-        : `Check-in works on meeting days only (${item.schedule}).`;
+        : `Check-in works on the session's day only (${item.schedule}).`;
 
   return (
     <Modal

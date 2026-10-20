@@ -158,7 +158,7 @@ class DefectFixesTest extends TestCase
         $org = $this->compSoc();
         $officer = $this->person($org, 'officer');
         $sessionId = $this->actingIn($this->person($org), $org)->postJson('/api/tutoring-sessions', [
-            'subject' => 'SQL', 'area' => 'Databases', 'schedule' => 'Mon', 'location' => 'Lab', 'slots' => 2,
+            'subject' => 'SQL', 'area' => 'Databases', 'date' => now()->addWeek()->toDateString(), 'time' => '15:00', 'mode' => 'F2F', 'location' => 'Lab', 'slots' => 2,
         ])->json('id');
         $requestId = $this->actingIn($officer, $org)->postJson('/api/tutoring-requests', ['sessionId' => $sessionId])->json('id');
 

@@ -26,9 +26,15 @@ class TutoringController extends Controller
     // List filters: ?area= &search= subject, area or tutor (+ ?page)
     public function sessions(Request $request)
     {
+        // Coming up first (soonest first), then ones whose day is over (latest first)
         $query = TutoringSession::with('tutor')
+            ->withCount(['requests as taken_count' => fn ($q) => $q->whereIn('status', ['Confirmed', 'Completed'])])
             ->when($request->filled('area'), fn ($q) => $q->where('area', $request->input('area')))
-            ->latest()
+            ->orderByRaw('CASE WHEN date < ? THEN 1 ELSE 0 END', [$today = today()->toDateString()])
+            ->orderByRaw('CASE WHEN date < ? THEN NULL ELSE date END', [$today])
+            ->orderByRaw('CASE WHEN date < ? THEN NULL ELSE time END', [$today])
+            ->orderByDesc('date')
+            ->orderByDesc('time')
             ->latest('id');
         $this->search($request, $query, ['subject', 'area'], ['tutor' => 'name']);
 
@@ -95,6 +101,9 @@ class TutoringController extends Controller
 
         if ($session->tutor_id === $user->id) {
             throw ValidationException::withMessages(['sessionId' => "You can't request your own session."]);
+        }
+        if ($session->isFinished()) {
+            throw ValidationException::withMessages(['sessionId' => 'This session has already taken place.']);
         }
         if ($session->slots < 1) {
             throw ValidationException::withMessages(['sessionId' => 'This session has no open slots.']);
