@@ -116,6 +116,9 @@ class SchedulingTest extends TestCase
         $this->actingIn($officer, $org)->postJson('/api/events', $this->event(['mode' => 'Hybrid', 'location' => 'Room 304 + Zoom']))->assertCreated();
         $this->assertContains('Room 304', $org->fresh()->rooms());
 
+        // A new org that hasn't used any rooms starts with the ones other orgs use
+        $this->assertContains('Room 304', $this->secondOrg()->rooms());
+
         $this->actingIn($this->person($org), $org)->putJson('/api/organization/rooms', ['rooms' => ['Room 1']])->assertForbidden();
         $this->actingIn($officer, $org)->putJson('/api/organization/rooms', ['rooms' => ['Room 1', 'room 1']])
             ->assertStatus(422)->assertJsonValidationErrors('rooms.1');
