@@ -83,22 +83,31 @@ class Organization extends Model
     }
 
     // Rooms picked from the location dropdowns of events and tutoring ("Other" lets people type any place).
-    // Officers edit the list; until they do, it's the rooms the org's events and sessions already use.
+    // Officers edit the list; until they do, it's the rooms the org's events and sessions already use,
+    // or for a new org that hasn't used any yet, the rooms the other orgs on campus use.
     public function rooms(): array
     {
         if ($this->rooms !== null) {
             return $this->rooms;
         }
-        $used = fn (string $model) => $model::withoutGlobalScopes()->where('organization_id', $this->id)->get(['location', 'mode']);
-        $rooms = $used(Event::class)->concat($used(TutoringSession::class))
+
+        return self::roomsUsed($this->id) ?: self::roomsUsed();
+    }
+
+    // Rooms in events and tutoring sessions (of one org, or of every org), A to Z
+    private static function roomsUsed(?int $organizationId = null): array
+    {
+        $used = fn (string $model) => $model::withoutGlobalScopes()
+            ->when($organizationId, fn ($q) => $q->where('organization_id', $organizationId))
+            ->get(['location', 'mode']);
+
+        return $used(Event::class)->concat($used(TutoringSession::class))
             ->map(fn ($item) => Schedule::room($item->location, $item->mode ?? 'F2F'))
             ->filter()
             ->unique(fn ($room) => mb_strtolower($room))
             ->sort(SORT_NATURAL | SORT_FLAG_CASE)
             ->values()
             ->all();
-
-        return $rooms;
     }
 
     public function memberships(): HasMany
