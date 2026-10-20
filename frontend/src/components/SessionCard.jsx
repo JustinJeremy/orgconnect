@@ -1,29 +1,19 @@
 import { useState } from "react";
 import Icon from "./Icon.jsx";
 import { StatusBadge } from "./Badges.jsx";
-import { parseSchedule, weeklyDates } from "../utils/schedule.js";
+import ModeTag from "./ModeTag.jsx";
+import { SlotMeter, sessionState } from "./SlotMeter.jsx";
 import { UserAvatar } from "./Avatars.jsx";
 import { usePeople } from "../context/PeopleContext.jsx";
 import { SessionDetails } from "./ItemDetails.jsx";
 import CheckinQr from "./CheckinQr.jsx";
-
-// The next date a weekly session meets, e.g. "Fri, Oct 23" (today counts until its start time)
-function nextMeeting(schedule) {
-  const when = parseSchedule(schedule);
-  if (!when) return null;
-  const now = new Date();
-  const soon = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7);
-  const date = weeklyDates(when.weekday, now, soon).find((d) => new Date(`${d}T${when.time}:00`) > now);
-  if (!date) return null;
-  return new Date(`${date}T00:00:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-}
 
 export default function SessionCard({ session, myRequest, canManage, canRequest, onRequest, onEdit, onDelete, highlighted }) {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false); // the details pop-up
   const [qrOpen, setQrOpen] = useState(false); // the tutor and officers: the check-in QR code
   const { openPerson } = usePeople();
-  const next = nextMeeting(session.schedule);
+  const state = sessionState(session);
 
   const request = async () => {
     setBusy(true);
@@ -37,7 +27,7 @@ export default function SessionCard({ session, myRequest, canManage, canRequest,
       Your request <StatusBadge status={myRequest.status} />
     </span>
   ) : canRequest ? (
-    <button type="button" className="btn btn-primary btn-sm" onClick={request} disabled={busy || session.slots < 1}>
+    <button type="button" className="btn btn-primary btn-sm" onClick={request} disabled={busy || session.slots < 1 || session.finished}>
       Request session
     </button>
   ) : null;
@@ -56,7 +46,7 @@ export default function SessionCard({ session, myRequest, canManage, canRequest,
         </div>
         {canManage && (
           <div className="card-tools">
-            {/* The check-in QR code (scanning works on the session's meeting days) */}
+            {/* The check-in QR code (scanning works on the session's day) */}
             <button type="button" className="icon-btn sm checkin-btn" aria-label={`Check-in QR for ${session.subject}`} title="Check-in QR" onClick={() => setQrOpen(true)}>
               <Icon name="qr" size={16} />
             </button>
@@ -78,23 +68,22 @@ export default function SessionCard({ session, myRequest, canManage, canRequest,
       <div className="event-meta">
         <span>
           <Icon name="clock" size={14} /> {session.schedule}
-          {next && <span className="session-next">Next: {next}</span>}
+          {state && <span className={`session-next ${state === "Ended" ? "is-ended" : ""}`}>{state}</span>}
         </span>
         <span>
           <Icon name="pin" size={14} /> {session.location}
+          <ModeTag mode={session.mode} />
         </span>
       </div>
 
       {session.description && <p className="event-desc">{session.description}</p>}
 
       <div className="event-card-foot">
-        <span className="muted small">
-          {session.slots} {session.slots === 1 ? "slot" : "slots"} open
-        </span>
+        <SlotMeter session={session} />
         {action}
       </div>
     </article>
-    {open && <SessionDetails session={session} next={next} footer={action} onClose={() => setOpen(false)} />}
+    {open && <SessionDetails session={session} footer={action} onClose={() => setOpen(false)} />}
     {qrOpen && <CheckinQr type="session" item={session} onClose={() => setQrOpen(false)} />}
     </>
   );

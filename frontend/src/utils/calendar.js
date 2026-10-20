@@ -1,5 +1,3 @@
-import { parseSchedule, weeklyDates } from "./schedule.js";
-
 // "Add to calendar" for events and tutoring sessions:
 //   google(item) -> a Google Calendar link that opens the event already filled in
 //   downloadIcs(item) -> a .ics file, which phone calendars (iPhone, Android) and Outlook open
@@ -20,17 +18,14 @@ function stamps(date, time, hours) {
 // { title, details, location, start, end, weekly } for an event or a session
 function describe(item, orgName) {
   if (item.subject) {
-    // A tutoring session: from its next meeting, every week
-    const when = parseSchedule(item.schedule);
-    if (!when) return null;
-    const today = new Date();
-    const next = weeklyDates(when.weekday, today, new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7))[0];
-    const [start, end] = stamps(next, when.time, 1);
+    // A tutoring session: one meeting, on its date
+    if (!item.date || !item.time) return null;
+    const [start, end] = stamps(item.date, item.time, 1);
     return {
       title: `Peer tutoring: ${item.subject}`,
       details: [`Tutor: ${item.tutorName}`, item.description, orgName && `${orgName} on OrgConnect`].filter(Boolean).join("\n"),
       location: item.location,
-      start, end, weekly: true,
+      start, end, weekly: false,
     };
   }
   const [start, end] = stamps(item.date, item.time, 2);

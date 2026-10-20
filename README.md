@@ -35,7 +35,7 @@ by connecting students, officers and orgs).
 - Create events (with posters), record attendance and mark events completed
 - Show an event's check-in QR code at the venue (the square icon on the card): members scan it and are
   marked present, with names appearing as they scan. The icon shows until the event is finished; scanning
-  works from a day before it starts. Tutors do the same for their sessions on meeting days. Nothing
+  works from a day before it starts. Tutors do the same for their sessions on the session's day. Nothing
   extra is entered when creating the event or session; the code is made the first time it's shown,
   and *New code* stops an old one working
 - Approve or reject volunteer hours and tutoring requests (never their own)

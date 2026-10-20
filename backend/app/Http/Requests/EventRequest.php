@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Event;
 use App\Rules\TextFormat;
+use App\Support\Conflicts;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Validator;
@@ -33,6 +35,7 @@ class EventRequest extends FormRequest
 
     // The event's date + time must still be ahead of us.
     // Past events can still be edited (e.g. fixing a typo) as long as the schedule is left alone.
+    // No other event with the same title that day, and no room used twice at the same date and time.
     public function after(): array
     {
         return [
@@ -48,6 +51,14 @@ class EventRequest extends FormRequest
 
                 if ($rescheduled && Carbon::parse("{$this->input('date')} {$this->input('time')}")->isPast()) {
                     $validator->errors()->add('date', 'Pick a date and time that has not passed yet.');
+                }
+                if ($validator->errors()->hasAny(['title', 'location', 'mode'])) {
+                    return;
+                }
+                if (Conflicts::sameTitle(Event::class, 'title', $this->input('title'), $this->input('date'), $event?->id)) {
+                    $validator->errors()->add('title', 'An event with this title is already posted for that date.');
+                } elseif ($taken = Conflicts::roomTakenBy($this->input('location'), $this->input('mode'), $this->input('date'), $this->input('time'), event: $event)) {
+                    $validator->errors()->add('location', "That room is already used at that date and time by {$taken}.");
                 }
             },
         ];

@@ -172,6 +172,22 @@ class OrganizationController extends Controller
         return $organization->fresh()->toFrontend();
     }
 
+    // PUT /api/organization/rooms  { rooms: ["Room 210", "Computer Lab 1"] } (officers of the selected org)
+    // -> the org, with the rooms offered in the location dropdowns of events and tutoring
+    public function updateRooms(Request $request)
+    {
+        $this->officerOnly($request);
+        $rooms = $request->validate([
+            'rooms' => 'present|array|max:50',
+            'rooms.*' => ['required', 'string', 'max:80', 'distinct:ignore_case', TextFormat::words('A room')],
+        ], ['rooms.*.distinct' => 'That room is already on the list.'])['rooms'];
+
+        $organization = Organization::current();
+        $organization->update(['rooms' => array_values(array_map('trim', $rooms))]);
+
+        return $organization->fresh()->toFrontend();
+    }
+
     // DELETE /api/organization/logo (officers of the selected org) -> back to no logo
     public function removeLogo(Request $request)
     {

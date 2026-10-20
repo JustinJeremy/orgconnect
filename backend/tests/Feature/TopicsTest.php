@@ -25,7 +25,7 @@ class TopicsTest extends TestCase
         $this->actingIn($officer, $org)->postJson('/api/events', ['topics' => range(1, 9)] + $event)->assertStatus(422)->assertJsonValidationErrors('topics');
 
         $this->actingIn($officer, $org)->postJson('/api/tutoring-sessions', [
-            'subject' => 'SQL joins', 'area' => $org->tutoringAreas()[0], 'schedule' => 'Mondays, 3:00 PM', 'location' => 'Room 305', 'slots' => 3,
+            'subject' => 'SQL joins', 'area' => $org->tutoringAreas()[0], 'date' => now()->addWeek()->toDateString(), 'time' => '15:00', 'mode' => 'F2F', 'location' => 'Room 305', 'slots' => 3,
             'topics' => ['Joins', 'GROUP BY'],
         ])->assertCreated()->assertJsonPath('topics', ['Joins', 'GROUP BY']);
     }

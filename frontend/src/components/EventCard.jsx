@@ -134,7 +134,8 @@ export default function EventCard({ event, userId, isOfficer, actions, layout = 
                 </>
               ) : (
                 <>
-                  <strong>{registered}</strong> of {event.capacity} going
+                  <strong>{registered}</strong> of {event.capacity} going ·{" "}
+                  <span className={isFull ? "slots-full" : "slots-left"}>{isFull ? "Full" : `${event.capacity - registered} left`}</span>
                 </>
               )}
             </span>

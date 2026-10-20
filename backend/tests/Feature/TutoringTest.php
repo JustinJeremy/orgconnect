@@ -11,7 +11,7 @@ class TutoringTest extends TestCase
     private function sessionBy($tutor, $org, int $slots = 1): TutoringSession
     {
         $id = $this->actingIn($tutor, $org)->postJson('/api/tutoring-sessions', [
-            'subject' => 'SQL basics', 'area' => 'Databases', 'schedule' => 'Mondays, 3 PM', 'location' => 'Room 302', 'slots' => $slots,
+            'subject' => 'SQL basics', 'area' => 'Databases', 'date' => now()->addWeek()->toDateString(), 'time' => '15:00', 'mode' => 'F2F', 'location' => 'Room 302', 'slots' => $slots,
         ])->assertCreated()->json('id');
 
         return TutoringSession::withoutGlobalScopes()->findOrFail($id);
@@ -82,7 +82,7 @@ class TutoringTest extends TestCase
         $member = $this->person($org);
 
         $this->actingIn($member, $org)->postJson('/api/tutoring-sessions', [
-            'subject' => 'Subnetting', 'area' => 'Networking', 'schedule' => 'Fridays', 'location' => 'Lab', 'slots' => 3,
+            'subject' => 'Subnetting', 'area' => 'Networking', 'date' => now()->addWeek()->toDateString(), 'time' => '15:00', 'mode' => 'F2F', 'location' => 'Lab', 'slots' => 3,
         ])->assertStatus(422)->assertJsonValidationErrors('area');
     }
 }
