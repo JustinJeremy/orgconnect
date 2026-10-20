@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { todayIso } from "../utils/format.js";
+import { textProblem } from "../utils/validation.js";
 
 const EMPTY = () => ({ choice: "", custom: "", hours: "", minutes: "0", date: todayIso() });
 const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
@@ -54,6 +55,7 @@ export default function LogHoursForm({ onSubmit, events = [] }) {
     // Hours and minutes -> hours with two decimals, e.g. 1 hr 15 min = 1.25
     const hours = Math.round(((Number(formData.hours) || 0) + Number(formData.minutes) / 60) * 100) / 100;
     if (!activity) return setError(formData.choice === OTHER ? "Describe the activity." : "Pick an activity.");
+    if (textProblem("words", activity, "Activity")) return setError(textProblem("words", activity, "Activity"));
     if (!formData.date) return setError("Pick the date of the activity.");
     if (formData.date > todayIso()) return setError("You can't log hours for a future date.");
     if (hours < 0.08) return setError("Enter how long you volunteered (at least 5 minutes).");

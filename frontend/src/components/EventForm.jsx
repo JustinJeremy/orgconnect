@@ -3,6 +3,7 @@ import Icon from "./Icon.jsx";
 import Modal from "./Modal.jsx";
 import { EVENT_CATEGORIES, EVENT_MODES } from "../data/constants.js";
 import { todayIso, isPast, splitTopics } from "../utils/format.js";
+import { textProblem } from "../utils/validation.js";
 
 const EMPTY = {
   title: "",
@@ -74,6 +75,7 @@ export default function EventForm({ initial, onSave, onCancel }) {
   const validate = () => {
     const found = {};
     if (!formData.title.trim()) found.title = "Title is required.";
+    else if (textProblem("words", formData.title, "Title")) found.title = textProblem("words", formData.title, "Title");
     if (!formData.date) found.date = "Pick a date.";
     else if (!formData.time) found.date = "Pick a time.";
     else {
@@ -82,9 +84,13 @@ export default function EventForm({ initial, onSave, onCancel }) {
       if (rescheduled && isPast(formData.date, formData.time)) found.date = "Pick a date and time that has not passed yet.";
     }
     if (!formData.location.trim()) found.location = "Location is required.";
+    else if (textProblem("words", formData.location, "Location")) found.location = textProblem("words", formData.location, "Location");
     const capacity = Number(formData.capacity);
     if (!(capacity >= 1)) found.capacity = "Capacity must be at least 1.";
     else if (capacity < registered) found.capacity = `${registered} people have already registered.`;
+    if (textProblem("words", formData.description, "Description")) found.description = textProblem("words", formData.description, "Description");
+    const topic = splitTopics(formData.topics).map((t) => textProblem("words", t, "A topic")).find(Boolean);
+    if (topic) found.topics = topic;
     return found;
   };
 
@@ -183,13 +189,15 @@ export default function EventForm({ initial, onSave, onCancel }) {
           <label htmlFor="ev-description">
             Description <span className="optional">Optional</span>
           </label>
-          <textarea id="ev-description" className="input" rows="3" name="description" value={formData.description} onChange={handleChange} />
+          <textarea id="ev-description" className={fieldClass("description")} rows="3" name="description" value={formData.description} onChange={handleChange} />
+          {errors.description && <span className="field-error">{errors.description}</span>}
         </div>
         <div className="field span-2">
           <label htmlFor="ev-topics">
             Topics <span className="optional">Optional</span>
           </label>
-          <input id="ev-topics" className="input" name="topics" value={formData.topics} onChange={handleChange} placeholder="Separate with commas, e.g. Blockchain, Smart contracts" />
+          <input id="ev-topics" className={fieldClass("topics")} name="topics" value={formData.topics} onChange={handleChange} placeholder="Separate with commas, e.g. Blockchain, Smart contracts" />
+          {errors.topics && <span className="field-error">{errors.topics}</span>}
         </div>
 
         <div className="field span-2">

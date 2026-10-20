@@ -8,6 +8,7 @@ import { UserAvatar } from "../components/Avatars.jsx";
 import { adminApi } from "../api/services.js";
 import { errorMessage } from "../api/client.js";
 import { relativeDate } from "../utils/format.js";
+import { textProblem } from "../utils/validation.js";
 
 // Who an announcement goes to. Replies: each org's President, VPs and Secretary write back in their
 // own thread with you; their other officers can read it; members never see replies.
@@ -134,6 +135,8 @@ export default function AdminAnnouncements({ flash, organizations, onChanged }) 
   const send = async (e) => {
     e.preventDefault();
     if (!form.title.trim() || !form.content.trim()) return setError("Write a title and a message.");
+    const problem = textProblem("words", form.title, "Title") || textProblem("words", form.content, "The announcement");
+    if (problem) return setError(problem);
     if (form.audience !== "everyone" && form.scope === "some" && form.orgIds.length === 0) return setError("Pick at least one organization.");
     setSending(true);
     try {

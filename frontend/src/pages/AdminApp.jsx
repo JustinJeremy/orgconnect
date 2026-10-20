@@ -25,6 +25,7 @@ import { UserAvatar } from "../components/Avatars.jsx";
 import { shortDate } from "../utils/format.js";
 import ReasonDialog from "../components/ReasonDialog.jsx";
 import { FIELD_LABELS } from "../components/OrgDetailsChange.jsx";
+import { keepAllowed, textProblem } from "../utils/validation.js";
 
 // A detail's value for the before/after table
 const show = (v) =>
@@ -614,7 +615,7 @@ function RequestDetails({ request, onClose, onApprove, onReject, onAskChanges, o
                 placeholder="Add a course, e.g. BSCpE"
                 maxLength={20}
                 value={newCourse}
-                onChange={(e) => setNewCourse(e.target.value)}
+                onChange={(e) => setNewCourse(keepAllowed("course", e.target.value))}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -641,6 +642,7 @@ function RejectDialog({ request, onClose, onReject }) {
   const submit = async (e) => {
     e.preventDefault();
     if (!note.trim()) return setError("Give the requester a reason.");
+    if (textProblem("words", note, "The reason")) return setError(textProblem("words", note, "The reason"));
     setBusy(true);
     await onReject(note.trim());
     setBusy(false);

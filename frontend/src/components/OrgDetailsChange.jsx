@@ -7,21 +7,22 @@ import { orgsApi } from "../api/services.js";
 import { errorMessage } from "../api/client.js";
 import { shortDate } from "../utils/format.js";
 import { ColorPicker } from "./OrgColors.jsx";
+import { keepAllowed, textProblem } from "../utils/validation.js";
 
 // President only (Profile): ask to change the org's details. An OrgConnect admin reviews the
 // request (with the reason) before anything changes; the latest request's status shows here.
 const FIELDS = [
-  { key: "name", label: "Organization name" },
-  { key: "shortName", label: "Short name", half: true },
-  { key: "college", label: "College", half: true },
-  { key: "tagline", label: "Tagline" },
-  { key: "description", label: "About the organization", long: true },
-  { key: "mission", label: "Mission", long: true },
-  { key: "vision", label: "Vision", long: true },
-  { key: "adviser", label: "Adviser", half: true },
+  { key: "name", label: "Organization name", kind: "orgName" },
+  { key: "shortName", label: "Short name", kind: "shortName", half: true },
+  { key: "college", label: "College", kind: "college", half: true },
+  { key: "tagline", label: "Tagline", kind: "words" },
+  { key: "description", label: "About the organization", kind: "words", long: true },
+  { key: "mission", label: "Mission", kind: "words", long: true },
+  { key: "vision", label: "Vision", kind: "words", long: true },
+  { key: "adviser", label: "Adviser", kind: "name", half: true },
   { key: "email", label: "Contact email", half: true },
-  { key: "office", label: "Office", half: true },
-  { key: "meetingSchedule", label: "Meeting schedule", half: true },
+  { key: "office", label: "Office", kind: "words", half: true },
+  { key: "meetingSchedule", label: "Meeting schedule", kind: "words", half: true },
   { key: "membershipFee", label: "Membership fee", half: true },
 ];
 export const FIELD_LABELS = { ...Object.fromEntries(FIELDS.map((f) => [f.key, f.label])), courses: "Courses that can join", color: "Color" };
@@ -85,11 +86,14 @@ function ChangeForm({ org, onClose, onSent }) {
   const [busy, setBusy] = useState(false);
 
   const change = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    const kind = FIELDS.find((f) => f.key === name)?.kind;
+    setForm({ ...form, [name]: kind ? keepAllowed(kind, value) : value });
     setError("");
   };
   const addCourse = () => {
     const c = newCourse.trim().toUpperCase();
+    if (textProblem("course", c)) return setError(textProblem("course", c));
     if (c && !courses.includes(c)) setCourses([...courses, c]);
     setNewCourse("");
   };
@@ -104,8 +108,11 @@ function ChangeForm({ org, onClose, onSent }) {
     if (courses.join(",") !== (org.courses || []).join(",")) data.courses = courses;
     if (themeKey) data.themeKey = themeKey;
     if (!Object.keys(data).length) return setError("Change at least one detail.");
+    const problem = FIELDS.map((f) => f.kind && f.key in data && textProblem(f.kind, data[f.key], f.label)).find(Boolean);
+    if (problem) return setError(problem);
     if (!courses.length) return setError("Keep at least one course.");
     if (!reason.trim()) return setError("Say why the details are changing.");
+    if (textProblem("words", reason, "The reason")) return setError(textProblem("words", reason, "The reason"));
     setBusy(true);
     try {
       await orgsApi.requestChanges({ ...data, reason: reason.trim() });
@@ -156,7 +163,7 @@ function ChangeForm({ org, onClose, onSent }) {
           </div>
           <div className="course-add">
             <label htmlFor="oc-course" className="sr-only">Add a course</label>
-            <input id="oc-course" className="input" placeholder="Add a course, e.g. BSCpE" maxLength={20} value={newCourse} onChange={(e) => setNewCourse(e.target.value)}
+            <input id="oc-course" className="input" placeholder="Add a course, e.g. BSCpE" maxLength={20} value={newCourse} onChange={(e) => setNewCourse(keepAllowed("course", e.target.value))}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCourse(); } }} />
             <button type="button" className="btn btn-outline" onClick={addCourse} disabled={!newCourse.trim()}><Icon name="plus" size={16} /> Add</button>
           </div>

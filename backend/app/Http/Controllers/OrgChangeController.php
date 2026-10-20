@@ -6,6 +6,7 @@ use App\Models\Organization;
 use App\Models\OrgChangeRequest;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Rules\TextFormat;
 use App\Support\OrgThemes;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -30,23 +31,23 @@ class OrgChangeController extends Controller
         $org = Organization::current();
 
         $data = $request->validate([
-            'name' => ['sometimes', 'required', 'string', 'max:120', Rule::unique('organizations', 'name')->ignore($org->id)],
-            'shortName' => 'sometimes|required|string|max:20',
-            'college' => 'sometimes|required|string|max:120',
-            'tagline' => 'sometimes|required|string|max:160',
-            'description' => 'sometimes|required|string|max:2000',
-            'mission' => 'sometimes|nullable|string|max:1000',
-            'vision' => 'sometimes|nullable|string|max:1000',
-            'adviser' => 'sometimes|nullable|string|max:120',
+            'name' => ['sometimes', 'required', 'string', 'max:120', TextFormat::orgName(), Rule::unique('organizations', 'name')->ignore($org->id)],
+            'shortName' => ['sometimes', 'required', 'string', 'max:20', TextFormat::shortName()],
+            'college' => ['sometimes', 'required', 'string', 'max:120', TextFormat::college()],
+            'tagline' => ['sometimes', 'required', 'string', 'max:160', TextFormat::words('Tagline')],
+            'description' => ['sometimes', 'required', 'string', 'max:2000', TextFormat::words('About the organization')],
+            'mission' => ['sometimes', 'nullable', 'string', 'max:1000', TextFormat::words('Mission')],
+            'vision' => ['sometimes', 'nullable', 'string', 'max:1000', TextFormat::words('Vision')],
+            'adviser' => ['sometimes', 'nullable', 'string', 'max:120', TextFormat::personName('Adviser')],
             'email' => 'sometimes|nullable|email|max:255',
-            'office' => 'sometimes|nullable|string|max:120',
-            'meetingSchedule' => 'sometimes|nullable|string|max:160',
+            'office' => ['sometimes', 'nullable', 'string', 'max:120', TextFormat::words('Office')],
+            'meetingSchedule' => ['sometimes', 'nullable', 'string', 'max:160', TextFormat::words('Meeting schedule')],
             'membershipFee' => 'sometimes|nullable|string|max:80',
             'courses' => 'sometimes|required|array|min:1|max:20',
-            'courses.*' => 'required|string|max:20|distinct:ignore_case',
+            'courses.*' => ['required', 'string', 'max:20', 'distinct:ignore_case', TextFormat::course()],
             // A new color (one no other org has)
             'themeKey' => ['sometimes', 'required', Rule::in(array_keys(OrgThemes::PRESETS)), Rule::notIn(OrgThemes::taken($org->id))],
-            'reason' => 'required|string|max:1000',
+            'reason' => ['required', 'string', 'max:1000', TextFormat::words('The reason')],
         ], [
             'themeKey.not_in' => 'Another organization already uses this color. Pick a different one.',
             'reason.required' => 'Say why the details are changing.',
@@ -91,7 +92,7 @@ class OrgChangeController extends Controller
         abort_unless($change->status === 'Pending', 422, 'This request was already reviewed.');
         $data = $request->validate([
             'decision' => 'required|in:Approved,Rejected',
-            'note' => 'required_if:decision,Rejected|nullable|string|max:500',
+            'note' => ['required_if:decision,Rejected', 'nullable', 'string', 'max:500', TextFormat::words('The reason')],
         ], ['note.required_if' => 'Give the President a reason.']);
         $org = $change->organization;
         $approved = $data['decision'] === 'Approved';

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\TextFormat;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Validator;
@@ -16,17 +17,17 @@ class EventRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title' => 'required|string|max:255',
+            'title' => ['required', 'string', 'max:255', TextFormat::words('Title')],
             'date' => 'required|date_format:Y-m-d',
             'category' => 'required|in:'.implode(',', self::CATEGORIES),
             'time' => 'required|date_format:H:i',
-            'location' => 'required|string|max:255',
+            'location' => ['required', 'string', 'max:255', TextFormat::words('Location')],
             'mode' => 'required|in:'.implode(',', self::MODES),
             'capacity' => 'required|integer|min:1',
-            'description' => 'nullable|string|max:2000',
+            'description' => ['nullable', 'string', 'max:2000', TextFormat::words('Description')],
             // What it covers, e.g. ["Blockchain", "Smart contracts"]
             'topics' => 'nullable|array|max:8',
-            'topics.*' => 'string|distinct|max:40',
+            'topics.*' => ['string', 'distinct', 'max:40', TextFormat::words('A topic')],
         ];
     }
 

@@ -10,6 +10,7 @@ use App\Models\Message;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Rules\TextFormat;
 use App\Support\Uploads;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -227,7 +228,7 @@ class MessageController extends Controller
     public function askChanges(Request $request, Organization $organization)
     {
         abort_unless($organization->status === 'Pending', 422, 'Only requests waiting for review can be sent back for changes.');
-        $data = $request->validate(['message' => 'required|string|max:2000'], ['message.required' => 'Say what needs to change.']);
+        $data = $request->validate(['message' => ['required', 'string', 'max:2000', TextFormat::words('Your message')]], ['message.required' => 'Say what needs to change.']);
 
         $organization->update(['changes_requested_at' => now()]);
         $conversation = Conversation::forOrg('request', $organization->id);

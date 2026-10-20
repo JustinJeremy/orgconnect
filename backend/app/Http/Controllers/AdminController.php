@@ -12,6 +12,7 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Models\VolunteerHour;
+use App\Rules\TextFormat;
 use App\Support\OrgThemes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -73,9 +74,9 @@ class AdminController extends Controller
         abort_unless($organization->status === 'Pending', 422, 'This request was already reviewed.');
         $data = $request->validate([
             'decision' => 'required|in:Approved,Rejected',
-            'note' => 'required_if:decision,Rejected|nullable|string|max:500',
+            'note' => ['required_if:decision,Rejected', 'nullable', 'string', 'max:500', TextFormat::words('The reason')],
             'courses' => 'sometimes|array|min:1|max:20',
-            'courses.*' => 'required|string|max:20|distinct:ignore_case',
+            'courses.*' => ['required', 'string', 'max:20', 'distinct:ignore_case', TextFormat::course()],
         ], ['note.required_if' => 'Give the requester a reason.']);
 
         if ($data['decision'] === 'Rejected') {
@@ -203,11 +204,11 @@ class AdminController extends Controller
     {
         abort_if($user->is_admin, 422, 'Admins change their own details on their profile.');
         $data = $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => ['required', 'string', 'max:255', Rule::when($request->input('name') !== $user->name, TextFormat::personName('Full name'))],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'studentId' => ['required', 'string', 'max:50', Rule::when($request->input('studentId') !== $user->student_id, 'regex:'.User::STUDENT_ID_FORMAT), Rule::unique('users', 'student_id')->ignore($user->id)],
-            'course' => 'required|string|max:50',
-            'yearLevel' => 'required|string|max:50',
+            'course' => ['required', 'string', 'max:50', Rule::when($request->input('course') !== $user->course, TextFormat::course())],
+            'yearLevel' => ['required', 'string', 'max:50', Rule::when($request->input('yearLevel') !== $user->year_level, Rule::in(TextFormat::YEAR_LEVELS))],
         ], [
             'email.unique' => 'An account with this email already exists.',
             'studentId.unique' => 'This student ID is already registered.',
@@ -244,7 +245,7 @@ class AdminController extends Controller
         $data = $request->validate([
             'status' => 'required|in:Active,Suspended',
             // Suspending needs a reason (its officers see it); reactivating may add a note
-            'reason' => 'required_if:status,Suspended|nullable|string|max:500',
+            'reason' => ['required_if:status,Suspended', 'nullable', 'string', 'max:500', TextFormat::words('The reason')],
         ], ['reason.required_if' => 'Give the officers a reason.']);
         $before = $organization->status;
         $note = trim((string) ($data['reason'] ?? '')) ?: null;

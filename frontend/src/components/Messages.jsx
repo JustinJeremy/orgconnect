@@ -7,6 +7,7 @@ import { UserAvatar } from "./Avatars.jsx";
 import { groupsApi, messagesApi } from "../api/services.js";
 import { errorMessage } from "../api/client.js";
 import { ATTACH_TYPES, attachmentProblem, fileSize, formatDate, relativeDate } from "../utils/format.js";
+import { textProblem } from "../utils/validation.js";
 
 const time = (iso) => new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 const day = (iso) => iso.slice(0, 10);
@@ -102,6 +103,7 @@ function PeoplePicker({ title, loadPeople, skipIds = [], withName = false, submi
   const submit = async (e) => {
     e.preventDefault();
     if (withName && !name.trim()) return setError("Give the group a name.");
+    if (withName && textProblem("words", name, "Group name")) return setError(textProblem("words", name, "Group name"));
     if (!picked.length) return setError("Pick at least one person.");
     setBusy(true);
     setError("");
@@ -195,6 +197,7 @@ function GroupInfo({ conversation, loadPeople, onChanged, onLeft, onOpenPerson, 
   const rename = async (e) => {
     e.preventDefault();
     if (!name.trim() || name.trim() === conversation.title) return;
+    if (textProblem("words", name, "Group name")) return setError(textProblem("words", name, "Group name"));
     try {
       await groupsApi.rename(conversation.id, name.trim());
       onChanged();

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\TextFormat;
 use Illuminate\Foundation\Http\FormRequest;
 
 class DecideApplicationRequest extends FormRequest
@@ -11,7 +12,7 @@ class DecideApplicationRequest extends FormRequest
         return [
             'status' => 'required|in:Approved,Rejected',
             // Shown to the applicant, so they know what to fix before applying again
-            'reason' => 'required_if:status,Rejected|nullable|string|max:500',
+            'reason' => ['required_if:status,Rejected', 'nullable', 'string', 'max:500', TextFormat::words('The reason')],
         ];
     }
 

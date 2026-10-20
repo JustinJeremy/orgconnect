@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\VolunteerHour;
+use App\Rules\TextFormat;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -11,7 +12,7 @@ class StoreHourRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'activity' => 'required|string|max:255',
+            'activity' => ['required', 'string', 'max:255', TextFormat::words('Activity')],
             'date' => 'required|date|before_or_equal:today',
             // Hours and minutes, e.g. 1 hr 15 min = 1.25 (at least 5 minutes)
             'hours' => 'required|numeric|decimal:0,2|min:0.08|max:24',

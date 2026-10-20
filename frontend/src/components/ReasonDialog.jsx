@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Modal from "./Modal.jsx";
+import { textProblem } from "../utils/validation.js";
 
 // Asks for a short reason before something happens (leaving an org, cancelling a request...).
 // onSubmit(reason) returns true when it worked (the dialog closes) or false (it stays open).
@@ -12,6 +13,7 @@ export default function ReasonDialog({ title, intro, label, placeholder, confirm
   const submit = async (e) => {
     e.preventDefault();
     if (!optional && !reason.trim()) return setError("Please give a reason.");
+    if (textProblem("words", reason, "The reason")) return setError(textProblem("words", reason, "The reason"));
     setBusy(true);
     const ok = await onSubmit(reason.trim());
     setBusy(false);
