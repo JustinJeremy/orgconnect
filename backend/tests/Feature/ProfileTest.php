@@ -83,4 +83,26 @@ class ProfileTest extends TestCase
 
         $this->postJson('/api/login', ['email' => 'juan@school.edu.ph', 'password' => 'newpassword1'])->assertOk();
     }
+
+    public function test_a_changed_student_id_must_look_like_2025_00142(): void
+    {
+        Setting::setFlag(Setting::DETAILS_OPEN, true);
+        $org = $this->compSoc();
+        $member = $this->person($org, 'member', 'Active', ['student_id' => 'OLD-ID-7']);
+        $admin = $this->person($this->secondOrg());
+        $admin->forceFill(['is_admin' => true])->save();
+        $body = ['name' => 'Juan D. Cruz', 'email' => 'juan.cruz@school.edu.ph', 'course' => 'BSCS', 'yearLevel' => '2nd year'];
+
+        // An older ID saved before the check can be kept, so the rest of the details still save
+        $this->actingIn($member, $org)->putJson('/api/user', ['studentId' => 'OLD-ID-7'] + $body)->assertOk();
+
+        $this->actingIn($member, $org)->putJson('/api/user', ['studentId' => 'abc123'] + $body)
+            ->assertStatus(422)->assertJsonValidationErrors('studentId');
+        $this->actingIn($admin, $org)->putJson("/api/admin/users/{$member->id}", ['studentId' => '2025-0014x'] + $body)
+            ->assertStatus(422)->assertJsonValidationErrors('studentId');
+        $this->assertSame('OLD-ID-7', $member->fresh()->student_id);
+
+        $this->actingIn($member, $org)->putJson('/api/user', ['studentId' => '2025-00142'] + $body)->assertOk();
+        $this->assertSame('2025-00142', $member->fresh()->student_id);
+    }
 }

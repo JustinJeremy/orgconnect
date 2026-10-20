@@ -14,7 +14,7 @@ import { useOrg } from "../context/OrgContext.jsx";
 import { orgsApi } from "../api/services.js";
 import { errorMessage } from "../api/client.js";
 import { COURSES, YEAR_LEVELS } from "../data/constants.js";
-import { myRegistration } from "../utils/format.js";
+import { STUDENT_ID, STUDENT_ID_ERROR, formatStudentId, myRegistration } from "../utils/format.js";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -36,7 +36,8 @@ function DetailsForm({ user, flash }) {
   const courses = COURSES.includes(formData.course) ? COURSES : [...COURSES, formData.course];
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: name === "studentId" ? formatStudentId(value) : value });
     setError("");
   };
 
@@ -47,6 +48,7 @@ function DetailsForm({ user, flash }) {
     if (locked) return;
     const data = { ...formData, name: formData.name.trim(), studentId: formData.studentId.trim(), email: formData.email.trim() };
     if (!data.name || !data.studentId || !data.email) return setError("Name, student ID and email are required.");
+    if (data.studentId !== user.studentId && !STUDENT_ID.test(data.studentId)) return setError(STUDENT_ID_ERROR);
     if (!EMAIL.test(data.email)) return setError("Enter a valid email address.");
 
     setSaving(true);
@@ -71,7 +73,7 @@ function DetailsForm({ user, flash }) {
         </div>
         <div className="field">
           <label htmlFor="pf-id">Student ID</label>
-          <input id="pf-id" className="input" name="studentId" value={formData.studentId} onChange={handleChange} />
+          <input id="pf-id" className="input" name="studentId" value={formData.studentId} onChange={handleChange} placeholder="2025-00000" inputMode="numeric" maxLength={10} />
         </div>
         <div className="field">
           <label htmlFor="pf-email">School email</label>

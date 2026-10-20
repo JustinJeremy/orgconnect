@@ -6,6 +6,7 @@ import { LeaderArt, StudentArt } from "./SignUpChooser.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useOrg } from "../context/OrgContext.jsx";
 import { COURSES, YEAR_LEVELS } from "../data/constants.js";
+import { STUDENT_ID, STUDENT_ID_ERROR, formatStudentId } from "../utils/format.js";
 
 const EMPTY = {
   name: "",
@@ -22,6 +23,7 @@ function validate(data) {
   const errors = {};
   if (!data.name.trim()) errors.name = "Enter your full name.";
   if (!data.studentId.trim()) errors.studentId = "Enter your student ID.";
+  else if (!STUDENT_ID.test(data.studentId.trim())) errors.studentId = STUDENT_ID_ERROR;
   if (!data.email.trim()) errors.email = "Enter your school email.";
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) errors.email = "Enter a valid email address.";
   if (data.password.length < 8) errors.password = "Use at least 8 characters.";
@@ -58,7 +60,8 @@ export default function SignUpForm({ onSwitch, onBack }) {
   const [showNotice, setShowNotice] = useState(false);
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, type, checked } = e.target;
+    const value = name === "studentId" ? formatStudentId(e.target.value) : e.target.value;
     setFormData({ ...formData, [name]: type === "checkbox" ? checked : value });
     setErrors({ ...errors, [name]: undefined });
     setFormError("");
@@ -126,7 +129,7 @@ export default function SignUpForm({ onSwitch, onBack }) {
             <label htmlFor="su-id">Student ID</label>
             <div className="input-icon">
               <Icon name="idCard" size={16} />
-              <input id="su-id" className={fieldClass("studentId")} name="studentId" value={formData.studentId} onChange={handleChange} placeholder="2025-00000" />
+              <input id="su-id" className={fieldClass("studentId")} name="studentId" value={formData.studentId} onChange={handleChange} placeholder="2025-00000" inputMode="numeric" maxLength={10} />
             </div>
             {errors.studentId && <span className="field-error">{errors.studentId}</span>}
           </div>
