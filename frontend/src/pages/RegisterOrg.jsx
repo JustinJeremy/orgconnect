@@ -10,6 +10,7 @@ import { COURSES } from "../data/constants.js";
 import { shortDate } from "../utils/format.js";
 import { UserAvatar } from "../components/Avatars.jsx";
 import { ColorPicker } from "../components/OrgColors.jsx";
+import { keepAllowed, textProblem } from "../utils/validation.js";
 
 // Bring a new org onto OrgConnect: the request form, then its status.
 //   Pending  -> waiting for an OrgConnect admin; the admin may ask for changes: their message, a
@@ -18,6 +19,15 @@ import { ColorPicker } from "../components/OrgColors.jsx";
 //   Rejected -> the admin's reason, and the form again (filled in) to send a new request
 const COMMON_COURSES = COURSES.filter((c) => c !== "Other");
 const EMPTY = { name: "", shortName: "", college: "", tagline: "", description: "", adviser: "", email: "", proofUrl: "" };
+// What each field may contain (utils/validation.js) and its label in messages
+const KIND = {
+  name: ["orgName", "Organization name"],
+  shortName: ["shortName", "Short name"],
+  college: ["college", "College"],
+  tagline: ["words", "Tagline"],
+  description: ["words", "About the organization"],
+  adviser: ["name", "Adviser"],
+};
 
 export default function RegisterOrg() {
   const { user, logout, endOrgRegistration, reloadOrgRequests } = useAuth();
@@ -107,8 +117,9 @@ function RequestForm({ previous, editing = false, onSent, onCancel }) {
   const [sending, setSending] = useState(false);
 
   const change = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-    setErrors({ ...errors, [e.target.name]: undefined });
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: KIND[name] ? keepAllowed(KIND[name][0], value) : value });
+    setErrors({ ...errors, [name]: undefined });
     setFormError("");
   };
 
@@ -121,6 +132,7 @@ function RequestForm({ previous, editing = false, onSent, onCancel }) {
   const addCourse = () => {
     const course = newCourse.trim().toUpperCase();
     if (!course) return;
+    if (textProblem("course", course)) return setErrors({ ...errors, courses: textProblem("course", course) });
     if (!courses.includes(course)) setCourses([...courses, course]);
     setNewCourse("");
     setErrors({ ...errors, courses: undefined });
@@ -131,8 +143,10 @@ function RequestForm({ previous, editing = false, onSent, onCancel }) {
     const found = {};
     ["name", "shortName", "college", "tagline", "description", "adviser", "email"].forEach((k) => {
       if (!form[k].trim()) found[k] = "Required.";
+      else if (KIND[k] && textProblem(KIND[k][0], form[k], KIND[k][1])) found[k] = textProblem(KIND[k][0], form[k], KIND[k][1]);
     });
     if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) found.email = "Enter a valid email address.";
+    if (form.proofUrl.trim() && !/^https?:\/\/\S+$/i.test(form.proofUrl.trim())) found.proofUrl = "Enter a full link starting with http:// or https://";
     if (!courses.length) found.courses = "Pick at least one course that can join.";
     setErrors(found);
     if (Object.keys(found).length) return;
@@ -210,7 +224,7 @@ function RequestForm({ previous, editing = false, onSent, onCancel }) {
             placeholder="Another course, e.g. BSCpE"
             maxLength={20}
             value={newCourse}
-            onChange={(e) => setNewCourse(e.target.value)}
+            onChange={(e) => setNewCourse(keepAllowed("course", e.target.value))}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();

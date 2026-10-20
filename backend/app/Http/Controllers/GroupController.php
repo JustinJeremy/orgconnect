@@ -6,6 +6,7 @@ use App\Models\Conversation;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Rules\TextFormat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
@@ -19,7 +20,7 @@ class GroupController extends Controller
     {
         $user = $request->user();
         $data = $request->validate([
-            'name' => 'required|string|max:60',
+            'name' => ['required', 'string', 'max:60', TextFormat::words('Group name')],
             'memberIds' => 'required|array|min:1|max:50',
             'memberIds.*' => 'integer',
         ], ['memberIds.required' => 'Add at least one person to the group.']);
@@ -67,7 +68,7 @@ class GroupController extends Controller
     {
         $user = $request->user();
         $this->inGroup($user, $conversation, write: true);
-        $name = trim($request->validate(['name' => 'required|string|max:60'])['name']);
+        $name = trim($request->validate(['name' => ['required', 'string', 'max:60', TextFormat::words('Group name')]])['name']);
         if ($name !== $conversation->name) {
             $conversation->update(['name' => $name]);
             $this->notice($conversation, $user, "{$user->name} renamed the group to {$name}");

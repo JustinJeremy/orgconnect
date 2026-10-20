@@ -15,6 +15,7 @@ import { orgsApi } from "../api/services.js";
 import { errorMessage } from "../api/client.js";
 import { COURSES, YEAR_LEVELS } from "../data/constants.js";
 import { STUDENT_ID, STUDENT_ID_ERROR, formatStudentId, myRegistration } from "../utils/format.js";
+import { keepAllowed, textProblem } from "../utils/validation.js";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -37,7 +38,7 @@ function DetailsForm({ user, flash }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: name === "studentId" ? formatStudentId(value) : value });
+    setFormData({ ...formData, [name]: name === "studentId" ? formatStudentId(value) : name === "name" ? keepAllowed("name", value) : value });
     setError("");
   };
 
@@ -48,6 +49,7 @@ function DetailsForm({ user, flash }) {
     if (locked) return;
     const data = { ...formData, name: formData.name.trim(), studentId: formData.studentId.trim(), email: formData.email.trim() };
     if (!data.name || !data.studentId || !data.email) return setError("Name, student ID and email are required.");
+    if (data.name !== user.name && textProblem("name", data.name, "Full name")) return setError(textProblem("name", data.name, "Full name"));
     if (data.studentId !== user.studentId && !STUDENT_ID.test(data.studentId)) return setError(STUDENT_ID_ERROR);
     if (!EMAIL.test(data.email)) return setError("Enter a valid email address.");
 

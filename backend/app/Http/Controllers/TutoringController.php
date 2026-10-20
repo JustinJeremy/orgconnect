@@ -14,6 +14,7 @@ use App\Models\TutoringSession;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Models\VolunteerHour;
+use App\Rules\TextFormat;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -116,7 +117,7 @@ class TutoringController extends Controller
         $user = $request->user();
         abort_unless($tutoringRequest->user_id === $user->id, 403, 'You can only cancel your own requests.');
         abort_unless(in_array($tutoringRequest->status, ['Pending', 'Confirmed'], true), 422, "A {$tutoringRequest->status} request can't be cancelled.");
-        $reason = trim($request->validate(['reason' => 'required|string|max:500'], ['reason.required' => 'Say why you are cancelling.'])['reason']);
+        $reason = trim($request->validate(['reason' => ['required', 'string', 'max:500', TextFormat::words('The reason')]], ['reason.required' => 'Say why you are cancelling.'])['reason']);
         $session = $tutoringRequest->session;
 
         if ($tutoringRequest->status === 'Confirmed') {
