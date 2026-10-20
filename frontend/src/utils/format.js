@@ -99,3 +99,13 @@ export function hoursText(value) {
   const minutes = Math.round((h - whole) * 60);
   return whole ? `${whole} hr ${minutes} min` : `${minutes} min`;
 }
+
+// Student IDs look like 2025-00142 (the server checks this too)
+export const STUDENT_ID = /^\d{4}-\d{5}$/;
+export const STUDENT_ID_ERROR = "Enter your student ID as numbers like 2025-00142.";
+
+// Keeps only digits while typing and adds the dash after the year: "202500142" -> "2025-00142"
+export function formatStudentId(value = "") {
+  const digits = value.replace(/\D/g, "").slice(0, 9);
+  return digits.length > 4 ? `${digits.slice(0, 4)}-${digits.slice(4)}` : digits;
+}

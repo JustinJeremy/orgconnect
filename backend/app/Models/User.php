@@ -25,6 +25,10 @@ class User extends Authenticatable
         'avatar_path',
     ];
 
+    // Student IDs look like 2025-00142 (year, dash, 5 digits)
+    public const STUDENT_ID_FORMAT = '/^\d{4}-\d{5}$/';
+    public const STUDENT_ID_MESSAGE = 'Enter your student ID as numbers like 2025-00142.';
+
     // Avatar characters a user can pick (drawn by frontend/src/components/Avatars.jsx)
     public const AVATARS = [
         'bun', 'cap', 'headband', 'glasses', 'curly', 'pigtails', 'spiky', 'bow',
